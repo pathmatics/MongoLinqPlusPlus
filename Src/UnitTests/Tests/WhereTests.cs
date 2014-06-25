@@ -20,6 +20,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
+using System;
 using System.Linq;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
@@ -102,6 +103,14 @@ namespace MongoLinqPlusPlus.Tests
         {
             Assert.IsTrue(TestHelpers.AreEqual(new[] { _mongoQuery, _memryQuery }.Select(queryable =>
                 queryable.Where(c => c.FirstName == "Tom").Where(c => c.CurrentAddress.State == States.WA).Where(c => true).Where(c => c.NumPets != 3)
+            )));
+        }
+
+        [TestMethod]
+        public void Where_Static()
+        {
+            Assert.IsTrue(TestHelpers.AreEqual(new[] { _mongoQuery, _memryQuery }.Select(queryable =>
+                queryable.Where(c => c.Birthday < DateTime.Today)
             )));
         }
     }

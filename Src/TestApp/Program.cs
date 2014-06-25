@@ -33,12 +33,10 @@ namespace MongoLinqPlusPlus.TestApp
 
         static void Main()
         {
-            var startDate = DateTime.Today;
             Assert.IsTrue(TestHelpers.AreEqual(new[] { _mongoQuery, _memryQuery }.Select(queryable =>
-                queryable.Where(c => c.Birthday < startDate)
+                queryable.Where(c => c.Birthday < DateTime.Today)
 
             )));
-
 
             /*
             Console.WriteLine("\r\n------------ TEST PROGRAM RESULTS -------------\r\n");

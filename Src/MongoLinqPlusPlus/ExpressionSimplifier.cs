@@ -160,7 +160,8 @@ namespace MongoLinqPlusPlus
             if (expression is MemberExpression)
             {
                 var memExp = (MemberExpression) expression;
-                return new[] { memExp.Expression };
+                // memExp can be null if accessing a member of a static class
+                return memExp.Expression == null ? new Expression[0] : new[] { memExp.Expression };
             }
 
             if (expression is NewExpression)
