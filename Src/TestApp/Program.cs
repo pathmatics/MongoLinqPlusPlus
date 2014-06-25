@@ -33,8 +33,9 @@ namespace MongoLinqPlusPlus.TestApp
 
         static void Main()
         {
+
             Assert.IsTrue(TestHelpers.AreEqual(new[] { _mongoQuery, _memryQuery }.Select(queryable =>
-                queryable.Select(c => c.NumPets).Average()
+                queryable.OrderBy(c => c.Birthday)
             )));
 
 

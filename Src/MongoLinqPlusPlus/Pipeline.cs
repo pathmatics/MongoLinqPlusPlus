@@ -71,9 +71,9 @@ namespace MongoLinqPlusPlus
 
     internal class MongoPipeline<TDocType>
     {
-        private const string PIPELINE_DOCUMENT_RESULT_NAME  = "_result_";
+        private const string PIPELINE_DOCUMENT_RESULT_NAME = "_result_";
 
-        JsonWriterSettings _jsonWriterSettings = new JsonWriterSettings { OutputMode = JsonOutputMode.Strict, Indent = true, NewLineChars = "\r\n" };
+        private JsonWriterSettings _jsonWriterSettings = new JsonWriterSettings {OutputMode = JsonOutputMode.Strict, Indent = true, NewLineChars = "\r\n"};
 
         private List<PipelineStage> _pipeline = new List<PipelineStage>();
         private PipelineResultType _lastPipelineOperation = PipelineResultType.Select;
@@ -168,7 +168,7 @@ namespace MongoLinqPlusPlus
                     return prefix + bsonElementAttribute.ElementName;
 
                 // Get the BsonIdAttribute that MIGHT be decorating the field/property we're accessing
-                var bsonIdAttribute =  (BsonIdAttribute) member.GetCustomAttributes(typeof(BsonIdAttribute), true).SingleOrDefault();
+                var bsonIdAttribute = (BsonIdAttribute) member.GetCustomAttributes(typeof (BsonIdAttribute), true).SingleOrDefault();
                 if (bsonIdAttribute != null)
                     return prefix + "_id";
 
@@ -178,6 +178,12 @@ namespace MongoLinqPlusPlus
 
                 // At this point, we should just use the member name
                 return prefix + member.Name;
+            }
+
+            if (expression.NodeType == ExpressionType.Parameter)
+            {
+                // Handle a the field name for .OrderBy(c => c)
+                return PIPELINE_DOCUMENT_RESULT_NAME;
             }
 
             throw new InvalidQueryException("Can't get Mongo field name for expression type " + expression.NodeType);
@@ -215,15 +221,14 @@ namespace MongoLinqPlusPlus
 
                 // Get the mongo field names for each property in the new {...}
                 var fieldNames = newExp.Arguments
-                                       .Select((c, i) => new
-                                       {
-                                           MongoFieldName = GetMongoFieldName(c),
-                                           KeyFieldName = newExpProperties[i].Name
-                                       })
-                                       .Select(c => new BsonElement(c.KeyFieldName, "$" + c.MongoFieldName));
+                    .Select((c, i) => new {
+                        MongoFieldName = GetMongoFieldName(c),
+                        KeyFieldName = newExpProperties[i].Name
+                    })
+                    .Select(c => new BsonElement(c.KeyFieldName, "$" + c.MongoFieldName));
 
                 // Perform the grouping on the multi-part key
-                var pipelineOperation = new BsonDocument { new BsonElement("_id", new BsonDocument(fieldNames)) };
+                var pipelineOperation = new BsonDocument {new BsonElement("_id", new BsonDocument(fieldNames))};
                 AddToPipeline("$group", pipelineOperation).GroupNeedsCleanup = true;
                 return;
             }
@@ -421,7 +426,7 @@ namespace MongoLinqPlusPlus
                         return BuildMongoSelectExpression(Expression.MakeBinary(ExpressionType.Add, Expression.Constant(0), constExp));
                     }
 
-                    if (constExp.Type == typeof(string))
+                    if (constExp.Type == typeof (string))
                     {
                         // Build an expression concatenating the string with nothing else
                         return new BsonDocument("$concat", new BsonArray(new[] {new BsonString((string) constExp.Value)}));
@@ -544,13 +549,12 @@ namespace MongoLinqPlusPlus
 
                 // Get the mongo field names for each property in the new {...}
                 var fieldNames = newExp.Arguments
-                                       .Select((c, i) => new
-                                       {
-                                           FieldName = newExpProperties[i].Name,
-                                           ExpressionValue = BuildMongoSelectExpression(c, true)
-                                       })
-                                       .Select(c => new BsonElement(c.FieldName, c.ExpressionValue))
-                                       .ToList();
+                    .Select((c, i) => new {
+                        FieldName = newExpProperties[i].Name,
+                        ExpressionValue = BuildMongoSelectExpression(c, true)
+                    })
+                    .Select(c => new BsonElement(c.FieldName, c.ExpressionValue))
+                    .ToList();
 
                 // Remove the unnecessary _id field
                 fieldNames.Add(new BsonElement("_id", new BsonInt32(0)));
@@ -617,6 +621,7 @@ namespace MongoLinqPlusPlus
             });
         }
 
+        /// <summary>Adds a pipeline stage ($group) for the specified aggregation (Sum, Min, Max, Average)</summary>
         public void EmitPipeLineStageForAggregation(string cSharpAggregationName, LambdaExpression lambdaExp)
         {
             string mongoAggregationName = "$" + NodeToMongoAggregationOperatorDict[cSharpAggregationName];
@@ -625,27 +630,22 @@ namespace MongoLinqPlusPlus
             //    .Sum()
             //    .Sum(c => c.NumPets + 1)
 
-            // Handle the simple case: .Sum()
-            // In this case we want to sum the single document value in the PIPELINE_DOCUMENT_RESULT_NAME field
-            if (lambdaExp == null)
-            {
-                AddToPipeline("$group", new BsonDocument {
-                    {"_id", new BsonDocument()},
-                    {PIPELINE_DOCUMENT_RESULT_NAME, new BsonDocument(mongoAggregationName, "$" + PIPELINE_DOCUMENT_RESULT_NAME)}
-                });
-                return;
-            }
+            BsonValue bsonValue = lambdaExp == null ? "$" + PIPELINE_DOCUMENT_RESULT_NAME : BuildMongoSelectExpression(lambdaExp.Body);
 
-            // Handle the hard case: .Sum(c => c.NumPets + 1)
             AddToPipeline("$group", new BsonDocument {
                 {"_id", new BsonDocument()},
-                {PIPELINE_DOCUMENT_RESULT_NAME, new BsonDocument(mongoAggregationName, BuildMongoSelectExpression(lambdaExp.Body))}
+                {PIPELINE_DOCUMENT_RESULT_NAME, new BsonDocument(mongoAggregationName, bsonValue)}
             });
         }
 
-        /// <summary>
-        /// Adds the respective pipeline stage(s) for the supplied method call
-        /// </summary>
+        /// <summary>Adds a pipeline stage ($sort) for OrderBy and OrderByDescending</summary>
+        public void EmitPipelineStageForOrderBy(LambdaExpression lambdaExp, bool ascending)
+        {
+            string field = GetMongoFieldName(lambdaExp.Body);
+            AddToPipeline("$sort", new BsonDocument(field, ascending ? 1 : -1));
+        }
+
+        /// <summary>Adds the respective pipeline stage(s) for the supplied method call</summary>
         public void EmitPipelineStageForMethod(MethodCallExpression expression)
         {
             // Our pipeline is a series of chained MethodCallExpression
@@ -696,11 +696,11 @@ namespace MongoLinqPlusPlus
                     return;
                 }
                 case "OrderBy":
-                    // TODO: support .Select(c => c.Age).OrderBy(c => c)
-                    break;
+                    EmitPipelineStageForOrderBy(GetLambda(expression), true);
+                    return;
                 case "OrderByDescending":
-                    // TODO: support .Select(c => c.Age).OrderByDescending(c => c)
-                    break;
+                    EmitPipelineStageForOrderBy(GetLambda(expression), false);
+                    return;
                 case "Count":
                     EmitPipelineStageForCount(GetLambda(expression));
                     _lastPipelineOperation = PipelineResultType.Aggregation;

@@ -50,13 +50,14 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="SelectTests.cs" />
+    <Compile Include="Tests\SelectTests.cs" />
     <Compile Include="TestData.cs" />
     <Compile Include="TestDocument.cs" />
     <Compile Include="TestHelpers.cs" />
     <Compile Include="TestRepository.cs" />
-    <Compile Include="AggregationTests.cs" />
-    <Compile Include="WhereTests.cs" />
+    <Compile Include="Tests\AggregationTests.cs" />
+    <Compile Include="Tests\OrderByTests.cs" />
+    <Compile Include="Tests\WhereTests.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />
