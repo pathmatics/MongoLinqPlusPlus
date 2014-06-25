@@ -27,19 +27,17 @@ namespace MongoLinqPlusPlus.Tests
 {
     public partial class TestRepository
     {
-        public const string COLLECTION_NAME = "people";
-
         public MongoDatabase Database
         {
             get
             {
-                MongoDefaults.MaxConnectionIdleTime = TimeSpan.FromMinutes(100);
+                MongoDefaults.MaxConnectionIdleTime = TimeSpan.FromMinutes(1);
                 var client = new MongoClient("mongodb://localhost");
-                return client.GetServer().GetDatabase("test");
+                return client.GetServer().GetDatabase("mongoLinqPlusPlus");
             }
         }
 
-        public MongoCollection<TestDocument> Collection { get { return Database.GetCollection<TestDocument>(COLLECTION_NAME); } }
+        public MongoCollection<TestDocument> Collection { get { return Database.GetCollection<TestDocument>("test"); } }
 
         public void LoadTestData()
         {
