@@ -33,9 +33,10 @@ namespace MongoLinqPlusPlus.TestApp
 
         static void Main()
         {
-
+            var startDate = DateTime.Today;
             Assert.IsTrue(TestHelpers.AreEqual(new[] { _mongoQuery, _memryQuery }.Select(queryable =>
-                queryable.GroupBy(c => c.FirstName)
+                queryable.Where(c => c.Birthday < startDate)
+
             )));
 
 

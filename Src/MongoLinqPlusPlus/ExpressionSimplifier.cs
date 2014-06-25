@@ -90,11 +90,6 @@ namespace MongoLinqPlusPlus
                 return true;
             }
 
-            // Don't allow Lambdas to be simplified by themselves but allow them to be used in other
-            // expressions that can be evaluated locally.
-            if (expression.NodeType == ExpressionType.Lambda || expression.NodeType == ExpressionType.Quote) 
-                return true;
-
             // TODO: Improve logic here so that some parameter expressions can be evaluated locally.
             // Right now, this doesn't simplify: .Where(c => c.Age == localArray.Count(d => d.Years))
             if (expression.NodeType == ExpressionType.Parameter)
@@ -111,6 +106,11 @@ namespace MongoLinqPlusPlus
                                               CanBeUsedInSimplification = SaveIfSimplifiable(rootQueryable, c)
                                           })
                                           .ToArray();
+
+            // Don't allow Lambdas to be simplified by themselves but allow them to be used in other
+            // expressions that can be evaluated locally.
+            if (expression.NodeType == ExpressionType.Lambda || expression.NodeType == ExpressionType.Quote)
+                return true;
 
             // This node can be used in a simplification if all children can
             if (childrenResults.All(c => c.CanBeUsedInSimplification))
