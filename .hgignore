@@ -1,0 +1,9 @@
+syntax: glob
+*.suo
+*.csproj.user
+*.DotSettings.user
+StyleCop.Cache
+syntax: regexp
+Src/.*/bin/
+Src/.*/obj/
+Src/.*/csx/
