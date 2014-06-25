@@ -63,7 +63,7 @@ namespace MongoLinqPlusPlus.Tests
             )));
 
             Assert.IsTrue(TestHelpers.AreEqual(new[] { _mongoQuery, _memryQuery }.Select(queryable =>
-                queryable.Where(c => c.CurrentAddress.State == State.CA || c.CurrentAddress.State == State.WA)
+                queryable.Where(c => c.CurrentAddress.State == States.CA || c.CurrentAddress.State == States.WA)
             )));
         }
 
@@ -75,7 +75,7 @@ namespace MongoLinqPlusPlus.Tests
             )));
 
             Assert.IsTrue(TestHelpers.AreEqual(new[] { _mongoQuery, _memryQuery }.Select(queryable =>
-                queryable.Where(c => !c.IsMale || c.NumPets >= 2)
+                queryable.Where(c => !c.IsMale || c.NumPets >=2)
             )));
 
             Assert.IsTrue(TestHelpers.AreEqual(new[] { _mongoQuery, _memryQuery }.Select(queryable =>
@@ -93,7 +93,7 @@ namespace MongoLinqPlusPlus.Tests
             Assert.IsTrue(TestHelpers.AreEqual(new[] { _mongoQuery, _memryQuery }.Select(queryable =>
                 queryable.Where(c => (c.FirstName != "John" || c.FirstName == "Bob" || c.FirstName == "June")
                                 && (c.IsMale || (!c.IsMale && c.NumPets >= 1))
-                                && (c.CurrentAddress.State != State.WA))
+                                && (c.CurrentAddress.State != States.WA))
             )));
         }
 
@@ -101,7 +101,7 @@ namespace MongoLinqPlusPlus.Tests
         public void Where_Chained()
         {
             Assert.IsTrue(TestHelpers.AreEqual(new[] { _mongoQuery, _memryQuery }.Select(queryable =>
-                queryable.Where(c => c.FirstName == "Tom").Where(c => c.CurrentAddress.State == State.WA)
+                queryable.Where(c => c.FirstName == "Tom").Where(c => c.CurrentAddress.State == States.WA).Where(c => true).Where(c => c.NumPets != 3)
             )));
         }
     }

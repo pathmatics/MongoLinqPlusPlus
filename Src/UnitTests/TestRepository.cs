@@ -25,6 +25,9 @@ using MongoDB.Driver;
 
 namespace MongoLinqPlusPlus.Tests
 {
+    /// <summary>
+    /// Test repository that connects to a mongo server running on localhost
+    /// </summary>
     public partial class TestRepository
     {
         public MongoDatabase Database

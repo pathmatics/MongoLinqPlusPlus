@@ -28,8 +28,10 @@ using Newtonsoft.Json;
 
 namespace MongoLinqPlusPlus.Tests
 {
+    /// <summary>Helpers for our unit tests</summary>
     public static class TestHelpers
     {
+        /// <summary>Initialize our Mongo database with fresh data and get an IQueryable to it</summary>
         public static IQueryable<TestDocument> InitMongo()
         {
             var repo = new TestRepository();
@@ -38,7 +40,11 @@ namespace MongoLinqPlusPlus.Tests
             return new TestRepository().Collection.AsAggregationQueryable();
         }
 
-        public static int MyGetHashCode(object obj)
+        /// <summary>
+        /// My own implementation of GetHashCode since the built in function wasn't giving me different
+        /// results for objects which looked the same to my eyeballs.  (Perhaps including private members?)
+        /// </summary>
+        private static int MyGetHashCode(object obj)
         {
             if (obj == null)
                 return 0;
@@ -47,7 +53,7 @@ namespace MongoLinqPlusPlus.Tests
             {
                 var type = obj.GetType();
 
-                // Handle any simple type
+                // Handle any well known type with the default implementation
                 if (obj is int || obj is long || obj is bool || obj is char || obj is byte || obj is DateTime || obj is double || obj is float || obj is string || obj is Enum)
                     return obj.GetHashCode();
 
@@ -77,7 +83,7 @@ namespace MongoLinqPlusPlus.Tests
                     hashCode += MyGetHashCode(subItem);
                 }
 
-                // Sum public field
+                // Sum public fields
                 foreach (var subItem in type.GetFields()
                                            .Where(c => c.IsPublic)
                                            .Select(c => c.GetValue(obj)))
@@ -89,6 +95,11 @@ namespace MongoLinqPlusPlus.Tests
             }
         }
 
+        /// <summary>
+        /// Accepts an IEnumerable of two objects (which might be unevaluated queries) and confirms they contains the same type and underlying data.
+        /// </summary>
+        /// <param name="objects">IEnumerable of exactly two objects</param>
+        /// <returns></returns>
         public static bool AreEqual(IEnumerable<object> objects)
         {
             var objectArray = objects.ToArray();
@@ -98,6 +109,8 @@ namespace MongoLinqPlusPlus.Tests
             var areEqual = AreEqual(objectArray[0], objectArray[1]);
             if (areEqual)
                 return true;
+
+            // FAIL.  Output the results sets for visual inspection.
 
             // Boo :(  Run our query again to we can output the JSON.
             object mongoResultObject = objectArray[0] is IEnumerable<object> ? ((IEnumerable<object>) objectArray[0]).ToArray() : objectArray[0];
@@ -121,12 +134,18 @@ namespace MongoLinqPlusPlus.Tests
             return false;
         }
 
-        public static bool AreEqual(object mongoObj, object memryObj)
+        /// <summary>Checks if two objects are of the same type and contain the same data.</summary>
+        /// <param name="mongoObj">Object (which might be unevaluated IEnumerable) contains results of Mongo query</param>
+        /// <param name="memryObj">Object (which might be unevaluated IEnumerable) contains results of in memory query</param>
+        /// <returns>True if they contain the same type and data, otherwise false.</returns>
+        private static bool AreEqual(object mongoObj, object memryObj)
         {
             // Handle an enumerable type
             if (mongoObj is IEnumerable && memryObj is IEnumerable)
             {
                 bool isOrdered = mongoObj is IOrderedEnumerable<object>;
+
+                // TODO: What about IGrouping?
 
                 // Enumerate it!
                 var mongoArray = ((IEnumerable) mongoObj).Cast<object>().ToArray();

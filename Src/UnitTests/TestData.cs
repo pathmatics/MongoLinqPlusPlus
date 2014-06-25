@@ -27,13 +27,13 @@ namespace MongoLinqPlusPlus.Tests
     public partial class TestRepository
     {
         private static Address[] Addresses = {
-            new Address { Street = "2001 4th St", City = "Santa Monica", Zip = 90405, State = State.CA },
-            new Address { Street = "41 Santa Monica Blvd", City = "Santa Monica", Zip = 90401, State = State.CA },
-            new Address { Street = "230 Pacific St", Apartment = 203, City = "Santa Monica", Zip = 90405, State = State.CA },
-            new Address { Street = "230 Pacific St", Apartment = 301, City = "Santa Monica", Zip = 90405, State = State.CA },
-            new Address { Street = "12 Smokerise Dr", City = "Warren", Zip = 07059, State = State.NJ },
-            new Address { Street = "21541 E. Greenlake Way", City = "Seattle", Zip = 98106, State = State.WA },
-            new Address { Street = "33333 E. Greenlake Way", Apartment = 15, City = "Seattle", Zip = 98106, State = State.WA },
+            new Address { Street = "2001 4th St", City = "Santa Monica", Zip = 90405, State = States.CA },
+            new Address { Street = "41 Santa Monica Blvd", City = "Santa Monica", Zip = 90401, State = States.CA },
+            new Address { Street = "230 Pacific St", Apartment = 203, City = "Santa Monica", Zip = 90405, State = States.CA },
+            new Address { Street = "230 Pacific St", Apartment = 301, City = "Santa Monica", Zip = 90405, State = States.CA },
+            new Address { Street = "12 Smokerise Dr", City = "Warren", Zip = 07059, State = States.NJ },
+            new Address { Street = "21541 E. Greenlake Way", City = "Seattle", Zip = 98106, State = States.WA },
+            new Address { Street = "33333 E. Greenlake Way", Apartment = 15, City = "Seattle", Zip = 98106, State = States.WA },
         };
 
         public static TestDocument[] TestDocuments = {

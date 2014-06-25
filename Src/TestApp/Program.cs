@@ -34,7 +34,6 @@ namespace MongoLinqPlusPlus.TestApp
         static void Main()
         {
 
-
             // Note that NumPets matches a field name in our document
             Assert.IsTrue(TestHelpers.AreEqual(new[] { _mongoQuery, _memryQuery }.Select(queryable =>
                 queryable.Select(c =>  true)
@@ -49,6 +48,7 @@ namespace MongoLinqPlusPlus.TestApp
             var json = JsonConvert.SerializeObject(results, Formatting.Indented);
             Console.WriteLine(json);
             */
+
             if (System.Diagnostics.Debugger.IsAttached)
             {
                 Console.WriteLine("\r\nPress any key to exit.");

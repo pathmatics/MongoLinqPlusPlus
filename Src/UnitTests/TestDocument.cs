@@ -25,7 +25,7 @@ using MongoDB.Bson.Serialization.Attributes;
 
 namespace MongoLinqPlusPlus.Tests
 {
-    public enum State
+    public enum States
     {
         CA, NY, NJ, WA, IL
     }
@@ -35,7 +35,7 @@ namespace MongoLinqPlusPlus.Tests
         public string Street;
         public int Apartment;
         public string City;
-        public State State;
+        public States State;
         public int Zip;
     }
 

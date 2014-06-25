@@ -117,7 +117,7 @@ namespace MongoLinqPlusPlus.Tests
                     NumPets = c.NumPets * 15 - 2,
                     NumPetsAgain = c.NumPets * 15 - 2,
                     State = c.CurrentAddress.State,
-                    IsInCali = c.CurrentAddress.State == State.CA,
+                    IsInCali = c.CurrentAddress.State == States.CA,
                     c.SSN
                 })
             )));
