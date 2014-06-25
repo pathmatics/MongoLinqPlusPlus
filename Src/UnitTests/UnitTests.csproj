@@ -55,6 +55,7 @@
     <Compile Include="TestDocument.cs" />
     <Compile Include="TestHelpers.cs" />
     <Compile Include="TestRepository.cs" />
+    <Compile Include="AggregationTests.cs" />
     <Compile Include="WhereTests.cs" />
   </ItemGroup>
   <ItemGroup>

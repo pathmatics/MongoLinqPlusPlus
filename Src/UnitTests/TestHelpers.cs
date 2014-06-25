@@ -100,9 +100,9 @@ namespace MongoLinqPlusPlus.Tests
         /// </summary>
         /// <param name="objects">IEnumerable of exactly two objects</param>
         /// <returns></returns>
-        public static bool AreEqual(IEnumerable<object> objects)
+        public static bool AreEqual(IEnumerable objects)
         {
-            var objectArray = objects.ToArray();
+            var objectArray = objects.Cast<object>().ToArray();
             if (objectArray.Length != 2)
                 throw new ArgumentException("Can only compare 2 objects.");
 

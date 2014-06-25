@@ -568,27 +568,6 @@ namespace MongoLinqPlusPlus
             });
         }
 
-        /// <summary>Adds a new $project stage to the pipeline for a .Count method call</summary>
-        public void EmitPipelineStageForCount(LambdaExpression lambdaExp)
-        {
-            // Handle 2 cases:
-            //    .Count()
-            //    .Count(c => c.Age > 25)
-
-            // The hard case: .Count(c => c.Age > 25)
-            // Can be rewritten as .Where(c => c.Age > 25).Count()
-            if (lambdaExp != null)
-            {
-                EmitPipelinesStageForWhere(lambdaExp);
-            }
-
-            // Handle the simple case: .Count()
-            AddToPipeline("$group", new BsonDocument {
-                {"_id", new BsonDocument()},
-                {PIPELINE_DOCUMENT_RESULT_NAME, new BsonDocument("$sum", 1)}
-            });
-        }
-
         /// <summary>Adds a new $match stage to the pipeline for a .Where method call</summary>
         public void EmitPipelinesStageForWhere(LambdaExpression lambdaExp)
         {
@@ -615,6 +594,53 @@ namespace MongoLinqPlusPlus
         public void EmitPipelineStageForSkip(int limit)
         {
             AddToPipeline("$skip", new BsonInt32(limit));
+        }
+
+        /// <summary>Adds a new $project stage to the pipeline for a .Count method call</summary>
+        public void EmitPipelineStageForCount(LambdaExpression lambdaExp)
+        {
+            // Handle 2 cases:
+            //    .Count()
+            //    .Count(c => c.Age > 25)
+
+            // The hard case: .Count(c => c.Age > 25)
+            // Can be rewritten as .Where(c => c.Age > 25).Count()
+            if (lambdaExp != null)
+            {
+                EmitPipelinesStageForWhere(lambdaExp);
+            }
+
+            // Handle the simple case: .Count()
+            AddToPipeline("$group", new BsonDocument {
+                {"_id", new BsonDocument()},
+                {PIPELINE_DOCUMENT_RESULT_NAME, new BsonDocument("$sum", 1)}
+            });
+        }
+
+        public void EmitPipeLineStageForAggregation(string cSharpAggregationName, LambdaExpression lambdaExp)
+        {
+            string mongoAggregationName = "$" + NodeToMongoAggregationOperatorDict[cSharpAggregationName];
+
+            // Handle 2 cases:
+            //    .Sum()
+            //    .Sum(c => c.NumPets + 1)
+
+            // Handle the simple case: .Sum()
+            // In this case we want to sum the single document value in the PIPELINE_DOCUMENT_RESULT_NAME field
+            if (lambdaExp == null)
+            {
+                AddToPipeline("$group", new BsonDocument {
+                    {"_id", new BsonDocument()},
+                    {PIPELINE_DOCUMENT_RESULT_NAME, new BsonDocument(mongoAggregationName, "$" + PIPELINE_DOCUMENT_RESULT_NAME)}
+                });
+                return;
+            }
+
+            // Handle the hard case: .Sum(c => c.NumPets + 1)
+            AddToPipeline("$group", new BsonDocument {
+                {"_id", new BsonDocument()},
+                {PIPELINE_DOCUMENT_RESULT_NAME, new BsonDocument(mongoAggregationName, BuildMongoSelectExpression(lambdaExp.Body))}
+            });
         }
 
         /// <summary>
@@ -683,8 +709,9 @@ namespace MongoLinqPlusPlus
                 case "Max":
                 case "Min":
                 case "Average":
+                    EmitPipeLineStageForAggregation(expression.Method.Name, GetLambda(expression));
                     _lastPipelineOperation = PipelineResultType.Aggregation;
-                    break;
+                    return;
                 case "First":
                     EmitPipelineStageForTake(1);
                     _lastPipelineOperation = PipelineResultType.First;

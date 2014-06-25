@@ -33,10 +33,8 @@ namespace MongoLinqPlusPlus.TestApp
 
         static void Main()
         {
-
-            // Note that NumPets matches a field name in our document
             Assert.IsTrue(TestHelpers.AreEqual(new[] { _mongoQuery, _memryQuery }.Select(queryable =>
-                queryable.Select(c =>  true)
+                queryable.Select(c => c.NumPets).Average()
             )));
 
 
