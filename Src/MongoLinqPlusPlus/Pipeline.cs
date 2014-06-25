@@ -789,7 +789,6 @@ namespace MongoLinqPlusPlus
             {
                 var groupDoc = GetLastOccurrenceOfPipelineStage("$group", false);
                 groupDoc.Add("Values", new BsonDocument("$push", "$$ROOT"));
-                int x = 1;
             }
 
             // Run our actual aggregation command against mongo
