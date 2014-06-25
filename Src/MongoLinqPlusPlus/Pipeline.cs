@@ -241,7 +241,7 @@ namespace MongoLinqPlusPlus
         /// </summary>
         private BsonValue GetBsonValueFromObject(object obj)
         {
-            if (obj is int)
+            if (obj is int || obj is Enum)
                 return new BsonInt32((int) obj);
 
             if (obj is long)

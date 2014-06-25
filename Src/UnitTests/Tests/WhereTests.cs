@@ -113,5 +113,27 @@ namespace MongoLinqPlusPlus.Tests
                 queryable.Where(c => c.Birthday < DateTime.Today)
             )));
         }
+
+        [TestMethod]
+        public void Where_ArrayContains()
+        {
+            int[] numPetsArray = {2, 3, 4};
+            Assert.IsTrue(TestHelpers.AreEqual(new[] { _mongoQuery, _memryQuery }.Select(queryable =>
+                queryable.Where(c => numPetsArray.Contains(c.NumPets))
+            )));
+
+            States[] statesArray = {States.WA, States.CA};
+            Assert.IsTrue(TestHelpers.AreEqual(new[] { _mongoQuery, _memryQuery }.Select(queryable =>
+                queryable.Where(c => statesArray.Contains(c.CurrentAddress.State))
+            )));
+
+            Assert.IsTrue(TestHelpers.AreEqual(new[] { _mongoQuery, _memryQuery }.Select(queryable =>
+                queryable.Where(c => new[] { 2, 3, 4 }.Contains(c.NumPets))
+            )));
+
+            Assert.IsTrue(TestHelpers.AreEqual(new[] { _mongoQuery, _memryQuery }.Select(queryable =>
+                queryable.Where(c => new[] { States.WA, States.CA }.Contains(c.CurrentAddress.State))
+            )));
+        }
     }
 }
