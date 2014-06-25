@@ -34,14 +34,12 @@ namespace MongoLinqPlusPlus.TestApp
         static void Main()
         {
 
+              // Note that NumPets matches a field name in our document
             Assert.IsTrue(TestHelpers.AreEqual(new[] { _mongoQuery, _memryQuery }.Select(queryable =>
-                queryable.Where(c => new[] { 2, 3, 4 }.Contains(c.NumPets))
+                queryable.Select(c => new {NumPets = 0})
             )));
-            /*
-            Assert.IsTrue(TestHelpers.AreEqual(new[] { _mongoQuery, _memryQuery }.Select(queryable =>
-                queryable.Where(c => new[] { States.WA, States.CA }.Contains(c.CurrentAddress.State))
-            )));
-            */
+
+
             /*
             Console.WriteLine("\r\n------------ TEST PROGRAM RESULTS -------------\r\n");
             var results = _memryQuery.Select(c => new { NumPets = 1 })

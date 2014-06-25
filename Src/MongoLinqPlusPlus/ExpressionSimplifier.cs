@@ -176,6 +176,12 @@ namespace MongoLinqPlusPlus
                 return new[] { lambdaExp.Body };
             }
 
+            if (expression is NewArrayExpression)
+            {
+                var newArrayExp = (NewArrayExpression) expression;
+                return newArrayExp.Expressions.ToArray();
+            }
+
             throw new InvalidQueryException("Unhandled type " + expression.NodeType + " in ExpressionSimplifier.GetChildren");
         }
 
