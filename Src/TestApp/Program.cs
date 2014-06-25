@@ -35,7 +35,7 @@ namespace MongoLinqPlusPlus.TestApp
         {
 
             Assert.IsTrue(TestHelpers.AreEqual(new[] { _mongoQuery, _memryQuery }.Select(queryable =>
-                queryable.OrderBy(c => c.Birthday)
+                queryable.GroupBy(c => c.FirstName)
             )));
 
 

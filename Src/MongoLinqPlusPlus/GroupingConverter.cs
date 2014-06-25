@@ -64,9 +64,9 @@ namespace MongoLinqPlusPlus
             // Load JObject from stream
             JObject jObject = JObject.Load(reader);
 
-            // Populate the key
+            // Populate the key (which maps to the mongo _id field)
             var keyProperty = targetType.GetProperty("Key");
-            var keyValue = jObject["Key"].ToObject(objectType.GenericTypeArguments[0]);
+            var keyValue = jObject["_id"].ToObject(objectType.GenericTypeArguments[0]);
             keyProperty.SetValue(target, keyValue);
 
             // Populate the values

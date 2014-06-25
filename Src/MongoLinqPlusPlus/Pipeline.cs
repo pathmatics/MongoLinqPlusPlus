@@ -487,7 +487,7 @@ namespace MongoLinqPlusPlus
                     throw new InvalidQueryException("Aggregation within a .Select() can only be run after a GroupBy");
 
                 // Get the $group document from the most recent $group pipeline stage
-                var groupDoc = (BsonDocument) _pipeline.AsEnumerable().Last(c => c.PipelineOperator == "$group").Operation;
+                var groupDoc = GetLastOccurrenceOfPipelineStage("$group", false);
 
                 // TODO:
                 // handle First() and Last()
@@ -530,6 +530,31 @@ namespace MongoLinqPlusPlus
             }
 
             throw new InvalidQueryException("In Select(), can't build Mongo expression for node type" + expression.NodeType);
+        }
+
+        /// <summary>
+        /// Gets the last occurrence of pipeline operation in the pipeline for a given operator.
+        /// </summary>
+        /// <param name="pipelineOperator">The stage to find (example: "$group")</param>
+        /// <param name="mustBeLastStageInPipeline">
+        /// If true, then the operator must be the LAST stage in the pipeline.  If false, then simply the last occurrence
+        /// of the operator in the pipeline is found.
+        /// </param>
+        /// <returns>The pipeline operation being performed (not including the pipeline operator itself).  So if the search
+        /// was for "$sort" and this stage was found, "{$sort, {age:1}}", then just "{age:1}" is returned.
+        /// Null is returned if the stage couldn't be found.</returns>
+        public BsonDocument GetLastOccurrenceOfPipelineStage(string pipelineOperator, bool mustBeLastStageInPipeline)
+        {
+            if (mustBeLastStageInPipeline)
+            {
+                var stage = _pipeline.Last();
+                return stage.PipelineOperator == pipelineOperator ? (BsonDocument) stage.Operation : null;
+            }
+            else
+            {
+                var stage = _pipeline.AsEnumerable().LastOrDefault(c => c.PipelineOperator == pipelineOperator);
+                return stage != null ? (BsonDocument) stage.Operation : null;
+            }
         }
 
         /// <summary>Adds a new $project stage to the pipeline for a .Select method call</summary>
@@ -701,6 +726,12 @@ namespace MongoLinqPlusPlus
                 case "OrderByDescending":
                     EmitPipelineStageForOrderBy(GetLambda(expression), false);
                     return;
+                case "ThenBy":
+                case "ThenByDescending":
+                    // Not hard after all.  Confirm that the ThenBy is immediately
+                    // following an OrderBy (last stage of pipeline is $sort)
+                    // Then simply modify the previous pipeline stage.
+                    throw new NotImplementedException("TODO: Implement ThenBy");
                 case "Count":
                     EmitPipelineStageForCount(GetLambda(expression));
                     _lastPipelineOperation = PipelineResultType.Aggregation;
@@ -752,6 +783,14 @@ namespace MongoLinqPlusPlus
             // Build the pipeline
             if (expression is MethodCallExpression)
                 EmitPipelineStageForMethod((MethodCallExpression) expression);
+
+            // If the result is a grouping, then we need to also include the grouped values
+            if (_lastPipelineOperation == PipelineResultType.Group)
+            {
+                var groupDoc = GetLastOccurrenceOfPipelineStage("$group", false);
+                groupDoc.Add("Values", new BsonDocument("$push", "$$ROOT"));
+                int x = 1;
+            }
 
             // Run our actual aggregation command against mongo
 
