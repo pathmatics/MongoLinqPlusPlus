@@ -70,7 +70,7 @@ namespace MongoLinqPlusPlus
         {
             LoggingDelegate("\r\n----------------- EXPRESSION --------------------\r\n\r\n");
             var localExpression = expression;
-            Console.WriteLine(expression.ToString());
+            LoggingDelegate(expression + "\r\n");
 
             // Reduce any parts of the expression that can be evaluated locally
             var simplifiedExpression = ExpressionSimplifier.Simplify(this.Queryable, localExpression);
