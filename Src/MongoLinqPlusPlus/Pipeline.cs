@@ -71,6 +71,7 @@ namespace MongoLinqPlusPlus
 
     internal class MongoPipeline<TDocType>
     {
+        private Action<string> _loggingDelegate;
         private const string PIPELINE_DOCUMENT_RESULT_NAME = "_result_";
 
         private JsonWriterSettings _jsonWriterSettings = new JsonWriterSettings {OutputMode = JsonOutputMode.Strict, Indent = true, NewLineChars = "\r\n"};
@@ -113,9 +114,37 @@ namespace MongoLinqPlusPlus
         };
 
         /// <summary>Constructs a new MongoPipeline from a typed MongoCollection</summary>
-        public MongoPipeline(MongoCollection<TDocType> collection)
+        public MongoPipeline(MongoCollection<TDocType> collection, Action<string> loggingDelegate)
         {
+            _loggingDelegate = loggingDelegate;
             _collection = collection;
+        }
+
+        /// <summary>
+        /// Log a string to the logging delegate
+        /// </summary>
+        private void LogLine(string s)
+        {
+            if (_loggingDelegate == null)
+                return;
+
+            _loggingDelegate(s + Environment.NewLine);
+        }
+
+        /// <summary>
+        /// Log a string with format parameters to the logging delegate
+        /// </summary>
+        private void LogLine(string s, params object[] parameters)
+        {
+            LogLine(string.Format(s + Environment.NewLine, parameters));
+        }
+
+        /// <summary>
+        /// Log a newline to the logging delegate
+        /// </summary>
+        private void LogLine()
+        {
+            LogLine(Environment.NewLine);
         }
 
         /// <summary>
@@ -775,6 +804,7 @@ namespace MongoLinqPlusPlus
         /// </summary>
         /// <typeparam name="TResult">The type of the query result</typeparam>
         /// <param name="expression">The query/expression to build and execute</param>
+        /// <param name="loggingDelegate">Delegate for debug logging</param>
         public TResult Execute<TResult>(Expression expression)
         {
             var resultType = typeof (TResult);
@@ -795,9 +825,9 @@ namespace MongoLinqPlusPlus
 
             var pipelineStages = _pipeline.Select(c => new BsonDocument(c.PipelineOperator, c.Operation)).ToArray();
 
-            Console.WriteLine("\r\n----------------- PIPELINE --------------------\r\n");
-            Console.WriteLine(string.Join("\r\n", pipelineStages.Select(c => c.ToString())));
-            Console.WriteLine();
+            LogLine("\r\n----------------- PIPELINE --------------------\r\n");
+            LogLine(string.Join("\r\n", pipelineStages.Select(c => c.ToString())));
+            LogLine();
 
             var commandResult = _collection.Database.RunCommand(new CommandDocument {
                 {"aggregate", _collection.Name},
@@ -806,7 +836,7 @@ namespace MongoLinqPlusPlus
 
             var bsonArray = commandResult.Response["result"].AsBsonArray;
 
-//            Console.WriteLine(bsonArray.ToJson());
+//            LogLine(bsonArray.ToJson());
 
             // Our bsonArray result can be 2 different things:
             //   1) A collection (like the result of a Where() method
@@ -822,7 +852,7 @@ namespace MongoLinqPlusPlus
                         throw new InvalidOperationException("Sequence contains no elements.");
 
                     // FirstOrDefault(), SingleOrDefault(), and Aggregations should just return 0, null, etc.
-                    Console.WriteLine("Returning 0 or 1 result.");
+                    LogLine("Returning 0 or 1 result.");
                     return default(TResult);
                 }
 
@@ -839,7 +869,7 @@ namespace MongoLinqPlusPlus
                 }
 
                 // The result is a fully baked bson document
-                Console.WriteLine("Returning 1 result.");
+                LogLine("Returning 1 result.");
                 var documentResult = BsonSerializer.Deserialize<TResult>(value);
                 return documentResult;
             }
@@ -865,7 +895,7 @@ namespace MongoLinqPlusPlus
             // Deserialize to our pipeline document
             try
             {
-                Console.WriteLine("Returning {0} result(s).", bsonArray.Count());
+                LogLine("Returning {0} result(s).", bsonArray.Count());
 
                 var result = BsonSerializer.Deserialize<PipelineDocument<TResult>>(bsonDocument);
 
@@ -879,10 +909,10 @@ namespace MongoLinqPlusPlus
                     // Anonymous types can't deserialize :(
                     // Fall back to Json.Net to deserialize
 
-//                    Console.WriteLine("\r\n-------------------------------------\r\n");
-//                    Console.WriteLine("Falling back to Json.Net.");
+//                    LogLine("\r\n-------------------------------------\r\n");
+//                    LogLine("Falling back to Json.Net.");
                     string json = bsonDocument.ToJson(_jsonWriterSettings);
-//                    Console.WriteLine("Json == " + json);
+//                    LogLine("Json == " + json);
                     var result = JsonConvert.DeserializeObject<PipelineDocument<TResult>>(json, new GroupingConverter(typeof(TDocType)));
                     return result._result_;
                 }

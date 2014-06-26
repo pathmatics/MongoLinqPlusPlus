@@ -28,7 +28,7 @@ namespace MongoLinqPlusPlus.TestApp
 {
     class Program
     {
-        private static IQueryable<TestDocument> _mongoQuery = TestHelpers.InitMongo();
+        private static IQueryable<TestDocument> _mongoQuery = TestHelpers.InitMongo(Console.Write);
         private static IQueryable<TestDocument> _memryQuery = TestRepository.TestDocuments.AsQueryable();
 
         static void Main()
@@ -36,7 +36,7 @@ namespace MongoLinqPlusPlus.TestApp
 
               // Note that NumPets matches a field name in our document
             Assert.IsTrue(TestHelpers.AreEqual(new[] { _mongoQuery, _memryQuery }.Select(queryable =>
-                queryable.Select(c => new {NumPets = 0})
+                queryable.Where(c => c.NumPets == 1)
             )));
 
 

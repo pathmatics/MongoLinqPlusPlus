@@ -28,7 +28,7 @@ namespace MongoLinqPlusPlus.Tests
     [TestClass]
     public class SelectTests
     {
-        private IQueryable<TestDocument> _mongoQuery = TestHelpers.InitMongo();
+        private IQueryable<TestDocument> _mongoQuery = TestHelpers.InitMongo(s => System.Diagnostics.Debug.Write(s));
         private IQueryable<TestDocument> _memryQuery = TestRepository.TestDocuments.AsQueryable();
 
         [TestMethod]

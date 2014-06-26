@@ -20,6 +20,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
+using System;
 using System.Linq;
 using System.Linq.Expressions;
 using MongoDB.Driver;
@@ -39,9 +40,24 @@ namespace MongoLinqPlusPlus
         /// <returns>An IQueryable for running Linq queries against</returns>
         public static IQueryable<TMongoDocument> AsAggregationQueryable<TMongoDocument>(this MongoCollection<TMongoDocument> collection)
         {
+            return collection.AsAggregationQueryable(_ => {});
+        }
+
+        /// <summary>
+        /// Gets our custom Aggregation Framework based queryable from a MongoCollection
+        /// </summary>
+        /// <typeparam name="TMongoDocument">The document type stored in the collection</typeparam>
+        /// <param name="collection">A Mongo collection to query</param>
+        /// <param name="loggingDelegate">Callback function for debug logging</param>
+        /// <returns>An IQueryable for running Linq queries against</returns>
+        public static IQueryable<TMongoDocument> AsAggregationQueryable<TMongoDocument>(this MongoCollection<TMongoDocument> collection, Action<string> loggingDelegate)
+        {
             var queryable = new MongoAggregationQueryable<TMongoDocument>();
             queryable.Expression = Expression.Constant(queryable);
-            queryable.Provider = new MongoAggregationQueryProvider<TMongoDocument>(collection) { Queryable = queryable };
+            queryable.Provider = new MongoAggregationQueryProvider<TMongoDocument>(collection) {
+                Queryable = queryable,
+                LoggingDelegate = loggingDelegate
+            };
 
             return queryable;
         }

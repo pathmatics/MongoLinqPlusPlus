@@ -37,6 +37,7 @@ namespace MongoLinqPlusPlus
         private MongoCollection<TDocument> _collection;
 
         public object Queryable { get; set; }
+        public Action<string> LoggingDelegate { get; set; }
 
         /// <summary>
         /// Constructs a new provider from a Mongo collection.  No need to call this directly,
@@ -67,7 +68,7 @@ namespace MongoLinqPlusPlus
         /// </summary>
         public TResult Execute<TResult>(Expression expression)
         {
-            Console.WriteLine("\r\n----------------- EXPRESSION --------------------\r\n");
+            LoggingDelegate("\r\n----------------- EXPRESSION --------------------\r\n\r\n");
             var localExpression = expression;
             Console.WriteLine(expression.ToString());
 
@@ -75,12 +76,12 @@ namespace MongoLinqPlusPlus
             var simplifiedExpression = ExpressionSimplifier.Simplify(this.Queryable, localExpression);
             if (simplifiedExpression != localExpression)
             {
-                Console.WriteLine("\r\n----------------- SIMPLIFIED EXPRESSION --------------------\r\n");
+                LoggingDelegate("\r\n----------------- SIMPLIFIED EXPRESSION --------------------\r\n\r\n");
                 localExpression = simplifiedExpression;
-                Console.WriteLine(localExpression.ToString());
+                LoggingDelegate(localExpression + "\r\n");
             }
 
-            var pipeline = new MongoPipeline<TDocument>(_collection);
+            var pipeline = new MongoPipeline<TDocument>(_collection, LoggingDelegate);
             return pipeline.Execute<TResult>(localExpression);
         }
 
