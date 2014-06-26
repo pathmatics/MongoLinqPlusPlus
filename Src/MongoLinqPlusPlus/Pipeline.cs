@@ -804,7 +804,6 @@ namespace MongoLinqPlusPlus
         /// </summary>
         /// <typeparam name="TResult">The type of the query result</typeparam>
         /// <param name="expression">The query/expression to build and execute</param>
-        /// <param name="loggingDelegate">Delegate for debug logging</param>
         public TResult Execute<TResult>(Expression expression)
         {
             var resultType = typeof (TResult);
@@ -897,6 +896,20 @@ namespace MongoLinqPlusPlus
             {
                 LogLine("Returning {0} result(s).", bsonArray.Count());
 
+                // The general IEnumerable type doesn't deserialize nicely.
+                // In this case, find the underlying object type via reflection, do a strongly typed
+                // bson deserialize, and then return the IEnumerable
+                if (typeof(TResult) == typeof (IEnumerable))
+                {
+                    Type underlyingObjectType = expression.Type.GenericTypeArguments[0];
+                    var ienumerableType = typeof (IEnumerable<>).MakeGenericType(underlyingObjectType);
+                    var pipelineDocumentEnumerableType = typeof (PipelineDocument<>).MakeGenericType(ienumerableType);
+                    dynamic dynamicResult = BsonSerializer.Deserialize(bsonDocument, pipelineDocumentEnumerableType);
+                    object objectResult = dynamicResult._result_;
+                    TResult typedResult = (TResult) objectResult;
+                    return typedResult;
+                }
+
                 var result = BsonSerializer.Deserialize<PipelineDocument<TResult>>(bsonDocument);
 
                 // Extract the result and we're done!
@@ -913,6 +926,21 @@ namespace MongoLinqPlusPlus
 //                    LogLine("Falling back to Json.Net.");
                     string json = bsonDocument.ToJson(_jsonWriterSettings);
 //                    LogLine("Json == " + json);
+
+                    // The general IEnumerable type doesn't deserialize nicely.
+                    // In this case, find the underlying object type via reflection, do a strongly typed
+                    // bson deserialize, and then return the IEnumerable
+                    if (typeof(TResult) == typeof(IEnumerable))
+                    {
+                        Type underlyingObjectType = expression.Type.GenericTypeArguments[0];
+                        var ienumerableType = typeof(IEnumerable<>).MakeGenericType(underlyingObjectType);
+                        var pipelineDocumentEnumerableType = typeof(PipelineDocument<>).MakeGenericType(ienumerableType);
+                        object pipelineDocumentResult = JsonConvert.DeserializeObject(json, pipelineDocumentEnumerableType, new GroupingConverter(typeof(TDocType)));
+                        object objectResult = pipelineDocumentResult.GetType().GetProperty(PIPELINE_DOCUMENT_RESULT_NAME).GetValue(pipelineDocumentResult);
+                        TResult typedResult = (TResult) objectResult;
+                        return typedResult;
+                    }
+
                     var result = JsonConvert.DeserializeObject<PipelineDocument<TResult>>(json, new GroupingConverter(typeof(TDocType)));
                     return result._result_;
                 }
