@@ -699,6 +699,17 @@ namespace MongoLinqPlusPlus
             AddToPipeline("$sort", new BsonDocument(field, ascending ? 1 : -1));
         }
 
+        /// <summary>Updates the previous $sort pipeline stage for the ThenBy cal</summary>
+        public void EmitPipelineStageForThenBy(LambdaExpression lambdaExp, bool ascending)
+        {
+            var sortDoc = GetLastOccurrenceOfPipelineStage("$sort", false);
+            string field = GetMongoFieldName(lambdaExp.Body);
+            if (sortDoc.Contains(field))
+                throw new InvalidQueryException("ThenBy(Descending) can't resort on previous sort field.");
+
+            sortDoc.Add(field, ascending ? 1 : -1);
+        }
+
         /// <summary>Adds the respective pipeline stage(s) for the supplied method call</summary>
         public void EmitPipelineStageForMethod(MethodCallExpression expression)
         {
@@ -756,11 +767,14 @@ namespace MongoLinqPlusPlus
                     EmitPipelineStageForOrderBy(GetLambda(expression), false);
                     return;
                 case "ThenBy":
+                    EmitPipelineStageForThenBy(GetLambda(expression), true);
+                    return;
                 case "ThenByDescending":
                     // Not hard after all.  Confirm that the ThenBy is immediately
                     // following an OrderBy (last stage of pipeline is $sort)
                     // Then simply modify the previous pipeline stage.
-                    throw new NotImplementedException("TODO: Implement ThenBy");
+                    EmitPipelineStageForThenBy(GetLambda(expression), false);
+                    return;
                 case "Count":
                     EmitPipelineStageForCount(GetLambda(expression));
                     _lastPipelineOperation = PipelineResultType.Aggregation;

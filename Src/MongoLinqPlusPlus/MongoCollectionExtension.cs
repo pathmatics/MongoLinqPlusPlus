@@ -40,7 +40,7 @@ namespace MongoLinqPlusPlus
         /// <returns>An IQueryable for running Linq queries against</returns>
         public static IQueryable<TMongoDocument> AsAggregationQueryable<TMongoDocument>(this MongoCollection<TMongoDocument> collection)
         {
-            return collection.AsAggregationQueryable(_ => {});
+            return collection.AsAggregationQueryable(null);
         }
 
         /// <summary>
