@@ -37,7 +37,7 @@ namespace MongoLinqPlusPlus.Tests
             var repo = new TestRepository();
             repo.Collection.Drop();
             repo.LoadTestData();
-            return new TestRepository().Collection.AsAggregationQueryable(loggingDelegate);
+            return new TestRepository().Collection.QueryablePlusPlus(loggingDelegate);
         }
 
         /// <summary>
