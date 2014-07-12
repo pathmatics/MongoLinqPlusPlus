@@ -36,25 +36,15 @@ namespace MongoLinqPlusPlus.TestApp
         static void Main()
         {
             Assert.IsTrue(TestHelpers.AreEqual(new[] { _mongoQuery, _memryQuery }.Select(queryable =>
-                queryable.OrderBy(c => c.FirstName).ThenBy(c => c.SSN)
+                queryable.Any()
             )));
 
             Assert.IsTrue(TestHelpers.AreEqual(new[] { _mongoQuery, _memryQuery }.Select(queryable =>
-                queryable.Select(c => new
-                {
-                    Social = c.SSN,
-                    Pets = c.NumPets
-                })
-                         .OrderBy(c => c.Pets)
-                         .ThenBy(c => c.Social)
+                queryable.Any(c => c.FirstName == "Tom")
             )));
 
             Assert.IsTrue(TestHelpers.AreEqual(new[] { _mongoQuery, _memryQuery }.Select(queryable =>
-                queryable.OrderBy(c => c.FirstName).ThenBy(c => c.LastName).ThenBy(c => c.SSN)
-            )));
-
-            Assert.IsTrue(TestHelpers.AreEqual(new[] { _mongoQuery, _memryQuery }.Select(queryable =>
-                queryable.OrderBy(c => c.FirstName).ThenBy(c => c.Birthday)
+                queryable.Any(c => c.FirstName == "ThisNameDoesNotExist")
             )));
 
             /*

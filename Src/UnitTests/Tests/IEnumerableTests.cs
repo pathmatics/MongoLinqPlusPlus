@@ -36,7 +36,7 @@ namespace MongoLinqPlusPlus.Tests
         [TestMethod]
         public void IEnumerable()
         {
-            // This triggers Pipeline.Execute to be called with TResult of IEnumeable (not generic)
+            // This triggers Pipeline.Execute to be called with TResult of IEnumerable (not generic)
             Assert.IsTrue(TestHelpers.AreEqual(new[] { _mongoQuery, _memryQuery }.Select(queryable =>
                 JsonConvert.SerializeObject(queryable)
             )));

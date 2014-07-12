@@ -41,6 +41,7 @@ namespace MongoLinqPlusPlus
         Select,
         Group,
         Aggregation,
+        Any,
         First,
         FirstOrDefault,
         Single,
@@ -675,6 +676,30 @@ namespace MongoLinqPlusPlus
             });
         }
 
+        /// <summary>Adds a new $project stage to the pipeline for a .Any method call</summary>
+        public void EmitPipelineStageForAny(LambdaExpression lambdaExp)
+        {
+            // Handle 2 cases:
+            //    .Count()
+            //    .Count(c => c.Age > 25)
+
+            // The hard case: .Any(c => c.Age > 25)
+            // Can be rewritten as .Where(c => c.Age > 25).Any()
+            if (lambdaExp != null)
+            {
+                EmitPipelinesStageForWhere(lambdaExp);
+            }
+
+            // Handle the simple case: .Any()
+
+            // There is no explicity support for this in MongoDB, but we can
+            // limit our results to 1 and then do a count
+            EmitPipelineStageForTake(1);
+            EmitPipelineStageForCount(null);
+
+            // After executing the pipeline, we then check that the count > 0
+        }
+
         /// <summary>Adds a pipeline stage ($group) for the specified aggregation (Sum, Min, Max, Average)</summary>
         public void EmitPipeLineStageForAggregation(string cSharpAggregationName, LambdaExpression lambdaExp)
         {
@@ -770,14 +795,15 @@ namespace MongoLinqPlusPlus
                     EmitPipelineStageForThenBy(GetLambda(expression), true);
                     return;
                 case "ThenByDescending":
-                    // Not hard after all.  Confirm that the ThenBy is immediately
-                    // following an OrderBy (last stage of pipeline is $sort)
-                    // Then simply modify the previous pipeline stage.
                     EmitPipelineStageForThenBy(GetLambda(expression), false);
                     return;
                 case "Count":
                     EmitPipelineStageForCount(GetLambda(expression));
                     _lastPipelineOperation = PipelineResultType.Aggregation;
+                    return;
+                case "Any":
+                    EmitPipelineStageForAny(GetLambda(expression));
+                    _lastPipelineOperation = PipelineResultType.Any;
                     return;
                 case "Sum":
                 case "Max":
@@ -800,15 +826,6 @@ namespace MongoLinqPlusPlus
                     _lastPipelineOperation = PipelineResultType.SingleOrDefault;
                     break;
             }
-
-            // Now handle this method call.  Supported calls are:
-            //    Where (BinaryExpression)
-            //    GroupBy (PropertyExpression, NewExpression)
-            //    Select  (PropertyExpression, NewExpression with arithmetic, NewExpression with arithmetic MethodCallExpression aggregations)
-            //    Take, Skip (Constant)
-            //    OrderBy, OrderByDescending (PropertyExpression)
-            //    Count (no params, BinaryExpression)
-            //    Sum, Min, Max, Average (PropertyExpression with arithmetic)
 
             throw new InvalidQueryException("Unsupported MethodCallExpression " + expression.Method.Name);
         }
@@ -874,6 +891,16 @@ namespace MongoLinqPlusPlus
                     throw new InvalidDataException("Unexpected number of results from Mongo.  Expecting 1.  Actual " + bsonArray.Count());
 
                 BsonDocument value = (BsonDocument) bsonArray[0];
+                if (_lastPipelineOperation == PipelineResultType.Any)
+                {
+                    // The result is in a document structured as { _result_ : value }
+                    var aggregationResult = BsonSerializer.Deserialize<PipelineDocument<int>>(value);
+                    int resultCount = aggregationResult._result_;
+
+                    // Todo: Any way to avoid the boxing (since we know TResult is bool)?
+                    return (TResult) ((object) (resultCount > 0));
+                }
+
                 if (_lastPipelineOperation == PipelineResultType.Aggregation)
                 {
                     // The result is in a document structured as { _result_ : value }
