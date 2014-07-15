@@ -2,7 +2,7 @@
 <package xmlns="http://schemas.microsoft.com/packaging/2010/07/nuspec.xsd">
   <metadata>
     <id>mongocsharpdriver</id>
-    <version>1.9.1</version>
+    <version>1.9.2</version>
     <title>Official MongoDB C# driver</title>
     <authors>MongoDB,  Inc.</authors>
     <owners>MongoDB,  Inc.</owners>
