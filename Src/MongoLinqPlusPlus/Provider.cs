@@ -41,7 +41,7 @@ namespace MongoLinqPlusPlus
 
         /// <summary>
         /// Constructs a new provider from a Mongo collection.  No need to call this directly,
-        /// instead, use the AsAggregationQueryable extension a Mongo Collection
+        /// instead, use the QueryablePlusPlus extension a Mongo Collection
         /// </summary>
         /// <param name="collection"></param>
         public MongoAggregationQueryProvider(MongoCollection<TDocument> collection)
