@@ -112,6 +112,7 @@ namespace MongoLinqPlusPlus
             {"Min", "min"},
             {"Max", "max"},
             {"Average", "avg"},
+            {"Count", "sum"}
         };
 
         /// <summary>Constructs a new MongoPipeline from a typed MongoCollection</summary>
@@ -528,6 +529,9 @@ namespace MongoLinqPlusPlus
                 //    $sum0
                 // Then this element would be added to the prio $group pipeline stage:
                 //    {$sum:"$age"}
+                if (!NodeToMongoAggregationOperatorDict.ContainsKey(callExp.Method.Name))
+                    throw new InvalidQueryException("Method " + callExp.Method.Name + " not supported in Select");
+
                 if (NodeToMongoAggregationOperatorDict.ContainsKey(callExp.Method.Name))
                 {
                     // Get the mongo operator (ie "$sum") that this method maps to
@@ -537,11 +541,32 @@ namespace MongoLinqPlusPlus
                     // This will look like "sum0" or "avg1"
                     string tempVariableName = mongoOperator + _nextUniqueVariableId++;
 
-                    // Get the inner lambda; "d => d.Age" from the above example
-                    var lambdaExp = (LambdaExpression) callExp.Arguments[1];
+                    // Get the operand for the operator
+                    BsonValue mongoOperand;
+                    if (callExp.Method.Name == "Count")
+                    {
+                        // We don't support a lambda within the .Count
+                        // No good:   .Select(d => d.Count(e => e.Age > 15))
+                        if (callExp.Arguments.Count > 1)
+                            throw new InvalidQueryException("Argument within Count within Select not supported");
+
+                        mongoOperand = new BsonInt32(1);
+                    }
+                    else if (callExp.Arguments.Count == 2)
+                    {
+                        // Get the inner lambda; "d => d.Age" from the above example
+                        var lambdaExp = (LambdaExpression) callExp.Arguments[1];
+
+                        // Get the operand for the operator
+                        mongoOperand = BuildMongoSelectExpression(lambdaExp.Body);
+                    }
+                    else
+                    {
+                        throw new InvalidQueryException("Unsupported usage of " + callExp.Method.Name + " within Select");
+                    }
 
                     // Build the expression being aggregated
-                    var aggregationDoc = new BsonDocument("$" + mongoOperator, BuildMongoSelectExpression(lambdaExp.Body));
+                    var aggregationDoc = new BsonDocument("$" + mongoOperator, mongoOperand);
 
                     // Add to the $group stage, a new variable which receives our aggregation
                     var newGroupElement = new BsonDocument(tempVariableName, aggregationDoc);

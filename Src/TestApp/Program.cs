@@ -36,15 +36,41 @@ namespace MongoLinqPlusPlus.TestApp
         static void Main()
         {
             Assert.IsTrue(TestHelpers.AreEqual(new[] { _mongoQuery, _memryQuery }.Select(queryable =>
-                queryable.Any()
+                queryable.GroupBy(c => c.FirstName)
+                         .Select(c => new
+                         {
+                             FirstName = c.Key,
+                             Sum = c.Sum(d => d.NumPets),
+                             Count = c.Count(),
+                             Average = c.Average(d => d.NumPets),
+                             Min = c.Min(d => d.NumPets),
+                             Max = c.Max(d => d.NumPets)
+                         })
             )));
 
             Assert.IsTrue(TestHelpers.AreEqual(new[] { _mongoQuery, _memryQuery }.Select(queryable =>
-                queryable.Any(c => c.FirstName == "Tom")
+                queryable.GroupBy(c => c.FirstName)
+                         .Select(c => c.Sum(d => d.NumPets))
             )));
 
             Assert.IsTrue(TestHelpers.AreEqual(new[] { _mongoQuery, _memryQuery }.Select(queryable =>
-                queryable.Any(c => c.FirstName == "ThisNameDoesNotExist")
+                queryable.GroupBy(c => c.FirstName)
+                         .Select(c => c.Average(d => d.NumPets))
+            )));
+
+            Assert.IsTrue(TestHelpers.AreEqual(new[] { _mongoQuery, _memryQuery }.Select(queryable =>
+                queryable.GroupBy(c => c.FirstName)
+                         .Select(c => c.Min(d => d.NumPets))
+            )));
+
+            Assert.IsTrue(TestHelpers.AreEqual(new[] { _mongoQuery, _memryQuery }.Select(queryable =>
+                queryable.GroupBy(c => c.FirstName)
+                         .Select(c => c.Max(d => d.NumPets))
+            )));
+
+            Assert.IsTrue(TestHelpers.AreEqual(new[] { _mongoQuery, _memryQuery }.Select(queryable =>
+                queryable.GroupBy(c => c.FirstName)
+                         .Select(c => c.Count())
             )));
 
             /*
