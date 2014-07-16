@@ -40,6 +40,17 @@ namespace MongoLinqPlusPlus
         public Action<string> LoggingDelegate { get; set; }
 
         /// <summary>
+        /// Log a newline to the logging delegate
+        /// </summary>
+        private void LogLine(string s)
+        {
+            if (LoggingDelegate != null)
+            {
+                LoggingDelegate(s + Environment.NewLine);
+            }
+        }
+
+        /// <summary>
         /// Constructs a new provider from a Mongo collection.  No need to call this directly,
         /// instead, use the QueryablePlusPlus extension a Mongo Collection
         /// </summary>
@@ -68,17 +79,17 @@ namespace MongoLinqPlusPlus
         /// </summary>
         public TResult Execute<TResult>(Expression expression)
         {
-            LoggingDelegate("\r\n----------------- EXPRESSION --------------------\r\n\r\n");
+            LogLine("\r\n----------------- EXPRESSION --------------------\r\n");
             var localExpression = expression;
-            LoggingDelegate(expression + "\r\n");
+            LogLine(expression.ToString());
 
             // Reduce any parts of the expression that can be evaluated locally
             var simplifiedExpression = ExpressionSimplifier.Simplify(this.Queryable, localExpression);
             if (simplifiedExpression != localExpression)
             {
-                LoggingDelegate("\r\n----------------- SIMPLIFIED EXPRESSION --------------------\r\n\r\n");
+                LogLine("\r\n----------------- SIMPLIFIED EXPRESSION --------------------\r\n");
                 localExpression = simplifiedExpression;
-                LoggingDelegate(localExpression + "\r\n");
+                LogLine(localExpression.ToString());
             }
 
             var pipeline = new MongoPipeline<TDocument>(_collection, LoggingDelegate);
