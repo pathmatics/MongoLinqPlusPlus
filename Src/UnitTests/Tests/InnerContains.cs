@@ -21,21 +21,21 @@
 // SOFTWARE.
 
 using System;
-using System.Collections;
 using System.Linq;
-using MongoLinqPlusPlus.Tests;
-using Newtonsoft.Json;
+using Microsoft.VisualStudio.TestTools.UnitTesting;
 
-namespace MongoLinqPlusPlus.TestApp
+namespace MongoLinqPlusPlus.Tests
 {
-    class Program
+    [TestClass]
+    public class InnerContainsTests
     {
-        private static IQueryable<TestDocument> _mongoQuery = TestHelpers.InitMongo(Console.Write);
-        private static IQueryable<TestDocument> _memryQuery = TestRepository.TestDocuments.AsQueryable();
+        private IQueryable<TestDocument> _mongoQuery = TestHelpers.InitMongo(s => System.Diagnostics.Debug.Write(s));
+        private IQueryable<TestDocument> _memryQuery = TestRepository.TestDocuments.AsQueryable();
 
-        static void Main()
+        [TestMethod]
+        public void InnerContains()
         {
-            var namesArray = new[] {"Tom", "Bob", "Larry"};
+            var namesArray = new[] { "Tom", "Bob", "Larry" };
             var namesList = namesArray.ToList();
             var namesEnumerable = namesArray.AsEnumerable();
 
@@ -50,21 +50,6 @@ namespace MongoLinqPlusPlus.TestApp
             Assert.IsTrue(TestHelpers.AreEqual(new[] { _mongoQuery, _memryQuery }.Select(queryable =>
                 queryable.Where(c => namesEnumerable.Contains(c.FirstName))
             )));
-
-            /*
-            Console.WriteLine("\r\n------------ TEST PROGRAM RESULTS -------------\r\n");
-            var results = _memryQuery.Select(c => new { NumPets = 1 })
-                                     .ToArray();
-            
-            var json = JsonConvert.SerializeObject(results, Formatting.Indented);
-            Console.WriteLine(json);
-            */
-
-            if (System.Diagnostics.Debugger.IsAttached)
-            {
-                Console.WriteLine("\r\nPress any key to exit.");
-                Console.ReadKey();
-            }
         }
     }
 }

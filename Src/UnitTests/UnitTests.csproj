@@ -62,6 +62,7 @@
     <Compile Include="TestRepository.cs" />
     <Compile Include="Tests\AggregationTests.cs" />
     <Compile Include="Tests\OrderByTests.cs" />
+    <Compile Include="Tests\InnerContains.cs" />
     <Compile Include="Tests\WhereTests.cs" />
   </ItemGroup>
   <ItemGroup>

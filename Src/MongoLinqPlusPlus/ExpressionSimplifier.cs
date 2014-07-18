@@ -154,7 +154,10 @@ namespace MongoLinqPlusPlus
             if (expression is MethodCallExpression)
             {
                 var callExp = (MethodCallExpression) expression;
-                return callExp.Arguments.Where(c => c != null).ToArray();
+                var children = callExp.Arguments.Where(c => c != null).ToList();
+                if (callExp.Object != null)
+                    children.Add(callExp.Object);
+                return children.ToArray();
             }
 
             if (expression is MemberExpression)

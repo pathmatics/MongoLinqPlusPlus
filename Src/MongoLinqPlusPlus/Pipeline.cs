@@ -377,17 +377,21 @@ namespace MongoLinqPlusPlus
 
                 // Only support .Contains within Where()
                 if (callExp.Method.Name != "Contains")
-                    throw new InvalidQueryException("In Where(), only method within can be IEnumerable.Contains" + expression.NodeType);
+                    throw new InvalidQueryException("In Where(), only method within can be IEnumerable.Contains");
 
-                // Only support IEnumerable.Contains()
-                if (TypeSystem.FindIEnumerable(callExp.Arguments[0].Type) == null)
-                    throw new InvalidQueryException("In Where(), Contains() only supported on IEnumerable" + expression.NodeType);
+                // Extract the IEnumerable that .Contains is being called on
+                // Important to note that it can be in callExp.Object (for a List) or in callExp.Arguments[0] (for a constant, read-only array)
+                var localEnumerable = ((ConstantExpression) (callExp.Object ?? callExp.Arguments[0])).Value;
+                if (TypeSystem.FindIEnumerable(localEnumerable.GetType()) == null)
+                {
+                    throw new InvalidQueryException("In Where(), Contains() only supported on IEnumerable");
+                }
 
                 // Get the field that we're going to search for within the IEnumerable
-                var mongoFieldName = GetMongoFieldName(callExp.Arguments[1]);
+                var mongoFieldName = GetMongoFieldName(callExp.Arguments.Last());
 
                 // Evaluate the IEnumerable
-                var array = (BsonArray) GetBsonValueFromObject(((ConstantExpression) callExp.Arguments[0]).Value);
+                var array = (BsonArray) GetBsonValueFromObject(localEnumerable);
 
                 return Query.In(mongoFieldName, array.AsEnumerable());
             }
