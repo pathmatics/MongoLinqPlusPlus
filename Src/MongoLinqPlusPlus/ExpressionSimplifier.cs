@@ -27,7 +27,7 @@ using System.Linq.Expressions;
 
 namespace MongoLinqPlusPlus
 {
-    public class ExpressionSimplifier : ExpressionVisitor
+    internal class ExpressionSimplifier : ExpressionVisitor
     {
         /// <summary>
         /// Simplify an expression by evaluating immediately any sub-trees
@@ -59,7 +59,7 @@ namespace MongoLinqPlusPlus
         /// </summary>
         private HashSet<Expression> _simplifiableExpressions = new HashSet<Expression>();
 
-        /// <summary>Intentionally private constructor</summary>
+        /// <summary>Prevent instantiation.  Public access is through the static Simplify method.</summary>
         private ExpressionSimplifier() { }
 
         /// <summary>

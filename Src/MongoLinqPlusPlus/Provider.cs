@@ -31,7 +31,7 @@ namespace MongoLinqPlusPlus
     /// Custom IQueryProvider that translates Expressions to MongoDB Aggregation framework queries
     /// </summary>
     /// <typeparam name="TDocument">The Mongo Document type to query against</typeparam>
-    public class MongoAggregationQueryProvider<TDocument> : IQueryProvider
+    internal class MongoAggregationQueryProvider<TDocument> : IQueryProvider
     {
         /// <summary>The Mongo collection to query against</summary>
         private MongoCollection<TDocument> _collection;

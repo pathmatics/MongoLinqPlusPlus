@@ -35,7 +35,7 @@ namespace MongoLinqPlusPlus
     /// Class to enable Json.Net to deserialize groupings.
     /// TODO: Revisit this code.
     /// </summary>
-    public class GroupingConverter : CustomCreationConverter<object>
+    internal class GroupingConverter : CustomCreationConverter<object>
     {
         private Type _mongoDocType;
         private string PIPELINE_DOCUMENT_RESULT_NAME = MongoPipeline<int>.PIPELINE_DOCUMENT_RESULT_NAME;
@@ -90,6 +90,7 @@ namespace MongoLinqPlusPlus
                     }
                     else
                     {
+                        // Nope, deserializing a class or struct
                         asObject = jObj.ToObject(objectType.GenericTypeArguments[1]);
                     }
                 }

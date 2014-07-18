@@ -36,7 +36,7 @@ using Newtonsoft.Json;
 
 namespace MongoLinqPlusPlus
 {
-    public enum PipelineResultType
+    internal enum PipelineResultType
     {
         Select,
         Group,
