@@ -65,7 +65,7 @@ Feel free to open bugs you find.  Keep in mind that functionality is limited by 
 
 Cheers.
 
-Tom Lorimor
+Tom Lorimor  
 Adomic, Inc
 
 ### License ###
