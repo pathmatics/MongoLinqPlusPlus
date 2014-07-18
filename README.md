@@ -44,7 +44,7 @@ require a MongoDB server on localhost:27017 without auth.  Feel free to specify 
 own connection string in TestRespository.cs though.
 
 ### Using in your own code ###
-Simple add a reference and using directive to MongoLinqPlusPlus.  The provider is
+Add a reference and using directive to MongoLinqPlusPlus.  The provider is
 accessed via the QueryablePlusPlus extension method on MongoCollection<T>.
 
 
@@ -53,7 +53,7 @@ accessed via the QueryablePlusPlus extension method on MongoCollection<T>.
 
 #using MongoLinqPlusPlus
 
-MongoCollection<T> collection = ...
-var results = collection.QueryablePlusPlus().Where(c => c.Age > 31)
+MongoCollection<T> collection;
+var results = collection.QueryablePlusPlus().Where(c => c.Age > 31);
 
 ```
