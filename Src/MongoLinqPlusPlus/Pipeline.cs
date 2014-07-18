@@ -73,7 +73,7 @@ namespace MongoLinqPlusPlus
     internal class MongoPipeline<TDocType>
     {
         private Action<string> _loggingDelegate;
-        private const string PIPELINE_DOCUMENT_RESULT_NAME = "_result_";
+        internal const string PIPELINE_DOCUMENT_RESULT_NAME = "_result_";
 
         private JsonWriterSettings _jsonWriterSettings = new JsonWriterSettings {OutputMode = JsonOutputMode.Strict, Indent = true, NewLineChars = "\r\n"};
 
@@ -230,8 +230,9 @@ namespace MongoLinqPlusPlus
         public void EmitPipelineStageForGroupBy(LambdaExpression lambdaExp)
         {
             // GroupBy supports the following modes:
-            //    MemberExpression:   GroupBy(c => c.Age)
-            //    NewExpression:      GroupBy(c => new { c.Age, Name = c.FirstName })
+            //    MemberExpression:    GroupBy(c => c.Age)
+            //    NewExpression:       GroupBy(c => new { c.Age, Name = c.FirstName })
+            //    ParameterExpression: GroupBy(c => c)
 
             // Handle the simple case: GroupBy(c => c.Age)
             if (lambdaExp.Body is MemberExpression)
@@ -260,6 +261,18 @@ namespace MongoLinqPlusPlus
 
                 // Perform the grouping on the multi-part key
                 var pipelineOperation = new BsonDocument {new BsonElement("_id", new BsonDocument(fieldNames))};
+                AddToPipeline("$group", pipelineOperation).GroupNeedsCleanup = true;
+                return;
+            }
+
+            // Handle the OTHER hard case: GroupBy(c => c)
+            if (lambdaExp.Body is ParameterExpression)
+            {
+                // This point was probably reached by doing something like:
+                //   .Select(c => c.FirstName).GroupBy(c => c)
+
+                // Perform the grouping on the _result_ document (which we'll assume we have)
+                var pipelineOperation = new BsonDocument { new BsonElement("_id", "$" + PIPELINE_DOCUMENT_RESULT_NAME) };
                 AddToPipeline("$group", pipelineOperation).GroupNeedsCleanup = true;
                 return;
             }

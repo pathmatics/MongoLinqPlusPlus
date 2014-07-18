@@ -20,39 +20,43 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-using System;
-using System.Collections;
 using System.Linq;
-using MongoLinqPlusPlus.Tests;
-using Newtonsoft.Json;
+using Microsoft.VisualStudio.TestTools.UnitTesting;
 
-namespace MongoLinqPlusPlus.TestApp
+namespace MongoLinqPlusPlus.Tests
 {
-    class Program
+    [TestClass]
+    public class GroupByTests
     {
-        private static IQueryable<TestDocument> _mongoQuery = TestHelpers.InitMongo(Console.Write);
-        private static IQueryable<TestDocument> _memryQuery = TestRepository.TestDocuments.AsQueryable();
+        private IQueryable<TestDocument> _mongoQuery = TestHelpers.InitMongo(s => System.Diagnostics.Debug.Write(s));
+        private IQueryable<TestDocument> _memryQuery = TestRepository.TestDocuments.AsQueryable();
 
-        static void Main()
+        [TestMethod]
+        public void GroupBy()
         {
             Assert.IsTrue(TestHelpers.AreEqual(new[] { _mongoQuery, _memryQuery }.Select(queryable =>
                 queryable.GroupBy(c => c.FirstName)
             )));
 
-            /*
-            Console.WriteLine("\r\n------------ TEST PROGRAM RESULTS -------------\r\n");
-            var results = _memryQuery.Select(c => new { NumPets = 1 })
-                                     .ToArray();
-            
-            var json = JsonConvert.SerializeObject(results, Formatting.Indented);
-            Console.WriteLine(json);
-            */
+            Assert.IsTrue(TestHelpers.AreEqual(new[] { _mongoQuery, _memryQuery }.Select(queryable =>
+                queryable.GroupBy(c => c.FirstName).Select(c => c.Key)
+            )));
 
-            if (System.Diagnostics.Debugger.IsAttached)
-            {
-                Console.WriteLine("\r\nPress any key to exit.");
-                Console.ReadKey();
-            }
+            Assert.IsTrue(TestHelpers.AreEqual(new[] { _mongoQuery, _memryQuery }.Select(queryable =>
+                queryable.GroupBy(c => c.FirstName).Select(c => c.Key).GroupBy(c => c)
+            )));
+
+            Assert.IsTrue(TestHelpers.AreEqual(new[] { _mongoQuery, _memryQuery }.Select(queryable =>
+                queryable.GroupBy(c => c.FirstName).Select(c => c.Key).GroupBy(c => c).Select (c => c.Key)
+            )));
+
+            Assert.IsTrue(TestHelpers.AreEqual(new[] { _mongoQuery, _memryQuery }.Select(queryable =>
+                queryable.GroupBy(c => c.IsMale)
+            )));
+
+            Assert.IsTrue(TestHelpers.AreEqual(new[] { _mongoQuery, _memryQuery }.Select(queryable =>
+                queryable.GroupBy(c => c.SSN)
+            )));
         }
     }
 }

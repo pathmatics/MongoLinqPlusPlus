@@ -38,6 +38,7 @@ namespace MongoLinqPlusPlus
     public class GroupingConverter : CustomCreationConverter<object>
     {
         private Type _mongoDocType;
+        private string PIPELINE_DOCUMENT_RESULT_NAME = MongoPipeline<int>.PIPELINE_DOCUMENT_RESULT_NAME;
 
         public GroupingConverter(Type mongoDocType)
         {
@@ -82,7 +83,15 @@ namespace MongoLinqPlusPlus
                 }
                 else
                 {
-                    asObject = jObj.ToObject(objectType.GenericTypeArguments[1]);
+                    // See if we're deserializing a value type like: { _result_ = "foo" }
+                    if (jObj.Count() == 1 && jObj[PIPELINE_DOCUMENT_RESULT_NAME] != null)
+                    {
+                        asObject = jObj[PIPELINE_DOCUMENT_RESULT_NAME].ToObject(objectType.GenericTypeArguments[1]);
+                    }
+                    else
+                    {
+                        asObject = jObj.ToObject(objectType.GenericTypeArguments[1]);
+                    }
                 }
                 var list = targetType.GetProperty("Values").GetValue(target);
                 list.GetType().GetMethod("Add").Invoke(list, new[] { asObject });
