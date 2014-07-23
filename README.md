@@ -28,7 +28,7 @@ MongoLinqPlusPlus is still under development.  Use at your own risk.
 * .Count
 * .Any
 
-More features are still being added (string operations, First(), Single(), etc).
+More features are still being added (string operations, First(), Single(), etc).  All supported functionality is in the unit tests.
 
 ### Dependencies ###
 
