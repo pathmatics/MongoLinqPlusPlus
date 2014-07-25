@@ -40,15 +40,7 @@ namespace MongoLinqPlusPlus.TestApp
             var namesEnumerable = namesArray.AsEnumerable();
 
             Assert.IsTrue(TestHelpers.AreEqual(new[] { _mongoQuery, _memryQuery }.Select(queryable =>
-                queryable.Where(c => namesArray.Contains(c.FirstName))
-            )));
-
-            Assert.IsTrue(TestHelpers.AreEqual(new[] { _mongoQuery, _memryQuery }.Select(queryable =>
-                queryable.Where(c => namesList.Contains(c.FirstName))
-            )));
-
-            Assert.IsTrue(TestHelpers.AreEqual(new[] { _mongoQuery, _memryQuery }.Select(queryable =>
-                queryable.Where(c => namesEnumerable.Contains(c.FirstName))
+                queryable.Count()
             )));
 
             /*

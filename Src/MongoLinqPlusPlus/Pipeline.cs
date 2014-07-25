@@ -901,12 +901,14 @@ namespace MongoLinqPlusPlus
             LogLine(string.Join("\r\n", pipelineStages.Select(c => c.ToString())));
             LogLine();
 
-            var commandResult = _collection.Database.RunCommand(new CommandDocument {
-                {"aggregate", _collection.Name},
-                {"pipeline", new BsonArray(pipelineStages)}
-            });
+            var commandResult = _collection.Aggregate(new AggregateArgs {
+                OutputMode = AggregateOutputMode.Cursor,
+                Pipeline = pipelineStages
+            })
+            .ToArray();
 
-            var bsonArray = commandResult.Response["result"].AsBsonArray;
+            // TODO: We can probably avoid this step now that we're going _collection.Aggregate
+            var bsonArray = new BsonArray(commandResult);
 
 //            LogLine(bsonArray.ToJson());
 
