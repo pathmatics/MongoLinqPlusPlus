@@ -217,6 +217,14 @@ namespace MongoLinqPlusPlus
                 return PIPELINE_DOCUMENT_RESULT_NAME;
             }
 
+            if (expression.NodeType == ExpressionType.Call)
+            {
+                string fieldName = GetMongoFieldNameForMethodOnGrouping((MethodCallExpression) expression).AsString;
+
+                // Remove the '$'
+                return fieldName.StartsWith("$") ? fieldName.Substring(1) : fieldName;
+            }
+
             throw new InvalidQueryException("Can't get Mongo field name for expression type " + expression.NodeType);
         }
 
@@ -440,6 +448,80 @@ namespace MongoLinqPlusPlus
         }
 
         /// <summary>
+        /// Allow an aggregation to be run on each group of a grouping.
+        /// Examples:
+        ///     .GroupBy(...).Where(c => c.Count() > 1)
+        ///     .GroupBy(...).Select(c => c.Sum())
+        /// This function modifies the previous .GroupBy ($group) pipeline operation
+        /// by including this aggregation and then returns the fieldname containing
+        /// the result of the aggregation. 
+        /// </summary>
+        /// <param name="callExp">The MethodCallExpression being run on the grouping</param>
+        /// <returns>The mongo field name</returns>
+        public BsonString GetMongoFieldNameForMethodOnGrouping(MethodCallExpression callExp)
+        {
+            // Only allow a function within a Select to be called on a group
+            if (callExp.Arguments[0].Type.Name != "IGrouping`2")
+                throw new InvalidQueryException("Aggregation \"" + callExp.Method.Name + "\"can only be run after a GroupBy");
+
+            // Get the $group document from the most recent $group pipeline stage
+            var groupDoc = GetLastOccurrenceOfPipelineStage("$group", false);
+
+            // TODO:
+            // handle First() and Last()
+
+            // Handle aggregation functions within the select (Sum, Max, etc)
+            //    .Select(c => c.Sum(d => d.Age))
+            // Would get converted converted to this Bson for use in the project:
+            //    $sum0
+            // Then this element would be added to the prio $group pipeline stage:
+            //    {$sum:"$age"}
+            if (!NodeToMongoAggregationOperatorDict.ContainsKey(callExp.Method.Name))
+                throw new InvalidQueryException("Method " + callExp.Method.Name + " not supported on Grouping");
+
+            // Get the mongo operator (ie "$sum") that this method maps to
+            string mongoOperator = NodeToMongoAggregationOperatorDict[callExp.Method.Name];
+
+            // Create a temporary variable name for using in our project statement
+            // This will look like "sum0" or "avg1"
+            string tempVariableName = mongoOperator + _nextUniqueVariableId++;
+
+            // Get the operand for the operator
+            BsonValue mongoOperand;
+            if (callExp.Method.Name == "Count")
+            {
+                // We don't support a lambda within the .Count
+                // No good:   .Select(d => d.Count(e => e.Age > 15))
+                if (callExp.Arguments.Count > 1)
+                    throw new InvalidQueryException("Argument within Count within Select not supported");
+
+                mongoOperand = new BsonInt32(1);
+            }
+            else if (callExp.Arguments.Count == 2)
+            {
+                // Get the inner lambda; "d => d.Age" from the above example
+                var lambdaExp = (LambdaExpression) callExp.Arguments[1];
+
+                // Get the operand for the operator
+                mongoOperand = BuildMongoSelectExpression(lambdaExp.Body);
+            }
+            else
+            {
+                throw new InvalidQueryException("Unsupported usage of " + callExp.Method.Name + " within Select");
+            }
+
+            // Build the expression being aggregated
+            var aggregationDoc = new BsonDocument("$" + mongoOperator, mongoOperand);
+
+            // Add to the $group stage, a new variable which receives our aggregation
+            var newGroupElement = new BsonDocument(tempVariableName, aggregationDoc);
+            groupDoc.AddRange(newGroupElement);
+
+            // Return our temp variable as the field name to use in this projection
+            return new BsonString("$" + tempVariableName);
+        }
+
+        /// <summary>
         /// Builds a Mongo expression for use in a $project statement from a given expression 
         /// </summary>
         /// <param name="expression"></param>
@@ -529,69 +611,7 @@ namespace MongoLinqPlusPlus
             // c.Sum(d => d.Age)
             if (expression.NodeType == ExpressionType.Call)
             {
-                // Only allow a function within a Select to be called on a group
-                var callExp = (MethodCallExpression) expression;
-                if (callExp.Arguments[0].Type.Name != "IGrouping`2")
-                    throw new InvalidQueryException("Aggregation within a .Select() can only be run after a GroupBy");
-
-                // Get the $group document from the most recent $group pipeline stage
-                var groupDoc = GetLastOccurrenceOfPipelineStage("$group", false);
-
-                // TODO:
-                // handle First() and Last()
-
-                // Handle aggregation functions within the select (Sum, Max, etc)
-                //    .Select(c => c.Sum(d => d.Age))
-                // Would get converted converted to this Bson for use in the project:
-                //    $sum0
-                // Then this element would be added to the prio $group pipeline stage:
-                //    {$sum:"$age"}
-                if (!NodeToMongoAggregationOperatorDict.ContainsKey(callExp.Method.Name))
-                    throw new InvalidQueryException("Method " + callExp.Method.Name + " not supported in Select");
-
-                if (NodeToMongoAggregationOperatorDict.ContainsKey(callExp.Method.Name))
-                {
-                    // Get the mongo operator (ie "$sum") that this method maps to
-                    string mongoOperator = NodeToMongoAggregationOperatorDict[callExp.Method.Name];
-
-                    // Create a temporary variable name for using in our project statement
-                    // This will look like "sum0" or "avg1"
-                    string tempVariableName = mongoOperator + _nextUniqueVariableId++;
-
-                    // Get the operand for the operator
-                    BsonValue mongoOperand;
-                    if (callExp.Method.Name == "Count")
-                    {
-                        // We don't support a lambda within the .Count
-                        // No good:   .Select(d => d.Count(e => e.Age > 15))
-                        if (callExp.Arguments.Count > 1)
-                            throw new InvalidQueryException("Argument within Count within Select not supported");
-
-                        mongoOperand = new BsonInt32(1);
-                    }
-                    else if (callExp.Arguments.Count == 2)
-                    {
-                        // Get the inner lambda; "d => d.Age" from the above example
-                        var lambdaExp = (LambdaExpression) callExp.Arguments[1];
-
-                        // Get the operand for the operator
-                        mongoOperand = BuildMongoSelectExpression(lambdaExp.Body);
-                    }
-                    else
-                    {
-                        throw new InvalidQueryException("Unsupported usage of " + callExp.Method.Name + " within Select");
-                    }
-
-                    // Build the expression being aggregated
-                    var aggregationDoc = new BsonDocument("$" + mongoOperator, mongoOperand);
-
-                    // Add to the $group stage, a new variable which receives our aggregation
-                    var newGroupElement = new BsonDocument(tempVariableName, aggregationDoc);
-                    groupDoc.AddRange(newGroupElement);
-
-                    // Return our temp variable as the field name to use in this projection
-                    return new BsonString("$" + tempVariableName);
-                }
+                return GetMongoFieldNameForMethodOnGrouping((MethodCallExpression) expression);
             }
 
             // Handle casts

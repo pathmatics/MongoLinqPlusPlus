@@ -87,5 +87,21 @@ namespace MongoLinqPlusPlus.Tests
                          .Select(c => c.Key.SSN)
             )));
         }
+
+        [TestMethod]
+        public void GroupBy_Aggregated()
+        {
+            Assert.IsTrue(TestHelpers.AreEqual(new[] { _mongoQuery, _memryQuery }.Select(queryable =>
+                queryable.GroupBy(c => c.FirstName).Where(c => c.Count() > 1)
+            )));
+
+            Assert.IsTrue(TestHelpers.AreEqual(new[] { _mongoQuery, _memryQuery }.Select(queryable =>
+                queryable.GroupBy(c => c.FirstName).Where(c => c.Sum(d => d.NumPets) > 2)
+            )));
+
+            Assert.IsTrue(TestHelpers.AreEqual(new[] { _mongoQuery, _memryQuery }.Select(queryable =>
+                queryable.GroupBy(c => c.FirstName).Select(c => c.Max(d => d.NumPets))
+            )));
+        }
     }
 }

@@ -35,12 +35,9 @@ namespace MongoLinqPlusPlus.TestApp
 
         static void Main()
         {
-            var namesArray = new[] {"Tom", "Bob", "Larry"};
-            var namesList = namesArray.ToList();
-            var namesEnumerable = namesArray.AsEnumerable();
-
             Assert.IsTrue(TestHelpers.AreEqual(new[] { _mongoQuery, _memryQuery }.Select(queryable =>
-                queryable.Count()
+                queryable.GroupBy(c => c.FirstName)
+                         .Where(c => c.Count() > 1)
             )));
 
             /*
