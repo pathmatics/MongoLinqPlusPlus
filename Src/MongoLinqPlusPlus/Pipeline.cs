@@ -80,6 +80,7 @@ namespace MongoLinqPlusPlus
         private List<PipelineStage> _pipeline = new List<PipelineStage>();
         private PipelineResultType _lastPipelineOperation = PipelineResultType.Select;
         private MongoCollection<TDocType> _collection;
+        private readonly bool _allowMongoDiskUse;
         private int _nextUniqueVariableId = 0;
 
         private readonly Dictionary<ExpressionType, Func<string, BsonValue, IMongoQuery>> NodeToMongoQueryBuilderFuncDict = new Dictionary<ExpressionType, Func<string, BsonValue, IMongoQuery>> {
@@ -116,10 +117,11 @@ namespace MongoLinqPlusPlus
         };
 
         /// <summary>Constructs a new MongoPipeline from a typed MongoCollection</summary>
-        public MongoPipeline(MongoCollection<TDocType> collection, Action<string> loggingDelegate)
+        public MongoPipeline(MongoCollection<TDocType> collection, bool allowMongoDiskUse, Action<string> loggingDelegate)
         {
             _loggingDelegate = loggingDelegate;
             _collection = collection;
+            _allowMongoDiskUse = allowMongoDiskUse;
         }
 
         /// <summary>
@@ -923,6 +925,7 @@ namespace MongoLinqPlusPlus
 
             var commandResult = _collection.Aggregate(new AggregateArgs {
                 OutputMode = AggregateOutputMode.Cursor,
+                AllowDiskUse = _allowMongoDiskUse,
                 Pipeline = pipelineStages
             })
             .ToArray();

@@ -32,12 +32,12 @@ namespace MongoLinqPlusPlus.Tests
     public static class TestHelpers
     {
         /// <summary>Initialize our Mongo database with fresh data and get an IQueryable to it</summary>
-        public static IQueryable<TestDocument> InitMongo(Action<string> loggingDelegate)
+        public static IQueryable<TestDocument> InitMongo(Action<string> loggingDelegate = null, bool allowMongoDiskUse = false)
         {
             var repo = new TestRepository();
             repo.Collection.Drop();
             repo.LoadTestData();
-            return new TestRepository().Collection.QueryablePlusPlus(loggingDelegate);
+            return new TestRepository().Collection.QueryablePlusPlus(allowMongoDiskUse, loggingDelegate);
         }
 
         /// <summary>

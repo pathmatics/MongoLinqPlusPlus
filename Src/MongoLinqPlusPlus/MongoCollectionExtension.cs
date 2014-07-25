@@ -33,14 +33,29 @@ namespace MongoLinqPlusPlus
     public static class MongoExtensions
     {
         /// <summary>
-        /// Gets our custom Aggregation Framework based queryable from a MongoCollection
+        /// Gets our custom Aggregation Framework based queryable from a MongoCollection.
         /// </summary>
         /// <typeparam name="TMongoDocument">The document type stored in the collection</typeparam>
         /// <param name="collection">A Mongo collection to query</param>
         /// <returns>An IQueryable for running Linq queries against</returns>
         public static IQueryable<TMongoDocument> QueryablePlusPlus<TMongoDocument>(this MongoCollection<TMongoDocument> collection)
         {
-            return collection.QueryablePlusPlus(null);
+            return collection.QueryablePlusPlus(false, null);
+        }
+
+        /// <summary>
+        /// Gets our custom Aggregation Framework based queryable from a MongoCollection
+        /// </summary>
+        /// <typeparam name="TMongoDocument">The document type stored in the collection</typeparam>
+        /// <param name="collection">A Mongo collection to query</param>
+        /// <param name="allowMongoDiskUse">
+        /// If true, MongoDB can use the disk for the query if possible.  If false it won't but there's
+        /// a risk that the query is too big to be handled in memory.
+        /// </param>
+        /// <returns>An IQueryable for running Linq queries against</returns>
+        public static IQueryable<TMongoDocument> QueryablePlusPlus<TMongoDocument>(this MongoCollection<TMongoDocument> collection, bool allowMongoDiskUse)
+        {
+            return collection.QueryablePlusPlus(allowMongoDiskUse, null);
         }
 
         /// <summary>
@@ -52,11 +67,28 @@ namespace MongoLinqPlusPlus
         /// <returns>An IQueryable for running Linq queries against</returns>
         public static IQueryable<TMongoDocument> QueryablePlusPlus<TMongoDocument>(this MongoCollection<TMongoDocument> collection, Action<string> loggingDelegate)
         {
+            return collection.QueryablePlusPlus(false, null);
+        }
+
+        /// <summary>
+        /// Gets our custom Aggregation Framework based queryable from a MongoCollection
+        /// </summary>
+        /// <typeparam name="TMongoDocument">The document type stored in the collection</typeparam>
+        /// <param name="collection">A Mongo collection to query</param>
+        /// <param name="allowMongoDiskUse">
+        /// If true, MongoDB can use the disk for the query if possible.  If false it won't but there's
+        /// a risk that the query is too big to be handled in memory.
+        /// </param>
+        /// <param name="loggingDelegate">Callback function for debug logging</param>
+        /// <returns>An IQueryable for running Linq queries against</returns>
+        public static IQueryable<TMongoDocument> QueryablePlusPlus<TMongoDocument>(this MongoCollection<TMongoDocument> collection, bool allowMongoDiskUse, Action<string> loggingDelegate)
+        {
             var queryable = new MongoAggregationQueryable<TMongoDocument>();
             queryable.Expression = Expression.Constant(queryable);
             queryable.Provider = new MongoAggregationQueryProvider<TMongoDocument>(collection) {
                 Queryable = queryable,
-                LoggingDelegate = loggingDelegate
+                LoggingDelegate = loggingDelegate,
+                AllowMongoDiskUse = allowMongoDiskUse
             };
 
             return queryable;

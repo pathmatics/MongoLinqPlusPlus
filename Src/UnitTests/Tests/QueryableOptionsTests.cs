@@ -21,38 +21,28 @@
 // SOFTWARE.
 
 using System;
-using System.Collections;
 using System.Linq;
-using MongoLinqPlusPlus.Tests;
-using Newtonsoft.Json;
+using Microsoft.VisualStudio.TestTools.UnitTesting;
 
-namespace MongoLinqPlusPlus.TestApp
+namespace MongoLinqPlusPlus.Tests
 {
-    class Program
+    [TestClass]
+    public class QueryableOptionsTests
     {
-        private static IQueryable<TestDocument> _mongoQuery = TestHelpers.InitMongo(Console.Write);
-        private static IQueryable<TestDocument> _memryQuery = TestRepository.TestDocuments.AsQueryable();
+        private IQueryable<TestDocument> _memryQuery = TestRepository.TestDocuments.AsQueryable();
 
-        static void Main()
+        [TestMethod]
+        public void AllowMongoDiskUse()
         {
+            var _mongoQuery = TestHelpers.InitMongo(s => System.Diagnostics.Debug.Write(s), true);
+
             Assert.IsTrue(TestHelpers.AreEqual(new[] { _mongoQuery, _memryQuery }.Select(queryable =>
-                queryable.GroupBy(c => c.FirstName).Count(c => c.Count() > 1)
+                queryable.Where(c => c.FirstName == "Tom")
             )));
 
-            /*
-            Console.WriteLine("\r\n------------ TEST PROGRAM RESULTS -------------\r\n");
-            var results = _memryQuery.Select(c => new { NumPets = 1 })
-                                     .ToArray();
-            
-            var json = JsonConvert.SerializeObject(results, Formatting.Indented);
-            Console.WriteLine(json);
-            */
-
-            if (System.Diagnostics.Debugger.IsAttached)
-            {
-                Console.WriteLine("\r\nPress any key to exit.");
-                Console.ReadKey();
-            }
+            Assert.IsTrue(TestHelpers.AreEqual(new[] { _mongoQuery, _memryQuery }.Select(queryable =>
+                queryable.GroupBy(c => c.FirstName).Where(c => c.Count() > 1).Select(c => c.Key)
+            )));
         }
     }
 }

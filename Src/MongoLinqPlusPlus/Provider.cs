@@ -38,6 +38,7 @@ namespace MongoLinqPlusPlus
 
         public object Queryable { get; set; }
         public Action<string> LoggingDelegate { get; set; }
+        public bool AllowMongoDiskUse { get; set; }
 
         /// <summary>
         /// Log a newline to the logging delegate
@@ -92,7 +93,7 @@ namespace MongoLinqPlusPlus
                 LogLine(localExpression.ToString());
             }
 
-            var pipeline = new MongoPipeline<TDocument>(_collection, LoggingDelegate);
+            var pipeline = new MongoPipeline<TDocument>(_collection, AllowMongoDiskUse, LoggingDelegate);
             return pipeline.Execute<TResult>(localExpression);
         }
 
