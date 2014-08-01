@@ -38,7 +38,7 @@ namespace MongoLinqPlusPlus
     internal class GroupingConverter : CustomCreationConverter<object>
     {
         private Type _mongoDocType;
-        private string PIPELINE_DOCUMENT_RESULT_NAME = MongoPipeline<int>.PIPELINE_DOCUMENT_RESULT_NAME;
+        private const string PIPELINE_DOCUMENT_RESULT_NAME = MongoPipeline<int>.PIPELINE_DOCUMENT_RESULT_NAME;
 
         public GroupingConverter(Type mongoDocType)
         {
@@ -67,38 +67,38 @@ namespace MongoLinqPlusPlus
 
             // Populate the key (which maps to the mongo _id field)
             var keyProperty = targetType.GetProperty("Key");
-            var keyValue = jObject["_id"].ToObject(objectType.GenericTypeArguments[0]);
+            var keyValue = DeserializeJToken(jObject["_id"], objectType.GenericTypeArguments[0]);
             keyProperty.SetValue(target, keyValue);
 
             // Populate the values
-            foreach (var jObj in jObject["Values"])
+            foreach (var jToken in jObject["Values"])
             {
-                object asObject;
+                object asObject = DeserializeJToken(jToken, objectType.GenericTypeArguments[1]);
 
-                // See if it's exactly our Mongo doc type OR if it's an interface implemented by our mongo doc
-                if (_mongoDocType == objectType.GenericTypeArguments[1]
-                    || _mongoDocType.GetInterfaces().Contains(objectType.GenericTypeArguments[1]))
-                {
-                    asObject = BsonSerializer.Deserialize(jObj.ToString(), _mongoDocType);
-                }
-                else
-                {
-                    // See if we're deserializing a value type like: { _result_ = "foo" }
-                    if (jObj.Count() == 1 && jObj[PIPELINE_DOCUMENT_RESULT_NAME] != null)
-                    {
-                        asObject = jObj[PIPELINE_DOCUMENT_RESULT_NAME].ToObject(objectType.GenericTypeArguments[1]);
-                    }
-                    else
-                    {
-                        // Nope, deserializing a class or struct
-                        asObject = jObj.ToObject(objectType.GenericTypeArguments[1]);
-                    }
-                }
                 var list = targetType.GetProperty("Values").GetValue(target);
                 list.GetType().GetMethod("Add").Invoke(list, new[] { asObject });
             }
 
             return target;
+        }
+
+        private object DeserializeJToken(JToken jToken, Type type)
+        {
+            // If this is our Mongo document type of an interface implemented by our mongo document type,
+            // then let the BsonSerializer handle the deserialization
+            if (_mongoDocType == type || _mongoDocType.GetInterfaces().Contains(type))
+            {
+                return BsonSerializer.Deserialize(jToken.ToString(), _mongoDocType);
+            }
+
+            // See if we're deserializing a single value : { _result_ = "foo" }
+            if (jToken.Count() == 1 && jToken[PIPELINE_DOCUMENT_RESULT_NAME] != null)
+            {
+                return DeserializeJToken(jToken[PIPELINE_DOCUMENT_RESULT_NAME], type);
+            }
+
+            // Default to Json.net
+            return jToken.ToObject(type);
         }
     }
 

@@ -22,41 +22,31 @@
 
 using System;
 using System.Collections;
+using System.Collections.Generic;
 using System.Linq;
-using MongoLinqPlusPlus.Tests;
+using MongoDB.Bson.Serialization;
 using Newtonsoft.Json;
+using Newtonsoft.Json.Converters;
+using Newtonsoft.Json.Linq;
 
-namespace MongoLinqPlusPlus.TestApp
+namespace MongoLinqPlusPlus
 {
-    class Program
+    /// <summary>Class to enable Json.Net to deserialize DateTime's serialized to json from the Mongo client. </summary>
+    internal class DateTimeConverter : DateTimeConverterBase
     {
-        private static IQueryable<TestDocument> _mongoQuery = TestHelpers.InitMongo(Console.Write);
-        private static IQueryable<TestDocument> _memryQuery = TestRepository.TestDocuments.AsQueryable();
-
-        static void Main()
+        public override void WriteJson(JsonWriter writer, object value, JsonSerializer serializer)
         {
-            Assert.IsTrue(TestHelpers.AreEqual(new[] { _mongoQuery, _memryQuery }.Select(queryable =>
-                queryable.Select(c => new {
-                        c.FirstName,
-                        c.Birthday
-                    })
-                    .Take(1)
-            )));
+            throw new NotImplementedException();
+        }
 
-            /*
-            Console.WriteLine("\r\n------------ TEST PROGRAM RESULTS -------------\r\n");
-            var results = _memryQuery.Select(c => new { NumPets = 1 })
-                                     .ToArray();
-            
-            var json = JsonConvert.SerializeObject(results, Formatting.Indented);
-            Console.WriteLine(json);
-            */
+        public override object ReadJson(JsonReader reader, Type objectType, object existingValue, JsonSerializer serializer)
+        {
+            // Load JObject from stream
+            JObject jObject = JObject.Load(reader);
 
-            if (System.Diagnostics.Debugger.IsAttached)
-            {
-                Console.WriteLine("\r\nPress any key to exit.");
-                Console.ReadKey();
-            }
+            // Pass this on to the BsonSerializer
+            return BsonSerializer.Deserialize<DateTime>(jObject.ToString());
         }
     }
 }
+

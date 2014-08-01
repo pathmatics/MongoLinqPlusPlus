@@ -51,6 +51,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="ExpressionSimplifier.cs" />
+    <Compile Include="DateTimeConverter.cs" />
     <Compile Include="GroupingConverter.cs" />
     <Compile Include="InvalidQueryException.cs" />
     <Compile Include="MongoCollectionExtension.cs" />

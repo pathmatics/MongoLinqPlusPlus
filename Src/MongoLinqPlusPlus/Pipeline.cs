@@ -933,7 +933,7 @@ namespace MongoLinqPlusPlus
             // TODO: We can probably avoid this step now that we're going _collection.Aggregate
             var bsonArray = new BsonArray(commandResult);
 
-//            LogLine(bsonArray.ToJson());
+            // LogLine(bsonArray.ToJson());
 
             // Our bsonArray result can be 2 different things:
             //   1) A collection (like the result of a Where() method
@@ -1049,7 +1049,7 @@ namespace MongoLinqPlusPlus
                         return typedResult;
                     }
 
-                    var result = JsonConvert.DeserializeObject<PipelineDocument<TResult>>(json, new GroupingConverter(typeof(TDocType)));
+                    var result = JsonConvert.DeserializeObject<PipelineDocument<TResult>>(json, new GroupingConverter(typeof(TDocType)), new DateTimeConverter());
                     return result._result_;
                 }
                 throw;
