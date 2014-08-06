@@ -22,14 +22,26 @@
 
 namespace MongoLinqPlusPlus
 {
-    /// <summary>
-    /// Exception thrown to indicate a failure to translate or execute the query
-    /// </summary>
+    /// <summary>Exception thrown to indicate a failure to translate or execute the query</summary>
     public class InvalidQueryException : System.Exception
     {
         private string _message;
 
         public InvalidQueryException(string message)
+        {
+            _message = message;
+        }
+
+        public override string Message { get { return _message; } }
+    }
+
+
+    /// <summary>Exception thrown to indicate an internal failure - likely a bug :(</summary>
+    public class MongoLinqPlusPlusInternalExpception: System.Exception
+    {
+        private string _message;
+
+        public MongoLinqPlusPlusInternalExpception(string message)
         {
             _message = message;
         }

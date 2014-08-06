@@ -26,6 +26,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Linq.Expressions;
+using System.Reflection;
 using MongoDB.Bson;
 using MongoDB.Bson.IO;
 using MongoDB.Bson.Serialization;
@@ -36,16 +37,17 @@ using Newtonsoft.Json;
 
 namespace MongoLinqPlusPlus
 {
-    internal enum PipelineResultType
+    [Flags]
+    internal enum PipelineResultTypeEx
     {
-        Select,
-        Group,
-        Aggregation,
-        Any,
-        First,
-        FirstOrDefault,
-        Single,
-        SingleOrDefault
+        Enumerable      = 0x001,
+        Aggregation     = 0x002,
+        Grouped         = 0x004,
+        OneResultFromEnumerable    = 0x008,
+        OrDefault       = 0x018,
+        First           = 0x028,
+        Single          = 0x048,
+        Any             = 0x082,
     }
 
     internal class PipelineStage
@@ -53,21 +55,6 @@ namespace MongoLinqPlusPlus
         public string PipelineOperator;
         public BsonValue Operation;
         public bool GroupNeedsCleanup;
-    }
-
-    /// <summary>
-    /// Document used internally to handle projections that don't map to a document.
-    /// For example, ".Select(c => c.Age)" returns a collection of integers with no
-    /// matching name fields.  In this case, we'd use a document of the format
-    /// {_result_:25} internally within the pipeline to represent an integer(s)
-    /// </summary>
-    [BsonIgnoreExtraElements]
-    internal class PipelineDocument<T>
-    {
-        // ReSharper disable once UnassignedField.Compiler
-        // The following propety name must match the value of PipelineDocumentResultName.
-        // I could do this via reflection but I'm a lazy.
-        public T _result_ { get; set; }
     }
 
     internal class MongoPipeline<TDocType>
@@ -78,10 +65,18 @@ namespace MongoLinqPlusPlus
         private JsonWriterSettings _jsonWriterSettings = new JsonWriterSettings {OutputMode = JsonOutputMode.Strict, Indent = true, NewLineChars = "\r\n"};
 
         private List<PipelineStage> _pipeline = new List<PipelineStage>();
-        private PipelineResultType _lastPipelineOperation = PipelineResultType.Select;
+        private PipelineResultTypeEx _lastPipelineOperation = PipelineResultTypeEx.Enumerable;
         private MongoCollection<TDocType> _collection;
         private readonly bool _allowMongoDiskUse;
         private int _nextUniqueVariableId = 0;
+
+        /// <summary>
+        /// Custom converters to use when utilizing Json.net for deserialization 
+        /// </summary>
+        private JsonConverter[] _customConverters = {
+            new GroupingConverter(typeof(TDocType)),
+            new DateTimeConverter()
+        };
 
         private readonly Dictionary<ExpressionType, Func<string, BsonValue, IMongoQuery>> NodeToMongoQueryBuilderFuncDict = new Dictionary<ExpressionType, Func<string, BsonValue, IMongoQuery>> {
             {ExpressionType.Equal, Query.EQ},
@@ -694,6 +689,9 @@ namespace MongoLinqPlusPlus
         /// <summary>Adds a new $match stage to the pipeline for a .Where method call</summary>
         public void EmitPipelinesStageForWhere(LambdaExpression lambdaExp)
         {
+            if (lambdaExp == null)
+                return;
+
             // Special case, handle .Where(c => true) and .Where(c => false)
             if (lambdaExp.Body is ConstantExpression)
             {
@@ -765,7 +763,7 @@ namespace MongoLinqPlusPlus
         }
 
         /// <summary>Adds a pipeline stage ($group) for the specified aggregation (Sum, Min, Max, Average)</summary>
-        public void EmitPipeLineStageForAggregation(string cSharpAggregationName, LambdaExpression lambdaExp)
+        public void EmitPipelineStageForAggregation(string cSharpAggregationName, LambdaExpression lambdaExp)
         {
             string mongoAggregationName = "$" + NodeToMongoAggregationOperatorDict[cSharpAggregationName];
 
@@ -840,13 +838,13 @@ namespace MongoLinqPlusPlus
                 case "GroupBy":
                 {
                     EmitPipelineStageForGroupBy(GetLambda(expression));
-                    _lastPipelineOperation = PipelineResultType.Group;
+                    _lastPipelineOperation = _lastPipelineOperation | PipelineResultTypeEx.Grouped;
                     return;
                 }
                 case "Select":
                 {
                     EmitPipelineStageForSelect(GetLambda(expression));
-                    _lastPipelineOperation = PipelineResultType.Select;
+                    _lastPipelineOperation = PipelineResultTypeEx.Enumerable;
                     return;
                 }
                 case "OrderBy":
@@ -863,37 +861,44 @@ namespace MongoLinqPlusPlus
                     return;
                 case "Count":
                     EmitPipelineStageForCount(GetLambda(expression));
-                    _lastPipelineOperation = PipelineResultType.Aggregation;
+                    _lastPipelineOperation = PipelineResultTypeEx.Aggregation;
                     return;
                 case "Any":
                     EmitPipelineStageForAny(GetLambda(expression));
-                    _lastPipelineOperation = PipelineResultType.Any;
+                    _lastPipelineOperation = PipelineResultTypeEx.Any;
                     return;
                 case "Sum":
                 case "Max":
                 case "Min":
                 case "Average":
-                    EmitPipeLineStageForAggregation(expression.Method.Name, GetLambda(expression));
-                    _lastPipelineOperation = PipelineResultType.Aggregation;
+                    EmitPipelineStageForAggregation(expression.Method.Name, GetLambda(expression));
+                    _lastPipelineOperation = PipelineResultTypeEx.Aggregation;
                     return;
                 case "First":
+                    EmitPipelinesStageForWhere(GetLambda(expression));
                     EmitPipelineStageForTake(1);
-                    _lastPipelineOperation = PipelineResultType.First;
+                    _lastPipelineOperation = _lastPipelineOperation | PipelineResultTypeEx.First;
                     return;
                 case "FirstOrDefault":
-                    _lastPipelineOperation = PipelineResultType.FirstOrDefault;
-                    break;
+                    EmitPipelinesStageForWhere(GetLambda(expression));
+                    EmitPipelineStageForTake(1);
+                    _lastPipelineOperation = _lastPipelineOperation | PipelineResultTypeEx.First | PipelineResultTypeEx.OrDefault;
+                    return;
                 case "Single":
-                    _lastPipelineOperation = PipelineResultType.Single;
-                    break;
+                    EmitPipelinesStageForWhere(GetLambda(expression));
+                    EmitPipelineStageForTake(2);
+                    _lastPipelineOperation = _lastPipelineOperation | PipelineResultTypeEx.Single;
+                    return;
                 case "SingleOrDefault":
-                    _lastPipelineOperation = PipelineResultType.SingleOrDefault;
-                    break;
+                    EmitPipelinesStageForWhere(GetLambda(expression));
+                    EmitPipelineStageForTake(2);
+                    _lastPipelineOperation = _lastPipelineOperation | PipelineResultTypeEx.Single | PipelineResultTypeEx.OrDefault;
+                    return;
             }
 
             throw new InvalidQueryException("Unsupported MethodCallExpression " + expression.Method.Name);
         }
-
+        
         /// <summary>
         /// Build and execute (ie evaluate) the supplied expression on a MongoDB server
         /// </summary>
@@ -901,22 +906,18 @@ namespace MongoLinqPlusPlus
         /// <param name="expression">The query/expression to build and execute</param>
         public TResult Execute<TResult>(Expression expression)
         {
-            var resultType = typeof (TResult);
-            bool resultIsEnumerable = resultType == typeof(IEnumerable) || resultType.GetInterface("IEnumerable") != null;
-
             // Build the pipeline
             if (expression is MethodCallExpression)
                 EmitPipelineStageForMethod((MethodCallExpression) expression);
 
-            // If the result is a grouping, then we need to also include the grouped values
-            if (_lastPipelineOperation == PipelineResultType.Group)
+            // If the result is a grouping, then we need to also include the values (ie not just the Key) in the result
+            if ((_lastPipelineOperation & PipelineResultTypeEx.Grouped) != 0)
             {
                 var groupDoc = GetLastOccurrenceOfPipelineStage("$group", false);
                 groupDoc.Add("Values", new BsonDocument("$push", "$$ROOT"));
             }
 
             // Run our actual aggregation command against mongo
-
             var pipelineStages = _pipeline.Select(c => new BsonDocument(c.PipelineOperator, c.Operation)).ToArray();
 
             LogLine("\r\n----------------- PIPELINE --------------------\r\n");
@@ -927,133 +928,146 @@ namespace MongoLinqPlusPlus
                 OutputMode = AggregateOutputMode.Cursor,
                 AllowDiskUse = _allowMongoDiskUse,
                 Pipeline = pipelineStages
-            })
-            .ToArray();
+            });
 
-            // TODO: We can probably avoid this step now that we're going _collection.Aggregate
-            var bsonArray = new BsonArray(commandResult);
-
-            // LogLine(bsonArray.ToJson());
-
-            // Our bsonArray result can be 2 different things:
-            //   1) A collection (like the result of a Where() method
-            //   2) A aggregated value (like the result of a Sum() method)
-            // The stephs necessary to deserialize each case are little different.
-
-            if (!resultIsEnumerable)
+            // Handle aggregated result types
+            if ((_lastPipelineOperation & PipelineResultTypeEx.Aggregation) != 0)
             {
-                if (!bsonArray.Any())
-                {
-                    // No results, so First() and Single() should throw
-                    if (_lastPipelineOperation == PipelineResultType.First || _lastPipelineOperation == PipelineResultType.Single)
-                        throw new InvalidOperationException("Sequence contains no elements.");
+                var results = commandResult.Take(2).ToArray();
 
-                    // FirstOrDefault(), SingleOrDefault(), and Aggregations should just return 0, null, etc.
-                    LogLine("Returning 0 or 1 result.");
+                if (results.Length == 0)
                     return default(TResult);
-                }
 
-                // Since this isn't a grouping or enumerable, we expect exactly 1 result at this point
-                if (bsonArray.Count() != 1)
-                    throw new InvalidDataException("Unexpected number of results from Mongo.  Expecting 1.  Actual " + bsonArray.Count());
+                if (results.Length > 1)
+                    throw new MongoLinqPlusPlusInternalExpception(string.Format("Unexpected number of results ({0}) for PipelineResultType.Aggregation pipeline", results.Length));
 
-                BsonDocument value = (BsonDocument) bsonArray[0];
-                if (_lastPipelineOperation == PipelineResultType.Any)
+                // The result is in a document structured as { _result_ : value }
+                var resultDoc = results[0];
+
+                // Special treatment for any
+                if (_lastPipelineOperation == PipelineResultTypeEx.Any)
                 {
-                    // The result is in a document structured as { _result_ : value }
-                    var aggregationResult = BsonSerializer.Deserialize<PipelineDocument<int>>(value);
-                    int resultCount = aggregationResult._result_;
+                    bool any = ((BsonInt32) resultDoc[PIPELINE_DOCUMENT_RESULT_NAME]).Value == 1;
 
                     // Todo: Any way to avoid the boxing (since we know TResult is bool)?
-                    return (TResult) ((object) (resultCount > 0));
+                    return (TResult) ((object) (any));
+                }
+                
+                var aggregationResult = BsonSerializer.Deserialize<PipelineDocument<TResult>>(resultDoc);
+                return aggregationResult._result_;
+            }
+            
+            Type resultType = typeof(TResult);
+            bool isGenericEnumerable = typeof(TResult) == typeof(IEnumerable);
+
+            // Get the type that is in our enumerable result.
+            // If we have plaine ole IEnumerable, then get it from the expression.
+            // If we have an IEnumerable<T>, then get it from the generic type arguments of our result.
+            // If we're runing a First, FirstOrDefault, Single, or SingleOrDefault, get it from resultType
+            Type enumerableOfItemType;
+            if (isGenericEnumerable)
+                enumerableOfItemType = expression.Type.GenericTypeArguments[0];
+            else if ((_lastPipelineOperation & PipelineResultTypeEx.OneResultFromEnumerable) != 0)
+                enumerableOfItemType = resultType;
+            else
+                enumerableOfItemType = resultType.GenericTypeArguments[0];
+
+            // Instantiate a List<enumerableOfItemType>
+            Type listType = typeof (List<>).MakeGenericType(enumerableOfItemType);
+            object list = Activator.CreateInstance(listType);
+            var listAddMethod = listType.GetMethod("Add");
+            object[] listAddMethodParameters = new object[1];
+
+            bool firstIteration = true;
+            Type simplePipelineDocType = null;
+            PropertyInfo simplePipelineDocTypeResultProperty = null;
+
+            bool enumerableOfItemTypeIsAnonymous = enumerableOfItemType.IsAnonymousType();
+            TResult firstResult = default(TResult);
+
+            int numResults = 0;
+
+            foreach (var resultDoc in commandResult)
+            {
+                // See if we have an array of simple result types
+                // [{ _result_: 5}, { _result_: 2}, ...]
+                if (firstIteration && resultDoc.ElementCount == 1 && resultDoc.Contains(PIPELINE_DOCUMENT_RESULT_NAME))
+                {
+                    // We can't deserialize a BsonValue if it's not a document.
+                    // So we need to deserialize using out simple result doc type.
+                    simplePipelineDocType = typeof(PipelineDocument<>).MakeGenericType(enumerableOfItemType);
+                    simplePipelineDocTypeResultProperty = simplePipelineDocType.GetProperty(PIPELINE_DOCUMENT_RESULT_NAME);
                 }
 
-                if (_lastPipelineOperation == PipelineResultType.Aggregation)
+                object deserializedResultItem;
+
+                if (enumerableOfItemTypeIsAnonymous || ((_lastPipelineOperation & PipelineResultTypeEx.Grouped) != 0))
                 {
-                    // The result is in a document structured as { _result_ : value }
-                    var aggregationResult = BsonSerializer.Deserialize<PipelineDocument<TResult>>(value);
-                    return aggregationResult._result_;
+                    // BsonSerializer can't handle anonymous types or IGrouping, so use Json.net
+
+                    // We might have a simple doc type.  If so, extract our real result doc from _result_
+                    var resultDocLocal = simplePipelineDocType == null ? resultDoc : (BsonDocument) resultDoc[PIPELINE_DOCUMENT_RESULT_NAME];
+
+                    // Use Json.net for anonymous types.
+                    string json = resultDocLocal.ToJson(_jsonWriterSettings);
+                    deserializedResultItem = JsonConvert.DeserializeObject(json, enumerableOfItemType, _customConverters);
+                }
+                else if (simplePipelineDocType != null)
+                {
+                    // Deserialize to a PipelineDocument using the BsonSerializer            
+                    var pipelineDocument = BsonSerializer.Deserialize(resultDoc, simplePipelineDocType);
+
+                    // Extract the result from the _result_ property
+                    deserializedResultItem = simplePipelineDocTypeResultProperty.GetValue(pipelineDocument);
+                }
+                else
+                {
+                    // Easy case, just use the BsonSerializer
+                    deserializedResultItem = BsonSerializer.Deserialize(resultDoc, enumerableOfItemType);
                 }
 
-                // The result is a fully baked bson document
-                LogLine("Returning 1 result.");
-                var documentResult = BsonSerializer.Deserialize<TResult>(value);
-                return documentResult;
-            }
-
-            // Our results (depending on if we queried directly) may either be a list of TResult
-            // or a list of PipelineDocument<TResult>.  Handle the latter first
-
-            try
-            {
-                // Pull our results out of the _result_ document
-                for (int i = 0; i < bsonArray.Count(); i++)
-                    bsonArray[i] = bsonArray[i][PIPELINE_DOCUMENT_RESULT_NAME];
-            }
-            catch (KeyNotFoundException)
-            {
-            }
-
-            // We can't deserialize a bsonArray.  So put it in a document.
-            // Note that this document perfectly matches our PipelineDocument format.
-            // The key assumption we're making is that bsonArray is of type TResult.
-            var bsonDocument = new BsonDocument(PIPELINE_DOCUMENT_RESULT_NAME, bsonArray);
-
-            // Deserialize to our pipeline document
-            try
-            {
-                LogLine("Returning {0} result(s).", bsonArray.Count());
-
-                // The general IEnumerable type doesn't deserialize nicely.
-                // In this case, find the underlying object type via reflection, do a strongly typed
-                // bson deserialize, and then return the IEnumerable
-                if (typeof(TResult) == typeof (IEnumerable))
+                // Success for .First and .FirstOrDefault
+                if ((_lastPipelineOperation & PipelineResultTypeEx.OneResultFromEnumerable) != 0)
                 {
-                    Type underlyingObjectType = expression.Type.GenericTypeArguments[0];
-                    var ienumerableType = typeof (IEnumerable<>).MakeGenericType(underlyingObjectType);
-                    var pipelineDocumentEnumerableType = typeof (PipelineDocument<>).MakeGenericType(ienumerableType);
-                    dynamic dynamicResult = BsonSerializer.Deserialize(bsonDocument, pipelineDocumentEnumerableType);
-                    object objectResult = dynamicResult._result_;
-                    TResult typedResult = (TResult) objectResult;
-                    return typedResult;
-                }
-
-                var result = BsonSerializer.Deserialize<PipelineDocument<TResult>>(bsonDocument);
-
-                // Extract the result and we're done!
-                return result._result_;
-            }
-            catch (Exception e)
-            {
-                if (e is FormatException || e is BsonSerializationException)
-                {
-                    // Anonymous types can't deserialize :(
-                    // Fall back to Json.Net to deserialize
-
-//                    LogLine("\r\n-------------------------------------\r\n");
-//                    LogLine("Falling back to Json.Net.");
-                    string json = bsonDocument.ToJson(_jsonWriterSettings);
-//                    LogLine("Json == " + json);
-
-                    // The general IEnumerable type doesn't deserialize nicely.
-                    // In this case, find the underlying object type via reflection, do a strongly typed
-                    // bson deserialize, and then return the IEnumerable
-                    if (typeof(TResult) == typeof(IEnumerable))
+                    firstResult = (TResult) deserializedResultItem;
+                    if ((_lastPipelineOperation & PipelineResultTypeEx.First) != 0)
                     {
-                        Type underlyingObjectType = expression.Type.GenericTypeArguments[0];
-                        var ienumerableType = typeof(IEnumerable<>).MakeGenericType(underlyingObjectType);
-                        var pipelineDocumentEnumerableType = typeof(PipelineDocument<>).MakeGenericType(ienumerableType);
-                        object pipelineDocumentResult = JsonConvert.DeserializeObject(json, pipelineDocumentEnumerableType, new GroupingConverter(typeof(TDocType)));
-                        object objectResult = pipelineDocumentResult.GetType().GetProperty(PIPELINE_DOCUMENT_RESULT_NAME).GetValue(pipelineDocumentResult);
-                        TResult typedResult = (TResult) objectResult;
-                        return typedResult;
+                        return firstResult;
                     }
-
-                    var result = JsonConvert.DeserializeObject<PipelineDocument<TResult>>(json, new GroupingConverter(typeof(TDocType)), new DateTimeConverter());
-                    return result._result_;
                 }
-                throw;
+                else
+                {
+                    // Call list.Add(deserializedResultItem);
+                    listAddMethodParameters[0] = deserializedResultItem;
+                    listAddMethod.Invoke(list, listAddMethodParameters);
+                }
+
+                numResults++;
+
+                firstIteration = false;
             }
+
+            // Handle .First, .Single, .FirstOrDefault, and .SingleOrDefault
+            if ((_lastPipelineOperation & PipelineResultTypeEx.OneResultFromEnumerable) != 0)
+            {
+                if (numResults == 0)
+                {
+                    if ((_lastPipelineOperation & PipelineResultTypeEx.OrDefault) != 0)
+                        return default(TResult);
+
+                    throw new InvalidOperationException("Sequence contains no elements");
+                }
+
+                // First and first or default already returned results in our above loop
+
+                // Blow up for more than one result
+                if (numResults > 1)
+                    throw new InvalidOperationException("Sequence contains more than one element");
+
+                return firstResult;
+            }
+
+            return (TResult) list;
         }
     }
 }

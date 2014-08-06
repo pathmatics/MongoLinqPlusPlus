@@ -140,6 +140,12 @@ namespace MongoLinqPlusPlus.Tests
         /// <returns>True if they contain the same type and data, otherwise false.</returns>
         private static bool AreEqual(object mongoObj, object memryObj)
         {
+            if ((mongoObj == null) && (memryObj == null))
+                return true;
+
+            if ((mongoObj == null) ^ (memryObj == null))
+                return false;
+
             // Handle an enumerable type
             if (mongoObj is IEnumerable && memryObj is IEnumerable)
             {

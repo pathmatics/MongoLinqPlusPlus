@@ -20,6 +20,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
+using System;
 using System.Linq;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
@@ -150,5 +151,224 @@ namespace MongoLinqPlusPlus.Tests
                 queryable.Select(c => c.NumPets).Any()
             )));
         }
+
+        [TestMethod]
+        public void First()
+        {
+            Assert.IsTrue(TestHelpers.AreEqual(new[] { _mongoQuery, _memryQuery }.Select(queryable =>
+                queryable.First()
+            )));
+
+            Assert.IsTrue(TestHelpers.AreEqual(new[] { _mongoQuery, _memryQuery }.Select(queryable =>
+                queryable.OrderBy(c => c.SSN)
+                         .First()
+            )));
+
+            Assert.IsTrue(TestHelpers.AreEqual(new[] { _mongoQuery, _memryQuery }.Select(queryable =>
+                queryable.OrderBy(c => c.SSN)
+                         .Select(c => c.SSN)
+                         .First()
+            )));
+
+            Assert.IsTrue(TestHelpers.AreEqual(new[] { _mongoQuery, _memryQuery }.Select(queryable =>
+                queryable.First(c => c.FirstName == "June")
+            )));
+
+            Assert.IsTrue(TestHelpers.AreEqual(new[] { _mongoQuery, _memryQuery }.Select(queryable =>
+                queryable.OrderBy(c => c.SSN)
+                         .First(c => c.FirstName == "Tom")
+            )));
+
+            Assert.IsTrue(TestHelpers.AreEqual(new[] { _mongoQuery, _memryQuery }.Select(queryable =>
+                queryable.GroupBy(c => c.FirstName)
+                         .OrderBy(c => c.Key)
+                         .First()
+            )));
+
+            try
+            {
+                // ReSharper disable once ReplaceWithSingleCallToFirst
+                // ReSharper disable once UnusedVariable
+                var foo = _mongoQuery.Where(c => c.FirstName == "doesnt exist").First();
+            }
+            catch (InvalidOperationException e)
+            {
+                Assert.AreEqual("Sequence contains no elements", e.Message);
+            }
+
+            try
+            {
+                // ReSharper disable once UnusedVariable
+                var foo = _mongoQuery.First(c => c.FirstName == "doesnt exist");
+            }
+            catch (InvalidOperationException e)
+            {
+                Assert.AreEqual("Sequence contains no elements", e.Message);
+            }
+        }
+
+        [TestMethod]
+        public void Single()
+        {
+            Assert.IsTrue(TestHelpers.AreEqual(new[] { _mongoQuery, _memryQuery }.Select(queryable =>
+                queryable.Take(1)
+                         .Single()
+            )));
+
+            Assert.IsTrue(TestHelpers.AreEqual(new[] { _mongoQuery, _memryQuery }.Select(queryable =>
+                queryable.OrderBy(c => c.SSN)
+                         .Take(1)
+                         .Single()
+            )));
+
+            Assert.IsTrue(TestHelpers.AreEqual(new[] { _mongoQuery, _memryQuery }.Select(queryable =>
+                queryable.OrderBy(c => c.SSN)
+                         .Take(1)
+                         .Select(c => c.SSN)
+                         .Single()
+            )));
+
+            Assert.IsTrue(TestHelpers.AreEqual(new[] { _mongoQuery, _memryQuery }.Select(queryable =>
+                queryable.Single(c => c.FirstName == "June")
+            )));
+
+            Assert.IsTrue(TestHelpers.AreEqual(new[] { _mongoQuery, _memryQuery }.Select(queryable =>
+                queryable.GroupBy(c => c.FirstName)
+                         .OrderBy(c => c.Key)
+                         .Take(1)
+                         .Single()
+            )));
+
+            try
+            {
+                // ReSharper disable once UnusedVariable
+                // ReSharper disable once ReplaceWithSingleCallToSingle
+                var foo = _mongoQuery.Single();
+            }
+            catch (InvalidOperationException e)
+            {
+                Assert.AreEqual("Sequence contains more than one element", e.Message);
+            }
+
+            try
+            {
+                // ReSharper disable once UnusedVariable
+                // ReSharper disable once ReplaceWithSingleCallToSingle
+                var foo = _mongoQuery.Single(c => c.FirstName == "Tom");
+            }
+            catch (InvalidOperationException e)
+            {
+                Assert.AreEqual("Sequence contains more than one element", e.Message);
+            }
+
+            try
+            {
+                // ReSharper disable once UnusedVariable
+                // ReSharper disable once ReplaceWithSingleCallToSingle
+                var foo = _mongoQuery.Where(c => c.FirstName == "doesnt exist").Single();
+            }
+            catch (InvalidOperationException e)
+            {
+                Assert.AreEqual("Sequence contains no elements", e.Message);
+            }
+
+            try
+            {
+                // ReSharper disable once UnusedVariable
+                var foo = _mongoQuery.Single(c => c.FirstName == "doesnt exist");
+            }
+            catch (InvalidOperationException e)
+            {
+                Assert.AreEqual("Sequence contains no elements", e.Message);
+            }
+        }
+
+        [TestMethod]
+        public void FirstOrDefault()
+        {
+            Assert.IsTrue(TestHelpers.AreEqual(new[] { _mongoQuery, _memryQuery }.Select(queryable =>
+                queryable.FirstOrDefault()
+            )));
+
+            Assert.IsTrue(TestHelpers.AreEqual(new[] { _mongoQuery, _memryQuery }.Select(queryable =>
+                queryable.OrderBy(c => c.SSN)
+                         .FirstOrDefault()
+            )));
+
+            Assert.IsTrue(TestHelpers.AreEqual(new[] { _mongoQuery, _memryQuery }.Select(queryable =>
+                queryable.OrderBy(c => c.SSN)
+                         .Select(c => c.SSN)
+                         .FirstOrDefault()
+            )));
+
+            Assert.IsTrue(TestHelpers.AreEqual(new[] { _mongoQuery, _memryQuery }.Select(queryable =>
+                queryable.FirstOrDefault(c => c.FirstName == "June")
+            )));
+
+            Assert.IsTrue(TestHelpers.AreEqual(new[] { _mongoQuery, _memryQuery }.Select(queryable =>
+                queryable.OrderBy(c => c.SSN)
+                         .FirstOrDefault(c => c.FirstName == "Tom")
+            )));
+
+            Assert.IsTrue(TestHelpers.AreEqual(new[] { _mongoQuery, _memryQuery }.Select(queryable =>
+                queryable.GroupBy(c => c.FirstName)
+                         .OrderBy(c => c.Key)
+                         .FirstOrDefault()
+            )));
+
+            Assert.IsTrue(TestHelpers.AreEqual(new[] { _mongoQuery, _memryQuery }.Select(queryable =>
+                // ReSharper disable once ReplaceWithSingleCallToFirstOrDefault
+                queryable.Where(c => c.FirstName == "doesnt exist")
+                         .FirstOrDefault()
+            )));
+
+            Assert.IsTrue(TestHelpers.AreEqual(new[] { _mongoQuery, _memryQuery }.Select(queryable =>
+                queryable.FirstOrDefault(c => c.FirstName == "doesnt exist")
+            )));
+        }
+
+        [TestMethod]
+        public void SingleOrDefault()
+        {
+            Assert.IsTrue(TestHelpers.AreEqual(new[] { _mongoQuery, _memryQuery }.Select(queryable =>
+                queryable.Take(1)
+                         .SingleOrDefault()
+            )));
+
+            Assert.IsTrue(TestHelpers.AreEqual(new[] { _mongoQuery, _memryQuery }.Select(queryable =>
+                queryable.OrderBy(c => c.SSN)
+                         .Take(1)
+                         .SingleOrDefault()
+            )));
+
+            Assert.IsTrue(TestHelpers.AreEqual(new[] { _mongoQuery, _memryQuery }.Select(queryable =>
+                queryable.OrderBy(c => c.SSN)
+                         .Take(1)
+                         .Select(c => c.SSN)
+                         .SingleOrDefault()
+            )));
+
+            Assert.IsTrue(TestHelpers.AreEqual(new[] { _mongoQuery, _memryQuery }.Select(queryable =>
+                queryable.SingleOrDefault(c => c.FirstName == "June")
+            )));
+
+            Assert.IsTrue(TestHelpers.AreEqual(new[] { _mongoQuery, _memryQuery }.Select(queryable =>
+                queryable.GroupBy(c => c.FirstName)
+                         .OrderBy(c => c.Key)
+                         .Take(1)
+                         .SingleOrDefault()
+            )));
+
+            Assert.IsTrue(TestHelpers.AreEqual(new[] { _mongoQuery, _memryQuery }.Select(queryable =>
+                // ReSharper disable once ReplaceWithSingleCallToSingleOrDefault
+                queryable.Where(c => c.FirstName == "doesnt exist")
+                         .SingleOrDefault()
+            )));
+
+            Assert.IsTrue(TestHelpers.AreEqual(new[] { _mongoQuery, _memryQuery }.Select(queryable =>
+                queryable.SingleOrDefault(c => c.FirstName == "doesnt exist")
+            )));
+        }
+
     }
 }

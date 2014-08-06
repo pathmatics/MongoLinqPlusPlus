@@ -21,34 +21,24 @@
 // SOFTWARE.
 
 using System;
-using System.Collections;
-using System.Collections.Generic;
 using System.Linq;
-using MongoDB.Bson.Serialization;
-using Newtonsoft.Json;
-using Newtonsoft.Json.Converters;
-using Newtonsoft.Json.Linq;
+using System.Linq.Expressions;
+using System.Runtime.CompilerServices;
+using MongoDB.Driver;
 
 namespace MongoLinqPlusPlus
 {
-    /// <summary>Class to enable Json.Net to deserialize DateTime's serialized to json from the Mongo client. </summary>
-    internal class DateTimeConverter : DateTimeConverterBase
+    /// <summary>Extend the Type class</summary>
+    internal static class TypeExtensions
     {
-        /// <summary>Not implemented.</summary>
-        public override void WriteJson(JsonWriter writer, object value, JsonSerializer serializer)
+        /// <summary>Returns true if this type is Anonymous, otherwise false.</summary>
+        public static bool IsAnonymousType(this Type type)
         {
-            throw new NotImplementedException();
-        }
+            bool hasCompilerGeneratedAttribute = type.GetCustomAttributes(typeof(CompilerGeneratedAttribute), false).Count() > 0;
+            bool nameContainsAnonymousType = type.FullName.Contains("AnonymousType");
+            bool isAnonymousType = hasCompilerGeneratedAttribute && nameContainsAnonymousType;
 
-        /// <summary>Pass the json representation of the DateTime off to the BsonDeserializer</summary>
-        public override object ReadJson(JsonReader reader, Type objectType, object existingValue, JsonSerializer serializer)
-        {
-            // Load JObject from stream
-            JObject jObject = JObject.Load(reader);
-
-            // Pass this on to the BsonSerializer
-            return BsonSerializer.Deserialize<DateTime>(jObject.ToString());
+            return isAnonymousType;
         }
     }
 }
-

@@ -50,10 +50,13 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="GroupingDocument.cs" />
+    <Compile Include="PipelineDocument.cs" />
     <Compile Include="ExpressionSimplifier.cs" />
     <Compile Include="DateTimeConverter.cs" />
     <Compile Include="GroupingConverter.cs" />
-    <Compile Include="InvalidQueryException.cs" />
+    <Compile Include="Exceptions.cs" />
+    <Compile Include="TypeExtensions.cs" />
     <Compile Include="MongoCollectionExtension.cs" />
     <Compile Include="Pipeline.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />

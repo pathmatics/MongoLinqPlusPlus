@@ -35,13 +35,16 @@ namespace MongoLinqPlusPlus.TestApp
 
         static void Main()
         {
+
             Assert.IsTrue(TestHelpers.AreEqual(new[] { _mongoQuery, _memryQuery }.Select(queryable =>
-                queryable.Select(c => new {
-                        c.FirstName,
-                        c.Birthday
-                    })
-                    .Take(1)
+                queryable.GroupBy(c => c.FirstName)
+                         .Take(1)
+                         .SingleOrDefault()
             )));
+
+            //Assert.IsTrue(TestHelpers.AreEqual(new[] { _mongoQuery, _memryQuery }.Select(queryable =>
+            //    queryable.GroupBy(c => c.SSN).First()
+            //)));
 
             /*
             Console.WriteLine("\r\n------------ TEST PROGRAM RESULTS -------------\r\n");

@@ -59,7 +59,7 @@ namespace MongoLinqPlusPlus
         public override object ReadJson(JsonReader reader, Type objectType, object existingValue, JsonSerializer serializer)
         {
             // Create a new return value with the right type
-            var targetType = typeof(MyGrouping<,>).MakeGenericType(objectType.GetGenericArguments());
+            var targetType = typeof(GroupingDocument<,>).MakeGenericType(objectType.GetGenericArguments());
             var target = Activator.CreateInstance(targetType);
 
             // Load JObject from stream
@@ -99,28 +99,6 @@ namespace MongoLinqPlusPlus
 
             // Default to Json.net
             return jToken.ToObject(type, serializer);
-        }
-    }
-
-
-    public class MyGrouping<TKey, TElement> : IGrouping<TKey, TElement>
-    {
-        public MyGrouping()
-        {
-            Values = new List<TElement>();
-        }
-
-        public List<TElement> Values { get; set; }
-        public TKey Key { get; set; }
-
-        public IEnumerator<TElement> GetEnumerator()
-        {
-            return Values.GetEnumerator();
-        }
-
-        IEnumerator IEnumerable.GetEnumerator()
-        {
-            return GetEnumerator();
         }
     }
 }
