@@ -67,13 +67,13 @@ namespace MongoLinqPlusPlus
 
             // Populate the key (which maps to the mongo _id field)
             var keyProperty = targetType.GetProperty("Key");
-            var keyValue = DeserializeJToken(jObject["_id"], objectType.GenericTypeArguments[0]);
+            var keyValue = DeserializeJToken(serializer, jObject["_id"], objectType.GenericTypeArguments[0]);
             keyProperty.SetValue(target, keyValue);
 
             // Populate the values
             foreach (var jToken in jObject["Values"])
             {
-                object asObject = DeserializeJToken(jToken, objectType.GenericTypeArguments[1]);
+                object asObject = DeserializeJToken(serializer, jToken, objectType.GenericTypeArguments[1]);
 
                 var list = targetType.GetProperty("Values").GetValue(target);
                 list.GetType().GetMethod("Add").Invoke(list, new[] { asObject });
@@ -82,7 +82,7 @@ namespace MongoLinqPlusPlus
             return target;
         }
 
-        private object DeserializeJToken(JToken jToken, Type type)
+        private object DeserializeJToken(JsonSerializer serializer, JToken jToken, Type type)
         {
             // If this is our Mongo document type of an interface implemented by our mongo document type,
             // then let the BsonSerializer handle the deserialization
@@ -94,11 +94,11 @@ namespace MongoLinqPlusPlus
             // See if we're deserializing a single value : { _result_ = "foo" }
             if (jToken.Count() == 1 && jToken[PIPELINE_DOCUMENT_RESULT_NAME] != null)
             {
-                return DeserializeJToken(jToken[PIPELINE_DOCUMENT_RESULT_NAME], type);
+                return DeserializeJToken(serializer, jToken[PIPELINE_DOCUMENT_RESULT_NAME], type);
             }
 
             // Default to Json.net
-            return jToken.ToObject(type);
+            return jToken.ToObject(type, serializer);
         }
     }
 
