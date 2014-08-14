@@ -30,7 +30,13 @@ namespace MongoLinqPlusPlus.Tests
     {
         private class TempClass
         {
+            // ReSharper disable once NotAccessedField.Local
+            public int Id { get; set; }
+
+            // ReSharper disable once NotAccessedField.Local
             public string MyName;
+
+            // ReSharper disable once UnusedAutoPropertyAccessor.Local
             public int MyNumPets { get; set; }
         }
 
@@ -173,6 +179,7 @@ namespace MongoLinqPlusPlus.Tests
         {
             Assert.IsTrue(TestHelpers.AreEqual(new[] {_mongoQuery, _memryQuery}.Select(queryable =>
                 queryable.Select(c => new TempClass {
+                    Id = c.NumPets,
                     MyName = c.FirstName,
                     MyNumPets = c.NumPets
                 })

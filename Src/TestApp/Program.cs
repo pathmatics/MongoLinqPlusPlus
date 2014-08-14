@@ -42,11 +42,11 @@ namespace MongoLinqPlusPlus.TestApp
             var defaultMongoQueryable = repo.Collection.AsQueryable();
 
             var sw = Stopwatch.StartNew();
-            var docs = defaultMongoQueryable.ToArray();
+            var docs = defaultMongoQueryable.Where(c => c.NumPets != 55).OrderBy(c => c.SSN).Take(5000).ToArray();
             Console.WriteLine("Default Mongo Queryable: " + sw.Elapsed);
 
             sw.Restart();
-            docs = _mongoQuery.ToArray();
+            docs = _mongoQuery.Where(c => c.NumPets != 55).OrderBy(c => c.SSN).Take(5000).ToArray();
             Console.WriteLine("LinqPlusPlus  Queryable: " + sw.Elapsed);
             /*
             Assert.IsTrue(TestHelpers.AreEqual(new[] { _mongoQuery, defaultMongoQueryable }.Select(queryable =>

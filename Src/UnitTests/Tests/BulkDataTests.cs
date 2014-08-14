@@ -34,21 +34,28 @@ namespace MongoLinqPlusPlus.Tests
         [TestInitialize]
         public void Init()
         {
-            TestHelpers.InitMongoBulk(100000, out _mongoQuery, out _memryQuery, s => System.Diagnostics.Debug.Write(s));
+            TestHelpers.InitMongoBulk(10000, out _mongoQuery, out _memryQuery, s => System.Diagnostics.Debug.Write(s));
         }
 
         [TestMethod]
-        public void Where_Bulk()
+        public void Bulk_Where()
         {
             Assert.IsTrue(TestHelpers.AreEqual(new[] { _mongoQuery, _memryQuery }.Select(queryable =>
-                queryable.ToArray()
+                queryable.Where(c => c.NumPets != 55).ToArray()
             )));
-
         }
 
         [TestMethod]
-        public void Select_Bulk()
+        public void Bulk_Select()
         {
+            Assert.IsTrue(TestHelpers.AreEqual(new[] { _mongoQuery, _memryQuery }.Select(queryable =>
+                queryable.Where(c => c.NumPets != 55)
+                         .Select(c => new {
+                             c.FirstName,
+                             c.NumPets
+                         })
+                         .ToArray()
+            )));
         }
     }
 }

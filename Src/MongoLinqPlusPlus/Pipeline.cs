@@ -174,6 +174,10 @@ namespace MongoLinqPlusPlus
             if (member.DeclaringType != null && member.DeclaringType.Name == "IGrouping`2")
                 return "_id";
 
+            // TODO BUGBUG (Issue #8): Do a better fix for htis
+            if (member.Name == "Id")
+                return "_id";
+
             // At this point, we should just use the member name
             return member.Name;
         }
@@ -667,7 +671,8 @@ namespace MongoLinqPlusPlus
                                        .ToList();
 
                 // Remove the unnecessary _id field
-                fieldNames.Add(new BsonElement("_id", new BsonInt32(0)));
+                if (fieldNames.All(c => c.Name != "_id"))
+                    fieldNames.Add(new BsonElement("_id", new BsonInt32(0)));
 
                 // Perform the projection on multiple fields
                 AddToPipeline("$project", new BsonDocument(fieldNames));
@@ -688,7 +693,8 @@ namespace MongoLinqPlusPlus
                                                      .ToList();
 
                 // Remove the unnecessary _id field
-                fieldNames.Add(new BsonElement("_id", new BsonInt32(0)));
+                if (fieldNames.All(c => c.Name != "_id"))
+                    fieldNames.Add(new BsonElement("_id", new BsonInt32(0)));
 
                 // Perform the projection on multiple fields
                 AddToPipeline("$project", new BsonDocument(fieldNames));
