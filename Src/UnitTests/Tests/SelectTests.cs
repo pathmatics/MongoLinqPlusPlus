@@ -22,24 +22,13 @@
 
 using System.Linq;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
+using UnitTests;
 
 namespace MongoLinqPlusPlus.Tests
 {
     [TestClass]
     public class SelectTests
     {
-        private class TempClass
-        {
-            // ReSharper disable once NotAccessedField.Local
-            public int Id { get; set; }
-
-            // ReSharper disable once NotAccessedField.Local
-            public string MyName;
-
-            // ReSharper disable once UnusedAutoPropertyAccessor.Local
-            public int MyNumPets { get; set; }
-        }
-
         private IQueryable<TestDocument> _mongoQuery = TestHelpers.InitMongo(s => System.Diagnostics.Debug.Write(s));
         private IQueryable<TestDocument> _memryQuery = TestRepository.TestDocuments.AsQueryable();
 
@@ -178,7 +167,7 @@ namespace MongoLinqPlusPlus.Tests
         public void Select_ConcreteType()
         {
             Assert.IsTrue(TestHelpers.AreEqual(new[] {_mongoQuery, _memryQuery}.Select(queryable =>
-                queryable.Select(c => new TempClass {
+                queryable.Select(c => new DummyClass {
                     Id = c.NumPets,
                     MyName = c.FirstName,
                     MyNumPets = c.NumPets

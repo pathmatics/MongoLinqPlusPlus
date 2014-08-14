@@ -27,6 +27,7 @@ using System.Linq;
 using MongoDB.Driver.Linq;
 using MongoLinqPlusPlus.Tests;
 using Newtonsoft.Json;
+using UnitTests;
 
 namespace MongoLinqPlusPlus.TestApp
 {
@@ -37,6 +38,7 @@ namespace MongoLinqPlusPlus.TestApp
 
         static void Main()
         {
+            /*
             var repo = TestHelpers.InitMongoBulk(100000, out _mongoQuery, out _memryQuery, s => Console.Write(s));
 
             var defaultMongoQueryable = repo.Collection.AsQueryable();
@@ -48,11 +50,17 @@ namespace MongoLinqPlusPlus.TestApp
             sw.Restart();
             docs = _mongoQuery.Where(c => c.NumPets != 55).OrderBy(c => c.SSN).Take(5000).ToArray();
             Console.WriteLine("LinqPlusPlus  Queryable: " + sw.Elapsed);
-            /*
-            Assert.IsTrue(TestHelpers.AreEqual(new[] { _mongoQuery, defaultMongoQueryable }.Select(queryable =>
-                queryable.ToArray()
+*/
+
+            var someArray = new[] { 1, 2 };
+
+            Assert.IsTrue(TestHelpers.AreEqual(new[] { _mongoQuery, _memryQuery }.Select(queryable =>
+                queryable.Select(c => new DummyClass
+                {
+                    Id = c.NumPets + someArray.Count()
+                })
             )));
-            */
+            
             /*
             Console.WriteLine("\r\n------------ TEST PROGRAM RESULTS -------------\r\n");
             var results = _memryQuery.Select(c => new { NumPets = 1 })

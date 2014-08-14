@@ -228,15 +228,31 @@ namespace MongoLinqPlusPlus
         /// <returns>Possibly a simplified expression, possibly the same expression.</returns>
         public override Expression Visit(Expression expression)
         {
-            if (_simplifiableExpressions.Contains(expression))
-                return EvaluateLocally(expression);
+            return _simplifiableExpressions.Contains(expression) ? EvaluateLocally(expression) : base.Visit(expression);
+        }
 
-            // Todo: base.Visit() blows up for MemberInitExpressions.  At some point
-            // revisit this to see if we can simplify children of MemberInitExpressions
-            if (expression is MemberInitExpression)
-                return expression;
+        /// <summary>The default visitor on MemberInitExpression crashes.  So we need to implement our own.</summary>
+        protected override Expression VisitMemberInit(MemberInitExpression node)
+        {
+            // Visit the children
+            var visitedBindings = node.Bindings
+                                      .Select(c => new {
+                                          MemberAssignment = (MemberAssignment) c,
+                                          Expression = base.Visit(((MemberAssignment) c).Expression)
+                                      })
+                                      .ToArray();
 
-            return base.Visit(expression);
+            // See if any children were simplified
+            if (visitedBindings.Any(c => c.MemberAssignment.Expression != c.Expression))
+            {
+                var newBindings = visitedBindings.Select(c => Expression.Bind(c.MemberAssignment.Member, c.Expression));
+
+                // Build a new MemberInitExpression
+                return Expression.MemberInit(node.NewExpression, newBindings.Cast<MemberBinding>().ToArray());
+            }
+
+            // Nothing changed, just return this node as-is
+            return node;
         }
     }
 }
