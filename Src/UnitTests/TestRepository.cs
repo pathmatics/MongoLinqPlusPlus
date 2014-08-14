@@ -21,6 +21,8 @@
 // SOFTWARE.
 
 using System;
+using System.Collections.Generic;
+using System.Linq;
 using MongoDB.Driver;
 
 namespace MongoLinqPlusPlus.Tests
@@ -46,6 +48,30 @@ namespace MongoLinqPlusPlus.Tests
         {
             foreach (var doc in TestDocuments)
                 this.Collection.Insert(doc);
+        }
+
+        /// <summary>
+        /// Loads a large number of rows of test data into Mongo AND memory.
+        /// Returns a queryable to the data in memory.  The queryable to the
+        /// data in Mongo is retrievable through the MongoCollection.
+        /// </summary>
+        /// <param name="numDocs">Number of documents to load.</param>
+        /// <param name="loggingDelegate">Logging delegate</param>
+        public IQueryable<TestDocument> LoadBulkTestData(int numDocs, Action<string> loggingDelegate)
+        {
+            if (loggingDelegate != null)
+                loggingDelegate(string.Format("Loading {0} docs into Mongo\r\n", numDocs));
+
+            var memoryData = Enumerable.Range(0, numDocs)
+                                       .Select(i => TestDocuments[i % TestDocuments.Length].CloneWithNewSSN(i))
+                                       .ToArray();
+
+            foreach (var partition in memoryData.Partition(1000))
+                this.Collection.InsertBatch(partition);
+
+            if (loggingDelegate != null)
+                loggingDelegate("Done bulk loading Mongo\r\n");
+            return memoryData.AsQueryable();
         }
     }
 }

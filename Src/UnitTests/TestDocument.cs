@@ -51,5 +51,21 @@ namespace MongoLinqPlusPlus.Tests
         public int NumPets;
         public long StudentId;
         public double GPA;
+
+        public TestDocument CloneWithNewSSN(int seed)
+        {
+            return new TestDocument {
+                SSN = seed.ToString("000000000").Insert(5, "-").Insert(3, "-").Substring(0, 11),
+                LastName = this.LastName,
+                FirstName = this.FirstName,
+                IsMale = this.IsMale,
+                Birthday = this.Birthday,
+                CurrentAddress = this.CurrentAddress,
+                PreviousAddresses = this.PreviousAddresses,
+                NumPets = this.NumPets,
+                StudentId = this.StudentId,
+                GPA = this.GPA
+            };
+        }
     }
 }

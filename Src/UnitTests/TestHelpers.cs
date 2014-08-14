@@ -41,6 +41,28 @@ namespace MongoLinqPlusPlus.Tests
         }
 
         /// <summary>
+        /// Initializes our test MongoDB with a set number of rows and get back Queryables to the mongo and in-memory data.
+        /// </summary>
+        /// <param name="numRows">The number of rows to create - there will be duplicates.</param>
+        /// <param name="mongoQueryable">Out: queryable to Mongo data</param>
+        /// <param name="memryQueryable">Out: queryable to in-memory data</param>
+        /// <param name="loggingDelegate">The logging delegate to write log messages to</param>
+        /// <param name="allowMongoDiskUse">Allow mongo disk use?</param>
+        /// <returns>The test repository itself</returns>
+        public static TestRepository InitMongoBulk(int numRows,
+                                                   out IQueryable<TestDocument> mongoQueryable,
+                                                   out IQueryable<TestDocument> memryQueryable,
+                                                   Action<string> loggingDelegate = null,
+                                                   bool allowMongoDiskUse = false)
+        {
+            var repo = new TestRepository();
+            repo.Collection.Drop();
+            memryQueryable = repo.LoadBulkTestData(numRows, loggingDelegate);
+            mongoQueryable = new TestRepository().Collection.QueryablePlusPlus(allowMongoDiskUse, loggingDelegate);
+            return repo;
+        }
+
+        /// <summary>
         /// My own implementation of GetHashCode since the built in function wasn't giving me different
         /// results for objects which looked the same to my eyeballs.  (Perhaps including private members?)
         /// </summary>
@@ -218,6 +240,18 @@ namespace MongoLinqPlusPlus.Tests
             }
 
             return true;
+        }
+
+        /// <summary>Partitions an array into smaller collections of partitionSize.  The last
+        /// partition may contain fewer elements.</summary>
+        /// <typeparam name="T">Collection type</typeparam>
+        /// <param name="source">Source array</param>
+        /// <param name="partitionSize">Number of elements to put in each partition</param>
+        /// <returns></returns>
+        public static IEnumerable<IEnumerable<T>> Partition<T>(this T[] source, int partitionSize)
+        {
+            for (int i = 0; i < Math.Ceiling(source.Length / (double) partitionSize); i++)
+                yield return source.Skip(partitionSize * i).Take(partitionSize);
         }
     }
 }

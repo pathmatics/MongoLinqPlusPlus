@@ -22,7 +22,9 @@
 
 using System;
 using System.Collections;
+using System.Diagnostics;
 using System.Linq;
+using MongoDB.Driver.Linq;
 using MongoLinqPlusPlus.Tests;
 using Newtonsoft.Json;
 
@@ -35,11 +37,22 @@ namespace MongoLinqPlusPlus.TestApp
 
         static void Main()
         {
+            var repo = TestHelpers.InitMongoBulk(100000, out _mongoQuery, out _memryQuery, s => Console.Write(s));
 
-            Assert.IsTrue(TestHelpers.AreEqual(new[] { _mongoQuery, _memryQuery }.Select(queryable =>
-                queryable.Select(c => c.NumPets)
+            var defaultMongoQueryable = repo.Collection.AsQueryable();
+
+            var sw = Stopwatch.StartNew();
+            var docs = defaultMongoQueryable.ToArray();
+            Console.WriteLine("Default Mongo Queryable: " + sw.Elapsed);
+
+            sw.Restart();
+            docs = _mongoQuery.ToArray();
+            Console.WriteLine("LinqPlusPlus  Queryable: " + sw.Elapsed);
+            /*
+            Assert.IsTrue(TestHelpers.AreEqual(new[] { _mongoQuery, defaultMongoQueryable }.Select(queryable =>
+                queryable.ToArray()
             )));
-
+            */
             /*
             Console.WriteLine("\r\n------------ TEST PROGRAM RESULTS -------------\r\n");
             var results = _memryQuery.Select(c => new { NumPets = 1 })
