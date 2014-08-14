@@ -185,6 +185,17 @@ namespace MongoLinqPlusPlus
                 return newArrayExp.Expressions.ToArray();
             }
 
+            if (expression is MemberInitExpression)
+            {
+                var memberInitExp = (MemberInitExpression) expression;
+                var children = memberInitExp.Bindings
+                                            .Cast<MemberAssignment>()
+                                            .Select(c => c.Expression)
+                                            .Union(new[] { memberInitExp.NewExpression })
+                                            .ToArray();
+                return children;
+            }
+
             throw new InvalidQueryException("Unhandled type " + expression.NodeType + " in ExpressionSimplifier.GetChildren");
         }
 
@@ -217,7 +228,15 @@ namespace MongoLinqPlusPlus
         /// <returns>Possibly a simplified expression, possibly the same expression.</returns>
         public override Expression Visit(Expression expression)
         {
-            return _simplifiableExpressions.Contains(expression) ? EvaluateLocally(expression) : base.Visit(expression);
+            if (_simplifiableExpressions.Contains(expression))
+                return EvaluateLocally(expression);
+
+            // Todo: base.Visit() blows up for MemberInitExpressions.  At some point
+            // revisit this to see if we can simplify children of MemberInitExpressions
+            if (expression is MemberInitExpression)
+                return expression;
+
+            return base.Visit(expression);
         }
     }
 }

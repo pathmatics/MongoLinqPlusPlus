@@ -28,6 +28,12 @@ namespace MongoLinqPlusPlus.Tests
     [TestClass]
     public class SelectTests
     {
+        private class TempClass
+        {
+            public string MyName;
+            public int MyNumPets { get; set; }
+        }
+
         private IQueryable<TestDocument> _mongoQuery = TestHelpers.InitMongo(s => System.Diagnostics.Debug.Write(s));
         private IQueryable<TestDocument> _memryQuery = TestRepository.TestDocuments.AsQueryable();
 
@@ -161,5 +167,17 @@ namespace MongoLinqPlusPlus.Tests
                 queryable.Select(c => c.NumPets <= 1 || c.NumPets >= 3)
             )));
         }
+
+        [TestMethod]
+        public void Select_ConcreteType()
+        {
+            Assert.IsTrue(TestHelpers.AreEqual(new[] {_mongoQuery, _memryQuery}.Select(queryable =>
+                queryable.Select(c => new TempClass {
+                    MyName = c.FirstName,
+                    MyNumPets = c.NumPets
+                })
+            )));
+        }
+
     }
 }

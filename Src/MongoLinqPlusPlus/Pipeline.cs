@@ -40,14 +40,14 @@ namespace MongoLinqPlusPlus
     [Flags]
     internal enum PipelineResultTypeEx
     {
-        Enumerable      = 0x001,
-        Aggregation     = 0x002,
-        Grouped         = 0x004,
-        OneResultFromEnumerable    = 0x008,
-        OrDefault       = 0x018,
-        First           = 0x028,
-        Single          = 0x048,
-        Any             = 0x082,
+        Enumerable              = 0x001,
+        Aggregation             = 0x002,
+        Grouped                 = 0x004,
+        OneResultFromEnumerable = 0x008,
+        OrDefault               = 0x018,
+        First                   = 0x028,
+        Single                  = 0x048,
+        Any                     = 0x082,
     }
 
     internal class PipelineStage
@@ -119,9 +119,7 @@ namespace MongoLinqPlusPlus
             _allowMongoDiskUse = allowMongoDiskUse;
         }
 
-        /// <summary>
-        /// Log a string to the logging delegate
-        /// </summary>
+        /// <summary>Log a string to the logging delegate</summary>
         private void LogLine(string s)
         {
             if (_loggingDelegate == null)
@@ -130,17 +128,13 @@ namespace MongoLinqPlusPlus
             _loggingDelegate(s + Environment.NewLine);
         }
 
-        /// <summary>
-        /// Log a string with format parameters to the logging delegate
-        /// </summary>
+        /// <summary>Log a string with format parameters to the logging delegate</summary>
         private void LogLine(string s, params object[] parameters)
         {
             LogLine(string.Format(s + Environment.NewLine, parameters));
         }
 
-        /// <summary>
-        /// Log a newline to the logging delegate
-        /// </summary>
+        /// <summary>Log a newline to the logging delegate</summary>
         private void LogLine()
         {
             LogLine(Environment.NewLine);
@@ -161,6 +155,27 @@ namespace MongoLinqPlusPlus
 
             _pipeline.Insert(Math.Min(insertBefore, _pipeline.Count()), newStage);
             return newStage;
+        }
+
+        /// <summary>Gets the Mongo field name that the specified MemberInfo maps to.</summary>
+        private string GetMongoFieldName(MemberInfo member)
+        {
+            // Get the BsonElementAttribute that MIGHT be decorating the field/property we're accessing
+            var bsonElementAttribute = (BsonElementAttribute) member.GetCustomAttributes(typeof(BsonElementAttribute), true).SingleOrDefault();
+            if (bsonElementAttribute != null)
+                return bsonElementAttribute.ElementName;
+
+            // Get the BsonIdAttribute that MIGHT be decorating the field/property we're accessing
+            var bsonIdAttribute = (BsonIdAttribute) member.GetCustomAttributes(typeof(BsonIdAttribute), true).SingleOrDefault();
+            if (bsonIdAttribute != null)
+                return "_id";
+
+            // IGrouping.Key maps to to the "_id" resulting from a $group
+            if (member.DeclaringType != null && member.DeclaringType.Name == "IGrouping`2")
+                return "_id";
+
+            // At this point, we should just use the member name
+            return member.Name;
         }
 
         /// <summary>
@@ -186,26 +201,7 @@ namespace MongoLinqPlusPlus
                     prefix = GetMongoFieldName(memberExp.Expression) + ".";
                 }
 
-                // Get the type that the lambda is operating on.
-                // That is, for "c => c.Age", retrieve typeof(c)
-                var member = memberExp.Member;
-
-                // Get the BsonElementAttribute that MIGHT be decorating the field/property we're accessing
-                var bsonElementAttribute = (BsonElementAttribute) member.GetCustomAttributes(typeof (BsonElementAttribute), true).SingleOrDefault();
-                if (bsonElementAttribute != null)
-                    return prefix + bsonElementAttribute.ElementName;
-
-                // Get the BsonIdAttribute that MIGHT be decorating the field/property we're accessing
-                var bsonIdAttribute = (BsonIdAttribute) member.GetCustomAttributes(typeof (BsonIdAttribute), true).SingleOrDefault();
-                if (bsonIdAttribute != null)
-                    return prefix + "_id";
-
-                // IGrouping.Key maps to to the "_id" resulting from a $group
-                if (member.DeclaringType != null && member.DeclaringType.Name == "IGrouping`2")
-                    return "_id";
-
-                // At this point, we should just use the member name
-                return prefix + member.Name;
+                return prefix + GetMongoFieldName(memberExp.Member);
             }
 
             if (expression.NodeType == ExpressionType.Parameter)
@@ -663,12 +659,33 @@ namespace MongoLinqPlusPlus
 
                 // Get the mongo field names for each property in the new {...}
                 var fieldNames = newExp.Arguments
-                    .Select((c, i) => new {
-                        FieldName = newExpProperties[i].Name,
-                        ExpressionValue = BuildMongoSelectExpression(c, true)
-                    })
-                    .Select(c => new BsonElement(c.FieldName, c.ExpressionValue))
-                    .ToList();
+                                       .Select((c, i) => new {
+                                           FieldName = newExpProperties[i].Name,
+                                           ExpressionValue = BuildMongoSelectExpression(c, true)
+                                       })
+                                       .Select(c => new BsonElement(c.FieldName, c.ExpressionValue))
+                                       .ToList();
+
+                // Remove the unnecessary _id field
+                fieldNames.Add(new BsonElement("_id", new BsonInt32(0)));
+
+                // Perform the projection on multiple fields
+                AddToPipeline("$project", new BsonDocument(fieldNames));
+                return;
+            }
+
+            // Handle type typed hard case: Select(c => new Foo { Bar = c.FirstName })
+            if (lambdaExp.Body is MemberInitExpression)
+            {
+                var memberInitExpression = (MemberInitExpression) lambdaExp.Body;
+                var fieldNames = memberInitExpression.Bindings
+                                                     .Cast<MemberAssignment>()
+                                                     .Select(c => new {
+                                                         FieldName = GetMongoFieldName(c.Member),
+                                                         ExpressionValue = BuildMongoSelectExpression(c.Expression, true)
+                                                     })
+                                                     .Select(c => new BsonElement(c.FieldName, c.ExpressionValue))
+                                                     .ToList();
 
                 // Remove the unnecessary _id field
                 fieldNames.Add(new BsonElement("_id", new BsonInt32(0)));

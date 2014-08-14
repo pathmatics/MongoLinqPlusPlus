@@ -37,14 +37,8 @@ namespace MongoLinqPlusPlus.TestApp
         {
 
             Assert.IsTrue(TestHelpers.AreEqual(new[] { _mongoQuery, _memryQuery }.Select(queryable =>
-                queryable.GroupBy(c => c.FirstName)
-                         .Take(1)
-                         .SingleOrDefault()
+                queryable.Select(c => c.NumPets)
             )));
-
-            //Assert.IsTrue(TestHelpers.AreEqual(new[] { _mongoQuery, _memryQuery }.Select(queryable =>
-            //    queryable.GroupBy(c => c.SSN).First()
-            //)));
 
             /*
             Console.WriteLine("\r\n------------ TEST PROGRAM RESULTS -------------\r\n");
