@@ -38,7 +38,7 @@ using Newtonsoft.Json;
 namespace MongoLinqPlusPlus
 {
     [Flags]
-    internal enum PipelineResultTypeEx
+    internal enum PipelineResultType
     {
         Enumerable              = 0x001,
         Aggregation             = 0x002,
@@ -65,7 +65,7 @@ namespace MongoLinqPlusPlus
         private JsonWriterSettings _jsonWriterSettings = new JsonWriterSettings {OutputMode = JsonOutputMode.Strict, Indent = true, NewLineChars = "\r\n"};
 
         private List<PipelineStage> _pipeline = new List<PipelineStage>();
-        private PipelineResultTypeEx _lastPipelineOperation = PipelineResultTypeEx.Enumerable;
+        private PipelineResultType _lastPipelineOperation = PipelineResultType.Enumerable;
         private MongoCollection<TDocType> _collection;
         private readonly bool _allowMongoDiskUse;
         private int _nextUniqueVariableId = 0;
@@ -855,13 +855,13 @@ namespace MongoLinqPlusPlus
                 case "GroupBy":
                 {
                     EmitPipelineStageForGroupBy(GetLambda(expression));
-                    _lastPipelineOperation = _lastPipelineOperation | PipelineResultTypeEx.Grouped;
+                    _lastPipelineOperation = _lastPipelineOperation | PipelineResultType.Grouped;
                     return;
                 }
                 case "Select":
                 {
                     EmitPipelineStageForSelect(GetLambda(expression));
-                    _lastPipelineOperation = PipelineResultTypeEx.Enumerable;
+                    _lastPipelineOperation = PipelineResultType.Enumerable;
                     return;
                 }
                 case "OrderBy":
@@ -878,38 +878,38 @@ namespace MongoLinqPlusPlus
                     return;
                 case "Count":
                     EmitPipelineStageForCount(GetLambda(expression));
-                    _lastPipelineOperation = PipelineResultTypeEx.Aggregation;
+                    _lastPipelineOperation = PipelineResultType.Aggregation;
                     return;
                 case "Any":
                     EmitPipelineStageForAny(GetLambda(expression));
-                    _lastPipelineOperation = PipelineResultTypeEx.Any;
+                    _lastPipelineOperation = PipelineResultType.Any;
                     return;
                 case "Sum":
                 case "Max":
                 case "Min":
                 case "Average":
                     EmitPipelineStageForAggregation(expression.Method.Name, GetLambda(expression));
-                    _lastPipelineOperation = PipelineResultTypeEx.Aggregation;
+                    _lastPipelineOperation = PipelineResultType.Aggregation;
                     return;
                 case "First":
                     EmitPipelinesStageForWhere(GetLambda(expression));
                     EmitPipelineStageForTake(1);
-                    _lastPipelineOperation = _lastPipelineOperation | PipelineResultTypeEx.First;
+                    _lastPipelineOperation = _lastPipelineOperation | PipelineResultType.First;
                     return;
                 case "FirstOrDefault":
                     EmitPipelinesStageForWhere(GetLambda(expression));
                     EmitPipelineStageForTake(1);
-                    _lastPipelineOperation = _lastPipelineOperation | PipelineResultTypeEx.First | PipelineResultTypeEx.OrDefault;
+                    _lastPipelineOperation = _lastPipelineOperation | PipelineResultType.First | PipelineResultType.OrDefault;
                     return;
                 case "Single":
                     EmitPipelinesStageForWhere(GetLambda(expression));
                     EmitPipelineStageForTake(2);
-                    _lastPipelineOperation = _lastPipelineOperation | PipelineResultTypeEx.Single;
+                    _lastPipelineOperation = _lastPipelineOperation | PipelineResultType.Single;
                     return;
                 case "SingleOrDefault":
                     EmitPipelinesStageForWhere(GetLambda(expression));
                     EmitPipelineStageForTake(2);
-                    _lastPipelineOperation = _lastPipelineOperation | PipelineResultTypeEx.Single | PipelineResultTypeEx.OrDefault;
+                    _lastPipelineOperation = _lastPipelineOperation | PipelineResultType.Single | PipelineResultType.OrDefault;
                     return;
             }
 
@@ -928,7 +928,7 @@ namespace MongoLinqPlusPlus
                 EmitPipelineStageForMethod((MethodCallExpression) expression);
 
             // If the result is a grouping, then we need to also include the values (ie not just the Key) in the result
-            if ((_lastPipelineOperation & PipelineResultTypeEx.Grouped) != 0)
+            if ((_lastPipelineOperation & PipelineResultType.Grouped) != 0)
             {
                 var groupDoc = GetLastOccurrenceOfPipelineStage("$group", false);
                 groupDoc.Add("Values", new BsonDocument("$push", "$$ROOT"));
@@ -948,7 +948,7 @@ namespace MongoLinqPlusPlus
             });
 
             // Handle aggregated result types
-            if ((_lastPipelineOperation & PipelineResultTypeEx.Aggregation) != 0)
+            if ((_lastPipelineOperation & PipelineResultType.Aggregation) != 0)
             {
                 var results = commandResult.Take(2).ToArray();
 
@@ -962,7 +962,7 @@ namespace MongoLinqPlusPlus
                 var resultDoc = results[0];
 
                 // Special treatment for any
-                if (_lastPipelineOperation == PipelineResultTypeEx.Any)
+                if (_lastPipelineOperation == PipelineResultType.Any)
                 {
                     bool any = ((BsonInt32) resultDoc[PIPELINE_DOCUMENT_RESULT_NAME]).Value == 1;
 
@@ -984,7 +984,7 @@ namespace MongoLinqPlusPlus
             Type enumerableOfItemType;
             if (isGenericEnumerable)
                 enumerableOfItemType = expression.Type.GenericTypeArguments[0];
-            else if ((_lastPipelineOperation & PipelineResultTypeEx.OneResultFromEnumerable) != 0)
+            else if ((_lastPipelineOperation & PipelineResultType.OneResultFromEnumerable) != 0)
                 enumerableOfItemType = resultType;
             else
                 enumerableOfItemType = resultType.GenericTypeArguments[0];
@@ -1018,7 +1018,7 @@ namespace MongoLinqPlusPlus
 
                 object deserializedResultItem;
 
-                if (enumerableOfItemTypeIsAnonymous || ((_lastPipelineOperation & PipelineResultTypeEx.Grouped) != 0))
+                if (enumerableOfItemTypeIsAnonymous || ((_lastPipelineOperation & PipelineResultType.Grouped) != 0))
                 {
                     // BsonSerializer can't handle anonymous types or IGrouping, so use Json.net
 
@@ -1044,10 +1044,10 @@ namespace MongoLinqPlusPlus
                 }
 
                 // Success for .First and .FirstOrDefault
-                if ((_lastPipelineOperation & PipelineResultTypeEx.OneResultFromEnumerable) != 0)
+                if ((_lastPipelineOperation & PipelineResultType.OneResultFromEnumerable) != 0)
                 {
                     firstResult = (TResult) deserializedResultItem;
-                    if ((_lastPipelineOperation & PipelineResultTypeEx.First) != 0)
+                    if ((_lastPipelineOperation & PipelineResultType.First) != 0)
                     {
                         return firstResult;
                     }
@@ -1065,11 +1065,11 @@ namespace MongoLinqPlusPlus
             }
 
             // Handle .First, .Single, .FirstOrDefault, and .SingleOrDefault
-            if ((_lastPipelineOperation & PipelineResultTypeEx.OneResultFromEnumerable) != 0)
+            if ((_lastPipelineOperation & PipelineResultType.OneResultFromEnumerable) != 0)
             {
                 if (numResults == 0)
                 {
-                    if ((_lastPipelineOperation & PipelineResultTypeEx.OrDefault) != 0)
+                    if ((_lastPipelineOperation & PipelineResultType.OrDefault) != 0)
                         return default(TResult);
 
                     throw new InvalidOperationException("Sequence contains no elements");
