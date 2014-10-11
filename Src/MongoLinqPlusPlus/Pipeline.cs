@@ -933,8 +933,20 @@ namespace MongoLinqPlusPlus
         public TResult Execute<TResult>(Expression expression)
         {
             // Build the pipeline
+
             if (expression is MethodCallExpression)
-                EmitPipelineStageForMethod((MethodCallExpression) expression);
+            {
+                var methodExpression = (MethodCallExpression) expression;
+
+                // queryable.Count() via aggregation framework is slow.  Handle that case specifically by asking the collection itself.
+                if (methodExpression.Method.Name == "Count" && methodExpression.Arguments.Count == 1)
+                {
+                    // Todo: Any way to avoid the boxing?
+                    return (TResult) (object) (int) _collection.Count();
+                }
+
+                EmitPipelineStageForMethod(methodExpression);
+            }
 
             // If the result is a grouping, then we need to also include the values (ie not just the Key) in the result
             if ((_lastPipelineOperation & PipelineResultType.Grouped) != 0)
@@ -976,7 +988,7 @@ namespace MongoLinqPlusPlus
                     bool any = ((BsonInt32) resultDoc[PIPELINE_DOCUMENT_RESULT_NAME]).Value == 1;
 
                     // Todo: Any way to avoid the boxing (since we know TResult is bool)?
-                    return (TResult) ((object) (any));
+                    return (TResult) (object) any;
                 }
                 
                 var aggregationResult = BsonSerializer.Deserialize<PipelineDocument<TResult>>(resultDoc);

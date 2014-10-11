@@ -52,13 +52,10 @@ namespace MongoLinqPlusPlus.TestApp
             Console.WriteLine("LinqPlusPlus  Queryable: " + sw.Elapsed);
 */
 
-            var someArray = new[] { 1, 2 };
+            var someEnumerable = new[] { 1, 2 }.Select(c => c);
 
             Assert.IsTrue(TestHelpers.AreEqual(new[] { _mongoQuery, _memryQuery }.Select(queryable =>
-                queryable.Select(c => new DummyClass
-                {
-                    Id = c.NumPets + someArray.Count()
-                })
+                queryable.Count()
             )));
             
             /*
