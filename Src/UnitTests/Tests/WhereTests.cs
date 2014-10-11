@@ -151,5 +151,23 @@ namespace MongoLinqPlusPlus.Tests
                 // Not yet supported :(
             }
         }
+
+        [TestMethod]
+        public void Where_Exception()
+        {
+            // Confirm that we rethrow the correct exception type from inside the pipeline
+            try
+            {
+                int[] array = {1, 2};
+                Assert.IsTrue(TestHelpers.AreEqual(new[] {_mongoQuery, _memryQuery}.Select(queryable =>
+                    queryable.Where(c => c.NumPets == array[3])
+                    )));
+                Assert.Fail("This is supposed to fail...");
+            }
+            catch (IndexOutOfRangeException)
+            {
+                // Success!
+            }
+        }
     }
 }

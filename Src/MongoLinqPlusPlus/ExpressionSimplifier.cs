@@ -24,6 +24,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
+using System.Reflection;
 
 namespace MongoLinqPlusPlus
 {
@@ -214,9 +215,18 @@ namespace MongoLinqPlusPlus
             // Compile and evaluate!
             LambdaExpression lambda = Expression.Lambda(expression);
             Delegate function = lambda.Compile();
-            object result = function.DynamicInvoke();
+            try
+            {
+                object result = function.DynamicInvoke();
+                return Expression.Constant(result, expression.Type);
+            }
+            catch (TargetInvocationException e)
+            {
+                if (e.InnerException == null)
+                    throw;
 
-            return Expression.Constant(result, expression.Type);
+                throw e.InnerException;
+            }
         }
 
         /// <summary>
