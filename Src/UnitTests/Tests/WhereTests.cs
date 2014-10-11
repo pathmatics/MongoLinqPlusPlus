@@ -135,5 +135,21 @@ namespace MongoLinqPlusPlus.Tests
                 queryable.Where(c => new[] { States.WA, States.CA }.Contains(c.CurrentAddress.State))
             )));
         }
+
+        [TestMethod]
+        public void Where_Unsupported()
+        {
+            try
+            {
+                Assert.IsTrue(TestHelpers.AreEqual(new[] {_mongoQuery, _memryQuery}.Select(queryable =>
+                    queryable.Where(c => c.FirstName == c.LastName)
+                )));
+                Assert.Fail("This is supposed to fail...");
+            }
+            catch (InvalidQueryException)
+            {
+                // Not yet supported :(
+            }
+        }
     }
 }

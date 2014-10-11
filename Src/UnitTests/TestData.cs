@@ -64,7 +64,7 @@ namespace MongoLinqPlusPlus.Tests
             new TestDocument {
                 SSN = "000-00-0002",
                 FirstName = "Tom",
-                LastName = "Gordon",
+                LastName = "Tom",
                 IsMale = true,
                 Birthday = new DateTime(1970,
                     1,

@@ -432,8 +432,11 @@ namespace MongoLinqPlusPlus
         {
             if (expression is MemberExpression)
             {
-                // TODO: GetMongoFieldName can handle Convert on enums.  Do we need to handle that here too?
-                return new BsonString(GetMongoFieldName(expression));
+                throw new InvalidQueryException("Can't use field name on right hand side of expression.");
+
+                // It would sure be nice if we could do this.
+                // Except Mongo doesn't support this yet: .Where(c => c.Field1 == c.Field2).
+                // return new BsonString("$" + GetMongoFieldName(expression));
             }
 
             if (expression is ConstantExpression)
