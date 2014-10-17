@@ -59,6 +59,7 @@ own connection string in TestRespository.cs.
 ### Using in your own code ###
 Add a reference and using directive to MongoLinqPlusPlus.  The provider is
 accessed via the QueryablePlusPlus extension method on MongoCollection<T>.
+Check out the overloads on QueryablePlusPlus() for some advanced functionality.
 
 
 ```
@@ -67,7 +68,11 @@ accessed via the QueryablePlusPlus extension method on MongoCollection<T>.
 #using MongoLinqPlusPlus
 
 MongoCollection<T> collection;
-var results = collection.QueryablePlusPlus().Where(c => c.Age > 31);
+var results = collection.QueryablePlusPlus().Where(c => c.Age > 31).ToList();
+
+// Get debug output
+int sum = collection.QueryablePlusPlus(Console.WriteLine).Sum(c => c.NumPets);
+
 
 ```
 
