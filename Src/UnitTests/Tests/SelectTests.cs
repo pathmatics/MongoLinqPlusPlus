@@ -128,6 +128,30 @@ namespace MongoLinqPlusPlus.Tests
 
             Assert.IsTrue(TestHelpers.AreEqual(new[] { _mongoQuery, _memryQuery }.Select(queryable =>
                 queryable.GroupBy(c => c.FirstName)
+                         .Select(c => c.First())
+            )));
+
+            Assert.IsTrue(TestHelpers.AreEqual(new[] { _mongoQuery, _memryQuery }.Select(queryable =>
+                queryable.GroupBy(c => c.FirstName)
+                         .Select(c => new {
+                             FirstDoc = c.Last()
+                         })
+            )));
+
+            Assert.IsTrue(TestHelpers.AreEqual(new[] { _mongoQuery, _memryQuery }.Select(queryable =>
+                queryable.GroupBy(c => c.FirstName)
+                         .Select(c => new {
+                             LastDoc = c.Last()
+                         })
+            )));
+
+            Assert.IsTrue(TestHelpers.AreEqual(new[] { _mongoQuery, _memryQuery }.Select(queryable =>
+                queryable.GroupBy(c => c.FirstName)
+                         .Select(c => c.Last())
+            )));
+
+            Assert.IsTrue(TestHelpers.AreEqual(new[] { _mongoQuery, _memryQuery }.Select(queryable =>
+                queryable.GroupBy(c => c.FirstName)
                          .Select(c => c.Average(d => d.NumPets))
             )));
 

@@ -108,6 +108,8 @@ namespace MongoLinqPlusPlus
             {"Min", "min"},
             {"Max", "max"},
             {"Average", "avg"},
+            {"First", "first"},
+            {"Last", "last"},
             {"Count", "sum"}
         };
 
@@ -467,9 +469,6 @@ namespace MongoLinqPlusPlus
             // Get the $group document from the most recent $group pipeline stage
             var groupDoc = GetLastOccurrenceOfPipelineStage("$group", false);
 
-            // TODO:
-            // handle First() and Last()
-
             // Handle aggregation functions within the select (Sum, Max, etc)
             //    .Select(c => c.Sum(d => d.Age))
             // Would get converted converted to this Bson for use in the project:
@@ -488,14 +487,21 @@ namespace MongoLinqPlusPlus
 
             // Get the operand for the operator
             BsonValue mongoOperand;
-            if (callExp.Method.Name == "Count")
+            if (callExp.Method.Name == "Count" || callExp.Method.Name == "First" || callExp.Method.Name == "Last")
             {
                 // We don't support a lambda within the .Count
                 // No good:   .Select(d => d.Count(e => e.Age > 15))
                 if (callExp.Arguments.Count > 1)
-                    throw new InvalidQueryException("Argument within Count within Select not supported");
+                    throw new InvalidQueryException("Argument within " + callExp.Method.Name + " within Select not supported");
 
-                mongoOperand = new BsonInt32(1);
+                // If we're counting, then the expression is {$count: 1}
+                if (callExp.Method.Name == "Count")
+                    mongoOperand = new BsonInt32(1);
+                else
+                {
+                    // For First and Last, the expression is {$first: "$$ROOT"} or {$last: "$$ROOT"}
+                    mongoOperand = new BsonString("$$ROOT");
+                }
             }
             else if (callExp.Arguments.Count == 2)
             {

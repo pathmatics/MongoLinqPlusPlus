@@ -106,6 +106,10 @@ namespace MongoLinqPlusPlus.Tests
             Assert.IsTrue(TestHelpers.AreEqual(new[] { _mongoQuery, _memryQuery }.Select(queryable =>
                 queryable.GroupBy(c => c.FirstName).Select(c => c.Max(d => d.NumPets))
             )));
+
+            Assert.IsTrue(TestHelpers.AreEqual(new[] { _mongoQuery, _memryQuery }.Select(queryable =>
+                queryable.GroupBy(c => c.FirstName).Select(c => c.Max(d => d.NumPets))
+            )));
         }
     }
 }
