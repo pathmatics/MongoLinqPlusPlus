@@ -9,6 +9,7 @@ The MongoDB Aggregation Framework adds all kinds of goodness that was just waiti
 wrapped by a new LINQ provider.  The main benefits of MongoLinqPlusPlus are groupings
 (.GroupBy), projections (.Select), and aggregations (.Sum).  You can even mix them together:
 
+    .Where(c => c.Age > 30)
     .GroupBy(c => c.Name)
     .Select(c => new {
         Name = c.Key,
