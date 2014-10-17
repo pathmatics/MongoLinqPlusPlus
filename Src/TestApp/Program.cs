@@ -55,11 +55,9 @@ namespace MongoLinqPlusPlus.TestApp
             var someEnumerable = new[] {1, 2};
 
             Assert.IsTrue(TestHelpers.AreEqual(new[] { _mongoQuery, _memryQuery }.Select(queryable =>
-
                 queryable.GroupBy(c => c.FirstName)
-                         .Select(c => new {
-                             FirstDocument = c.Last()}
-                             ))));
+                         .Select(c => c.First().NumPets)
+            )));
             
             /*
             Console.WriteLine("\r\n------------ TEST PROGRAM RESULTS -------------\r\n");

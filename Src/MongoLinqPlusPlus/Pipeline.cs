@@ -204,7 +204,14 @@ namespace MongoLinqPlusPlus
                 string prefix = "";
                 if (memberExp.Expression is MemberExpression)
                 {
-                    prefix = GetMongoFieldName(memberExp.Expression) + ".";
+                    prefix = GetMongoFieldName(memberExp.Expression) + '.';
+                }
+                else if (memberExp.Expression is MethodCallExpression)
+                {
+                    string fieldName = GetMongoFieldNameForMethodOnGrouping((MethodCallExpression) memberExp.Expression).AsString;
+
+                    // Remove the '$'
+                    prefix = (fieldName.StartsWith("$") ? fieldName.Substring(1) : fieldName) + '.';
                 }
 
                 return prefix + GetMongoFieldName(memberExp.Member);
