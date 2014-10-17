@@ -55,7 +55,7 @@ namespace MongoLinqPlusPlus.TestApp
             var someEnumerable = new[] {1, 2};
 
             Assert.IsTrue(TestHelpers.AreEqual(new[] { _mongoQuery, _memryQuery }.Select(queryable =>
-                queryable.Where(c => c.NumPets == someEnumerable[3])
+                queryable.Count()
             )));
             
             /*

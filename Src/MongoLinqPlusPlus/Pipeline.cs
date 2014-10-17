@@ -939,7 +939,9 @@ namespace MongoLinqPlusPlus
                 var methodExpression = (MethodCallExpression) expression;
 
                 // queryable.Count() via aggregation framework is slow.  Handle that case specifically by asking the collection itself.
-                if (methodExpression.Method.Name == "Count" && methodExpression.Arguments.Count == 1)
+                if (methodExpression.Method.Name == "Count"
+                    && methodExpression.Arguments.Count == 1
+                    && methodExpression.Arguments[0] is ConstantExpression)
                 {
                     // Todo: Any way to avoid the boxing?
                     return (TResult) (object) (int) _collection.Count();
