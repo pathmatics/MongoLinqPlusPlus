@@ -67,7 +67,7 @@ namespace MongoLinqPlusPlus
         /// <returns>An IQueryable for running Linq queries against</returns>
         public static IQueryable<TMongoDocument> QueryablePlusPlus<TMongoDocument>(this MongoCollection<TMongoDocument> collection, Action<string> loggingDelegate)
         {
-            return collection.QueryablePlusPlus(false, null);
+            return collection.QueryablePlusPlus(false, loggingDelegate);
         }
 
         /// <summary>
