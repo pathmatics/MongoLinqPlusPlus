@@ -7,13 +7,19 @@ A .NET LINQ provider for MongoDB that utilizes the MongoDB Aggregation Framework
 The LINQ provider that ships with the MongoDB C# driver is limited in it's functionality.
 The MongoDB Aggregation Framework adds all kinds of goodness that was just waiting to be
 wrapped by a new LINQ provider.  The main benefits of MongoLinqPlusPlus are groupings
-(.GroupBy) and projections (.Select).
+(.GroupBy), projections (.Select), and aggregations (.Sum).  You can even mix them together:
+
+    .GroupBy(c => c.Name)
+    .Select(c => new {
+        Name = c.Key,
+        TotalPets = c.Sum(d => d.NumPets)
+    })
 
 MongoLinqPlusPlus is still under development.  Use at your own risk.
 
 ### What operations are currently supported? ###
 * .Where
-* .Where(localEnumerable.Contains())
+* .Where(localArray.Contains())
 * .Select
 * .GroupBy
 * .GroupBy().Select(group aggregation)
@@ -32,7 +38,7 @@ MongoLinqPlusPlus is still under development.  Use at your own risk.
 * .Single
 * .SingleOrDefault
 
-More features are still being added (string operations, First(), Single(), etc).  All supported functionality is in the unit tests.
+More features are still being added.  All supported functionality is in the unit tests.
 
 ### Dependencies ###
 
