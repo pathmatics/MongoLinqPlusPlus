@@ -189,26 +189,18 @@ namespace MongoLinqPlusPlus.Tests
                          .First()
             )));
 
-            try
+            Assert.IsTrue(TestHelpers.AreEqual(new[] { _mongoQuery, _memryQuery }.Select(queryable =>
             {
                 // ReSharper disable once ReplaceWithSingleCallToFirst
-                // ReSharper disable once UnusedVariable
-                var foo = _mongoQuery.Where(c => c.FirstName == "doesnt exist").First();
-            }
-            catch (InvalidOperationException e)
-            {
-                Assert.AreEqual("Sequence contains no elements", e.Message);
-            }
+                try { return queryable.Where(c => c.FirstName == "doesnt exist").First(); }
+                catch (InvalidOperationException e) { return new TestDocument { SSN = e.Message }; }
+            })));
 
-            try
+            Assert.IsTrue(TestHelpers.AreEqual(new[] { _mongoQuery, _memryQuery }.Select(queryable =>
             {
-                // ReSharper disable once UnusedVariable
-                var foo = _mongoQuery.First(c => c.FirstName == "doesnt exist");
-            }
-            catch (InvalidOperationException e)
-            {
-                Assert.AreEqual("Sequence contains no elements", e.Message);
-            }
+                try { return queryable.First(c => c.FirstName == "doesnt exist"); }
+                catch (InvalidOperationException e) { return new TestDocument { SSN = e.Message }; }
+            })));
         }
 
         [TestMethod]
@@ -243,48 +235,30 @@ namespace MongoLinqPlusPlus.Tests
                          .Single()
             )));
 
-            try
+            Assert.IsTrue(TestHelpers.AreEqual(new[] { _mongoQuery, _memryQuery }.Select(queryable =>
             {
-                // ReSharper disable once UnusedVariable
-                // ReSharper disable once ReplaceWithSingleCallToSingle
-                var foo = _mongoQuery.Single();
-            }
-            catch (InvalidOperationException e)
-            {
-                Assert.AreEqual("Sequence contains more than one element", e.Message);
-            }
+                try { return queryable.Single(); }
+                catch (InvalidOperationException e) { return new TestDocument { SSN = e.Message }; }
+            })));
 
-            try
+            Assert.IsTrue(TestHelpers.AreEqual(new[] { _mongoQuery, _memryQuery }.Select(queryable =>
             {
-                // ReSharper disable once UnusedVariable
-                // ReSharper disable once ReplaceWithSingleCallToSingle
-                var foo = _mongoQuery.Single(c => c.FirstName == "Tom");
-            }
-            catch (InvalidOperationException e)
-            {
-                Assert.AreEqual("Sequence contains more than one element", e.Message);
-            }
+                try { return queryable.Take(2).Single(); }
+                catch (InvalidOperationException e) { return new TestDocument { SSN = e.Message }; }
+            })));
 
-            try
+            Assert.IsTrue(TestHelpers.AreEqual(new[] { _mongoQuery, _memryQuery }.Select(queryable =>
             {
-                // ReSharper disable once UnusedVariable
-                // ReSharper disable once ReplaceWithSingleCallToSingle
-                var foo = _mongoQuery.Where(c => c.FirstName == "doesnt exist").Single();
-            }
-            catch (InvalidOperationException e)
-            {
-                Assert.AreEqual("Sequence contains no elements", e.Message);
-            }
+                try { return queryable.Single(c => c.FirstName == "Tom"); }
+                catch (InvalidOperationException e) { return new TestDocument { SSN = e.Message }; }
+            })));
 
-            try
+            Assert.IsTrue(TestHelpers.AreEqual(new[] { _mongoQuery, _memryQuery }.Select(queryable =>
             {
-                // ReSharper disable once UnusedVariable
-                var foo = _mongoQuery.Single(c => c.FirstName == "doesnt exist");
-            }
-            catch (InvalidOperationException e)
-            {
-                Assert.AreEqual("Sequence contains no elements", e.Message);
-            }
+                // ReSharper disable once ReplaceWithSingleCallToSingle
+                try { return queryable.Where(c => c.FirstName == "doesnt exist").Single(); }
+                catch (InvalidOperationException e) { return new TestDocument { SSN = e.Message }; }
+            })));
         }
 
         [TestMethod]
@@ -362,6 +336,27 @@ namespace MongoLinqPlusPlus.Tests
                          .Take(1)
                          .SingleOrDefault()
             )));
+
+            Assert.IsTrue(TestHelpers.AreEqual(new[] { _mongoQuery, _memryQuery }.Select(queryable =>
+            {
+                // ReSharper disable once ReplaceWithSingleCallToSingle
+                try { return queryable.SingleOrDefault(); }
+                catch (InvalidOperationException e) { return new TestDocument { SSN = e.Message }; }
+            })));
+
+            Assert.IsTrue(TestHelpers.AreEqual(new[] { _mongoQuery, _memryQuery }.Select(queryable =>
+            {
+                // ReSharper disable once ReplaceWithSingleCallToSingle
+                try { return queryable.SingleOrDefault(c => c.FirstName == "Tom"); }
+                catch (InvalidOperationException e) { return new TestDocument { SSN = e.Message }; }
+            })));
+
+            Assert.IsTrue(TestHelpers.AreEqual(new[] { _mongoQuery, _memryQuery }.Select(queryable =>
+            {
+                // ReSharper disable once ReplaceWithSingleCallToSingle
+                try { return queryable.Take(2).SingleOrDefault(); }
+                catch (InvalidOperationException e) { return new TestDocument { SSN = e.Message }; }
+            })));
 
             Assert.IsTrue(TestHelpers.AreEqual(new[] { _mongoQuery, _memryQuery }.Select(queryable =>
                 // ReSharper disable once ReplaceWithSingleCallToSingleOrDefault

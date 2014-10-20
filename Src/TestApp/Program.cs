@@ -55,8 +55,7 @@ namespace MongoLinqPlusPlus.TestApp
             var someEnumerable = new[] {1, 2};
 
             Assert.IsTrue(TestHelpers.AreEqual(new[] { _mongoQuery, _memryQuery }.Select(queryable =>
-                queryable.GroupBy(c => c.FirstName)
-                         .Select(c => c.First().NumPets)
+                queryable.Take(1).Single()
             )));
             
             /*

@@ -44,9 +44,9 @@ namespace MongoLinqPlusPlus
         Aggregation             = 0x002,
         Grouped                 = 0x004,
         OneResultFromEnumerable = 0x008,
-        OrDefault               = 0x018,
-        First                   = 0x028,
-        Single                  = 0x048,
+        OrDefault               = 0x010,
+        First                   = 0x020,
+        Single                  = 0x040,
         Any                     = 0x082,
     }
 
@@ -916,22 +916,22 @@ namespace MongoLinqPlusPlus
                 case "First":
                     EmitPipelinesStageForWhere(GetLambda(expression));
                     EmitPipelineStageForTake(1);
-                    _lastPipelineOperation = _lastPipelineOperation | PipelineResultType.First;
+                    _lastPipelineOperation = _lastPipelineOperation | PipelineResultType.OneResultFromEnumerable | PipelineResultType.First;
                     return;
                 case "FirstOrDefault":
                     EmitPipelinesStageForWhere(GetLambda(expression));
                     EmitPipelineStageForTake(1);
-                    _lastPipelineOperation = _lastPipelineOperation | PipelineResultType.First | PipelineResultType.OrDefault;
+                    _lastPipelineOperation = _lastPipelineOperation | PipelineResultType.OneResultFromEnumerable | PipelineResultType.First | PipelineResultType.OrDefault;
                     return;
                 case "Single":
                     EmitPipelinesStageForWhere(GetLambda(expression));
                     EmitPipelineStageForTake(2);
-                    _lastPipelineOperation = _lastPipelineOperation | PipelineResultType.Single;
+                    _lastPipelineOperation = _lastPipelineOperation | PipelineResultType.OneResultFromEnumerable | PipelineResultType.Single;
                     return;
                 case "SingleOrDefault":
                     EmitPipelinesStageForWhere(GetLambda(expression));
                     EmitPipelineStageForTake(2);
-                    _lastPipelineOperation = _lastPipelineOperation | PipelineResultType.Single | PipelineResultType.OrDefault;
+                    _lastPipelineOperation = _lastPipelineOperation | PipelineResultType.OneResultFromEnumerable | PipelineResultType.Single | PipelineResultType.OrDefault;
                     return;
             }
 
