@@ -93,7 +93,8 @@ namespace MongoLinqPlusPlus.Tests
             )));
 
             Assert.IsTrue(TestHelpers.AreEqual(new[] { _mongoQuery, _memryQuery }.Select(queryable =>
-                queryable.Select(c => new {
+                queryable.Select(c => new
+                {
                     c.IsMale,
                     IsFemale = !c.IsMale,
                     NumPets = c.NumPets * 15 - 2,
@@ -101,6 +102,46 @@ namespace MongoLinqPlusPlus.Tests
                     State = c.CurrentAddress.State,
                     IsInCali = c.CurrentAddress.State == States.CA,
                     c.SSN
+                })
+            )));
+        }
+
+        [TestMethod]
+        public void Select_Ternary()
+        {
+            Assert.IsTrue(TestHelpers.AreEqual(new[] { _mongoQuery, _memryQuery }.Select(queryable =>
+                queryable.Select(c => c.IsMale ? 1 : 2)
+            )));
+
+            Assert.IsTrue(TestHelpers.AreEqual(new[] { _mongoQuery, _memryQuery }.Select(queryable =>
+                queryable.Select(c => c.IsMale ? "foo" : null)
+            )));
+
+            Assert.IsTrue(TestHelpers.AreEqual(new[] { _mongoQuery, _memryQuery }.Select(queryable =>
+                queryable.Select(c => string.IsNullOrEmpty(c.IsMale ? "" : null))
+            )));
+        }
+
+        [TestMethod]
+        public void Select_StringIsNullOrEmpty()
+        {
+            Assert.IsTrue(TestHelpers.AreEqual(new[] { _mongoQuery, _memryQuery }.Select(queryable =>
+                queryable.Select(c => string.IsNullOrEmpty(c.FirstName))
+            )));
+
+            Assert.IsTrue(TestHelpers.AreEqual(new[] { _mongoQuery, _memryQuery }.Select(queryable =>
+                queryable.Select(c => string.IsNullOrEmpty(c.LastName))
+            )));
+
+            Assert.IsTrue(TestHelpers.AreEqual(new[] { _mongoQuery, _memryQuery }.Select(queryable =>
+                queryable.Select(c => string.IsNullOrEmpty(c.LastName) || c.NumPets == 2)
+            )));
+
+            Assert.IsTrue(TestHelpers.AreEqual(new[] { _mongoQuery, _memryQuery }.Select(queryable =>
+                queryable.Select(c => new {
+                    c.SSN,
+                    HasFirst = string.IsNullOrEmpty(c.FirstName),
+                    MissingLast = !string.IsNullOrEmpty(c.LastName)
                 })
             )));
         }

@@ -137,6 +137,22 @@ namespace MongoLinqPlusPlus.Tests
         }
 
         [TestMethod]
+        public void Where_String_IsNullOrEmpty()
+        {
+            Assert.IsTrue(TestHelpers.AreEqual(new[] { _mongoQuery, _memryQuery }.Select(queryable =>
+                queryable.Where(c => string.IsNullOrEmpty(c.FirstName))
+            )));
+
+            Assert.IsTrue(TestHelpers.AreEqual(new[] { _mongoQuery, _memryQuery }.Select(queryable =>
+                queryable.Where(c => string.IsNullOrEmpty(c.LastName))
+            )));
+
+            Assert.IsTrue(TestHelpers.AreEqual(new[] { _mongoQuery, _memryQuery }.Select(queryable =>
+                queryable.Where(c => string.IsNullOrEmpty(c.FirstName) && string.IsNullOrEmpty(c.LastName))
+            )));
+        }
+
+        [TestMethod]
         public void Where_Unsupported()
         {
             try

@@ -52,10 +52,8 @@ namespace MongoLinqPlusPlus.TestApp
             Console.WriteLine("LinqPlusPlus  Queryable: " + sw.Elapsed);
 */
 
-            var someEnumerable = new[] {1, 2};
-
             Assert.IsTrue(TestHelpers.AreEqual(new[] { _mongoQuery, _memryQuery }.Select(queryable =>
-                queryable.Take(1).Single()
+                queryable.Select(c => string.IsNullOrEmpty(c.FirstName))
             )));
             
             /*

@@ -390,24 +390,33 @@ namespace MongoLinqPlusPlus
                 var callExp = (MethodCallExpression) expression;
 
                 // Only support .Contains within Where()
-                if (callExp.Method.Name != "Contains")
-                    throw new InvalidQueryException("In Where(), only method within can be IEnumerable.Contains");
-
-                // Extract the IEnumerable that .Contains is being called on
-                // Important to note that it can be in callExp.Object (for a List) or in callExp.Arguments[0] (for a constant, read-only array)
-                var localEnumerable = ((ConstantExpression) (callExp.Object ?? callExp.Arguments[0])).Value;
-                if (TypeSystem.FindIEnumerable(localEnumerable.GetType()) == null)
+                if (callExp.Method.Name == "Contains")
                 {
-                    throw new InvalidQueryException("In Where(), Contains() only supported on IEnumerable");
+
+                    // Extract the IEnumerable that .Contains is being called on
+                    // Important to note that it can be in callExp.Object (for a List) or in callExp.Arguments[0] (for a constant, read-only array)
+                    var localEnumerable = ((ConstantExpression) (callExp.Object ?? callExp.Arguments[0])).Value;
+                    if (TypeSystem.FindIEnumerable(localEnumerable.GetType()) == null)
+                    {
+                        throw new InvalidQueryException("In Where(), Contains() only supported on IEnumerable");
+                    }
+
+                    // Get the field that we're going to search for within the IEnumerable
+                    var mongoFieldName = GetMongoFieldName(callExp.Arguments.Last());
+
+                    // Evaluate the IEnumerable
+                    var array = (BsonArray) GetBsonValueFromObject(localEnumerable);
+
+                    return Query.In(mongoFieldName, array.AsEnumerable());
                 }
 
-                // Get the field that we're going to search for within the IEnumerable
-                var mongoFieldName = GetMongoFieldName(callExp.Arguments.Last());
+                if (callExp.Method.Name == "IsNullOrEmpty" && callExp.Object == null && callExp.Method.ReflectedType == typeof(string))
+                {
+                    var mongoFieldName = GetMongoFieldName(callExp.Arguments.Single());
+                    return Query.Or(Query.EQ(mongoFieldName, BsonNull.Value), Query.EQ(mongoFieldName, new BsonString("")));
+                }
 
-                // Evaluate the IEnumerable
-                var array = (BsonArray) GetBsonValueFromObject(localEnumerable);
-
-                return Query.In(mongoFieldName, array.AsEnumerable());
+                throw new InvalidQueryException("No translation for method " + callExp.Method.Name);
             }
 
             if (expression is ConstantExpression)
@@ -621,10 +630,27 @@ namespace MongoLinqPlusPlus
                 return new BsonDocument("$cond", condDocValue);
             }
 
-            // c.Sum(d => d.Age)
+            // string.IsNullOrEmpty
             if (expression.NodeType == ExpressionType.Call)
             {
-                return GetMongoFieldNameForMethodOnGrouping((MethodCallExpression) expression);
+                var callExp = (MethodCallExpression) expression;
+                if (callExp.Method.Name == "IsNullOrEmpty" && callExp.Object == null && callExp.Method.ReflectedType == typeof (string))
+                {
+                   BsonValue expressionToTest = BuildMongoSelectExpression(callExp.Arguments.Single());
+
+                    // Test for null
+                    var ifNullDoc = new BsonDocument("$ifNull", new BsonArray(new[] {expressionToTest, new BsonString("")}));
+
+                    // Test for empty
+                    return new BsonDocument("$eq", new BsonArray(new[] {new BsonString(""), ifNullDoc.AsBsonValue}));
+
+                }
+
+                // c.Sum(d => d.Age), c.Count(), etc
+                if (expression.NodeType == ExpressionType.Call)
+                {
+                    return GetMongoFieldNameForMethodOnGrouping(callExp);
+                }
             }
 
             // Handle casts

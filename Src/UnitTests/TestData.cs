@@ -172,6 +172,18 @@ namespace MongoLinqPlusPlus.Tests
                 PreviousAddresses = new[] {Addresses[4]},
                 StudentId = 501205021522,
                 GPA = 3.33333333
+            },
+            new TestDocument {
+                SSN = "000-00-0011",
+                FirstName = null,
+                LastName = "",
+                IsMale = false,
+                Birthday = new DateTime(1984, 6, 30).ToUniversalTime(),
+                CurrentAddress = Addresses[2],
+                NumPets = 0,
+                PreviousAddresses = new[] {Addresses[4]},
+                StudentId = 501205021522,
+                GPA = 3.33333333
             }
         };
     }
