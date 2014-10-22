@@ -78,13 +78,23 @@ namespace MongoLinqPlusPlus
             new DateTimeConverter()
         };
 
-        private readonly Dictionary<ExpressionType, Func<string, BsonValue, IMongoQuery>> NodeToMongoQueryBuilderFuncDict = new Dictionary<ExpressionType, Func<string, BsonValue, IMongoQuery>> {
+        private readonly Dictionary<ExpressionType, Func<string, BsonValue, IMongoQuery>> NodeToMongoQueryBuilderFuncDict =
+            new Dictionary<ExpressionType, Func<string, BsonValue, IMongoQuery>> {
             {ExpressionType.Equal, Query.EQ},
             {ExpressionType.NotEqual, Query.NE},
             {ExpressionType.GreaterThan, Query.GT},
             {ExpressionType.GreaterThanOrEqual, Query.GTE},
             {ExpressionType.LessThan, Query.LT},
             {ExpressionType.LessThanOrEqual, Query.LTE},
+        };
+
+        private readonly Dictionary<ExpressionType, Func<string, int, IMongoQuery>> NodeToMongoQueryBuilderArrayLengthFuncDict =
+            new Dictionary<ExpressionType, Func<string, int, IMongoQuery>> {
+            {ExpressionType.Equal, Query.Size},
+            {ExpressionType.GreaterThan, Query.SizeGreaterThan},
+            {ExpressionType.GreaterThanOrEqual, Query.SizeGreaterThanOrEqual},
+            {ExpressionType.LessThan, Query.SizeLessThan},
+            {ExpressionType.LessThanOrEqual, Query.SizeLessThanOrEqual},
         };
 
         private readonly Dictionary<ExpressionType, string> NodeToMongoBinaryOperatorDict = new Dictionary<ExpressionType, string> {
@@ -343,6 +353,34 @@ namespace MongoLinqPlusPlus
             if (expression is BinaryExpression)
             {
                 var binExp = (BinaryExpression) expression;
+
+                // If the LHS is an array length, then we use special operators.
+                if (binExp.Left.NodeType == ExpressionType.ArrayLength)
+                {
+                    // Mongo doesn't natively support .Where(c => c.array.Length != 2)
+                    // So translate that to           .Where(c => !(c.array.Length == 2))
+                    var localNodeType = binExp.NodeType == ExpressionType.NotEqual ? ExpressionType.Equal : binExp.NodeType;
+                    bool invert = binExp.NodeType == ExpressionType.NotEqual;
+
+                    // Validate it's a supported operator
+                    if (!NodeToMongoQueryBuilderArrayLengthFuncDict.Keys.Contains(localNodeType))
+                        throw new InvalidQueryException("Unsupported binary operator '" + binExp.NodeType + "' on Array.Length");
+
+                    // Validate we're comparing to a const
+                    if (binExp.Right.NodeType != ExpressionType.Constant)
+                        throw new InvalidQueryException("Array.Length can only be compared against a constant");
+
+                    // Retrieve the function (like Query.EQ) that we'll use to generate our mongo query
+                    var queryFunc = NodeToMongoQueryBuilderArrayLengthFuncDict[localNodeType];
+
+                    // Get our operands
+                    string mongoFieldName = GetMongoFieldName(((UnaryExpression) binExp.Left).Operand);
+                    int rhs = (int) ((ConstantExpression) binExp.Right).Value;
+
+                    // Optionally invert our query
+                    return invert ? Query.Not(queryFunc(mongoFieldName, rhs)) : queryFunc(mongoFieldName, rhs);
+                }
+
 
                 // If this binary expression is in our expression node type -> Mongo query dict, then use it
                 if (NodeToMongoQueryBuilderFuncDict.Keys.Contains(expression.NodeType))
@@ -653,11 +691,18 @@ namespace MongoLinqPlusPlus
                 }
             }
 
-            // Handle casts
+            // Casts
             if (expression.NodeType == ExpressionType.Convert)
             {
                 var unExp = (UnaryExpression) expression;
                 return BuildMongoSelectExpression(unExp.Operand);
+            }
+
+            // Array.Length
+            if (expression.NodeType == ExpressionType.ArrayLength)
+            {
+                var arrayLenExp = (UnaryExpression) expression;
+                return new BsonDocument("$size", BuildMongoSelectExpression(arrayLenExp.Operand));
             }
 
             throw new InvalidQueryException("In Select(), can't build Mongo expression for node type" + expression.NodeType);

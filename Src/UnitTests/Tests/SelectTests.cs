@@ -99,7 +99,7 @@ namespace MongoLinqPlusPlus.Tests
                     IsFemale = !c.IsMale,
                     NumPets = c.NumPets * 15 - 2,
                     NumPetsAgain = c.NumPets * 15 - 2,
-                    State = c.CurrentAddress.State,
+                    c.CurrentAddress.State,
                     IsInCali = c.CurrentAddress.State == States.CA,
                     c.SSN
                 })
@@ -119,6 +119,22 @@ namespace MongoLinqPlusPlus.Tests
 
             Assert.IsTrue(TestHelpers.AreEqual(new[] { _mongoQuery, _memryQuery }.Select(queryable =>
                 queryable.Select(c => string.IsNullOrEmpty(c.IsMale ? "" : null))
+            )));
+        }
+
+        [TestMethod]
+        public void Select_ArrayLength()
+        {
+            Assert.IsTrue(TestHelpers.AreEqual(new[] { _mongoQuery, _memryQuery }.Select(queryable =>
+                queryable.Select(c => c.PreviousAddresses.Length)
+            )));
+
+            Assert.IsTrue(TestHelpers.AreEqual(new[] { _mongoQuery, _memryQuery }.Select(queryable =>
+                queryable.Select(c => c.PreviousAddresses.Length + 15)
+            )));
+
+            Assert.IsTrue(TestHelpers.AreEqual(new[] { _mongoQuery, _memryQuery }.Select(queryable =>
+                queryable.Select(c => c.PreviousAddresses.Length * 2 < 4)
             )));
         }
 

@@ -89,6 +89,34 @@ namespace MongoLinqPlusPlus.Tests
         }
 
         [TestMethod]
+        public void Where_Array_Length()
+        {
+            Assert.IsTrue(TestHelpers.AreEqual(new[] { _mongoQuery, _memryQuery }.Select(queryable =>
+                queryable.Where(c => c.PreviousAddresses.Length == 1)
+            )));
+
+            Assert.IsTrue(TestHelpers.AreEqual(new[] { _mongoQuery, _memryQuery }.Select(queryable =>
+                queryable.Where(c => c.PreviousAddresses.Length > 1)
+            )));
+
+            Assert.IsTrue(TestHelpers.AreEqual(new[] { _mongoQuery, _memryQuery }.Select(queryable =>
+                queryable.Where(c => c.PreviousAddresses.Length < 2)
+            )));
+
+            Assert.IsTrue(TestHelpers.AreEqual(new[] { _mongoQuery, _memryQuery }.Select(queryable =>
+                queryable.Where(c => c.PreviousAddresses.Length >= 2)
+            )));
+
+            Assert.IsTrue(TestHelpers.AreEqual(new[] { _mongoQuery, _memryQuery }.Select(queryable =>
+                queryable.Where(c => c.PreviousAddresses.Length <= 2)
+            )));
+
+            Assert.IsTrue(TestHelpers.AreEqual(new[] { _mongoQuery, _memryQuery }.Select(queryable =>
+                queryable.Where(c => c.PreviousAddresses.Length != 2)
+            )));
+        }
+
+        [TestMethod]
         public void Where_Complex()
         {
             Assert.IsTrue(TestHelpers.AreEqual(new[] { _mongoQuery, _memryQuery }.Select(queryable =>
