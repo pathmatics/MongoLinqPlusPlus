@@ -75,6 +75,7 @@ namespace MongoLinqPlusPlus
         /// </summary>
         private JsonConverter[] _customConverters = {
             new GroupingConverter(typeof(TDocType)),
+            new GuidConverter(),
             new DateTimeConverter()
         };
 
@@ -330,6 +331,9 @@ namespace MongoLinqPlusPlus
             if (obj is string)
                 return new BsonString((string) obj);
 
+            if (obj is Guid)
+                return BsonValue.Create(obj);
+
             if (TypeSystem.FindIEnumerable(obj.GetType()) != null)
             {
                 var bsonArray = new BsonArray();
@@ -339,7 +343,7 @@ namespace MongoLinqPlusPlus
                 return bsonArray;
             }
 
-            throw new InvalidQueryException("Can't convert type" + obj.GetType().Name + " to BsonValue");
+            throw new InvalidQueryException("Can't convert type " + obj.GetType().Name + " to BsonValue");
         }
 
         /// <summary>

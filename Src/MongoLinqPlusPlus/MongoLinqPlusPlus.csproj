@@ -51,6 +51,7 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="GuidConverter.cs" />
     <Compile Include="GroupingDocument.cs" />
     <Compile Include="PipelineDocument.cs" />
     <Compile Include="ExpressionSimplifier.cs" />

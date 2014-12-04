@@ -47,7 +47,8 @@ namespace MongoLinqPlusPlus.Tests
                 NumPets = 1,
                 PreviousAddresses = new[] { Addresses[1], Addresses[2] },
                 StudentId = 5012050215,
-                GPA = 4.0
+                GPA = 4.0,
+                Guid = Guid.Parse("00000001-0001-0001-0001-000000000001")
             },
             new TestDocument {
                 SSN = "000-00-0001",
@@ -59,7 +60,8 @@ namespace MongoLinqPlusPlus.Tests
                 NumPets = 2,
                 PreviousAddresses = new[] { Addresses[1], Addresses[2] },
                 StudentId = 12,
-                GPA = 0.5
+                GPA = 0.5,
+                Guid = Guid.Parse("00000001-0001-0001-0001-000000000001")
             },
             new TestDocument {
                 SSN = "000-00-0002",
@@ -73,7 +75,8 @@ namespace MongoLinqPlusPlus.Tests
                 NumPets = 3,
                 PreviousAddresses = new[] { Addresses[3], Addresses[4] },
                 StudentId = -1,
-                GPA = 0
+                GPA = 0,
+                Guid = Guid.Parse("00000001-0001-0001-0001-000000000001")
             },
             new TestDocument {
                 SSN = "000-00-0003",
@@ -85,7 +88,8 @@ namespace MongoLinqPlusPlus.Tests
                 NumPets = 2,
                 PreviousAddresses = new[] {Addresses[0]},
                 StudentId = -1,
-                GPA = 4
+                GPA = 4,
+                Guid = Guid.Parse("00000001-0001-0001-0001-000000000001")
             },
             new TestDocument {
                 SSN = "000-00-0004",
@@ -97,7 +101,8 @@ namespace MongoLinqPlusPlus.Tests
                 NumPets = 1,
                 PreviousAddresses = new Address[0],
                 StudentId = 89958128951892,
-                GPA = 3.1
+                GPA = 3.1,
+                Guid = Guid.Parse("00000002-0002-0002-0002-000000000002")
             },
             new TestDocument {
                 SSN = "000-00-0005",
@@ -109,7 +114,8 @@ namespace MongoLinqPlusPlus.Tests
                 NumPets = 4,
                 PreviousAddresses = new Address[0],
                 StudentId = 0,
-                GPA = 2.6
+                GPA = 2.6,
+                Guid = Guid.Parse("00000002-0002-0002-0002-000000000002")
             },
             new TestDocument {
                 SSN = "000-00-0006",
@@ -121,7 +127,8 @@ namespace MongoLinqPlusPlus.Tests
                 NumPets = 0,
                 PreviousAddresses = new Address[0],
                 StudentId = 55,
-                GPA = 3.1
+                GPA = 3.1,
+                Guid = Guid.Parse("00000002-0002-0002-0002-000000000002")
             },
             new TestDocument {
                 SSN = "000-00-0007",
@@ -135,7 +142,8 @@ namespace MongoLinqPlusPlus.Tests
                 NumPets = 0,
                 PreviousAddresses = new[] { Addresses[1], Addresses[2], Addresses[3], Addresses[4], Addresses[5] },
                 StudentId = long.MaxValue,
-                GPA = 0.0012
+                GPA = 0.0012,
+                Guid = Guid.Parse("00000002-0002-0002-0002-000000000002")
             },
             new TestDocument {
                 SSN = "000-00-0008",
@@ -147,7 +155,8 @@ namespace MongoLinqPlusPlus.Tests
                 NumPets = 0,
                 PreviousAddresses = new[] {Addresses[6]},
                 StudentId = long.MinValue,
-                GPA = 3.99999
+                GPA = 3.99999,
+                Guid = Guid.Parse("00000002-0002-0002-0002-000000000002")
             },
             new TestDocument {
                 SSN = "000-00-0009",
@@ -159,7 +168,8 @@ namespace MongoLinqPlusPlus.Tests
                 NumPets = 1,
                 PreviousAddresses = new[] {Addresses[5]},
                 StudentId = 20195092109509,
-                GPA = 2.12
+                GPA = 2.12,
+                Guid = Guid.Parse("00000003-0003-0003-0003-000000000003")
             },
             new TestDocument {
                 SSN = "000-00-0010",
@@ -171,7 +181,8 @@ namespace MongoLinqPlusPlus.Tests
                 NumPets = 0,
                 PreviousAddresses = new[] {Addresses[4]},
                 StudentId = 501205021522,
-                GPA = 3.33333333
+                GPA = 3.33333333,
+                Guid = Guid.Parse("00000004-0004-0004-0004-000000000004")
             },
             new TestDocument {
                 SSN = "000-00-0011",
@@ -183,7 +194,8 @@ namespace MongoLinqPlusPlus.Tests
                 NumPets = 0,
                 PreviousAddresses = new[] {Addresses[4]},
                 StudentId = 501205021522,
-                GPA = 3.33333333
+                GPA = 3.33333333,
+                Guid = Guid.Parse("00000005-0005-0005-0005-000000000005")
             }
         };
     }

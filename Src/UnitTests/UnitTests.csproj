@@ -54,6 +54,7 @@
   <ItemGroup>
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="DummyClass.cs" />
+    <Compile Include="Tests\GuidTests.cs" />
     <Compile Include="Tests\IEnumerableTests.cs" />
     <Compile Include="Tests\GroupByTests.cs" />
     <Compile Include="Tests\BulkDataTests.cs" />

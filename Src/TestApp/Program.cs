@@ -53,7 +53,7 @@ namespace MongoLinqPlusPlus.TestApp
 */
 
             Assert.IsTrue(TestHelpers.AreEqual(new[] { _mongoQuery, _memryQuery }.Select(queryable =>
-                queryable.Where(c => c.PreviousAddresses.Count() == 1)
+                queryable.Where(c => c.PreviousAddresses.Length == 1).Select(c => c.Guid)
             )));
             
             /*

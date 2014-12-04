@@ -51,6 +51,7 @@ namespace MongoLinqPlusPlus.Tests
         public int NumPets;
         public long StudentId;
         public double GPA;
+        public Guid Guid;
 
         public TestDocument CloneWithNewSSN(int seed)
         {
@@ -64,7 +65,8 @@ namespace MongoLinqPlusPlus.Tests
                 PreviousAddresses = this.PreviousAddresses,
                 NumPets = this.NumPets,
                 StudentId = this.StudentId,
-                GPA = this.GPA
+                GPA = this.GPA,
+                Guid = this.Guid
             };
         }
     }
