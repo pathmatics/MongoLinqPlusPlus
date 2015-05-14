@@ -44,8 +44,8 @@ More features are still being added.  All supported functionality is in the unit
 ### Dependencies ###
 
 * .Net 4.5
-* MongoDB 2.6 server
-* MongoDB 1.9 .NET client
+* MongoDB 2.6 server or Mongo 3.x server
+* MongoDB 2.0 Legacy .NET client (does not support the new API yet)
 * Json.NET
 
 ### Building ###
