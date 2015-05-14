@@ -1138,7 +1138,7 @@ namespace MongoLinqPlusPlus
 
                     // Use Json.net for anonymous types.
                     string json = resultDocLocal.ToJson(_jsonWriterSettings);
-                    deserializedResultItem = JsonConvert.DeserializeObject(json, enumerableOfItemType, _customConverters);
+                    deserializedResultItem = Newtonsoft.Json.JsonConvert.DeserializeObject(json, enumerableOfItemType, _customConverters);
                 }
                 else if (simplePipelineDocType != null)
                 {
