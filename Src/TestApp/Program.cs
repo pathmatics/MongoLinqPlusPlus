@@ -1,6 +1,6 @@
 ﻿// The MIT License (MIT)
 // 
-// Copyright (c) 2014 Adomic, Inc
+// Copyright (c) 2015 Pathmatics, Inc
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -53,17 +53,19 @@ namespace MongoLinqPlusPlus.TestApp
 */
 
             Assert.IsTrue(TestHelpers.AreEqual(new[] { _mongoQuery, _memryQuery }.Select(queryable =>
-                queryable.Where(c => c.PreviousAddresses.Length == 1).Select(c => c.Guid)
+                queryable.GroupBy(c => c.NumPets)
+                         .Select(c => new { First = c.First() })
+                         .Take(1)
             )));
             
-            /*
             Console.WriteLine("\r\n------------ TEST PROGRAM RESULTS -------------\r\n");
-            var results = _memryQuery.Select(c => new { NumPets = 1 })
-                                     .ToArray();
+            var results = _mongoQuery.GroupBy(c => c.NumPets)
+                         .Select(c => new { First = c.First() })
+                         .Take(1)
+                         .ToArray();
             
             var json = JsonConvert.SerializeObject(results, Formatting.Indented);
             Console.WriteLine(json);
-            */
 
             if (System.Diagnostics.Debugger.IsAttached)
             {

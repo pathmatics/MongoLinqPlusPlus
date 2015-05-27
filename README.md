@@ -82,12 +82,12 @@ Feel free to open bugs you find.  Keep in mind that functionality is limited by 
 Cheers.
 
 Tom Lorimor  
-Adomic, Inc
+Pathmatics, Inc
 
 ### License ###
 The MIT License (MIT)
 
-Copyright (c) 2014 Adomic, Inc
+Copyright (c) 2015 Pathmatics, Inc
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal

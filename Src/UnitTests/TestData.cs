@@ -1,6 +1,6 @@
 ﻿// The MIT License (MIT)
 // 
-// Copyright (c) 2014 Adomic, Inc
+// Copyright (c) 2015 Pathmatics, Inc
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -194,6 +194,7 @@ namespace MongoLinqPlusPlus.Tests
                 NumPets = 0,
                 PreviousAddresses = new[] {Addresses[4]},
                 StudentId = 501205021522,
+                NullableInt = 5,
                 GPA = 3.33333333,
                 Guid = Guid.Parse("00000005-0005-0005-0005-000000000005")
             }
