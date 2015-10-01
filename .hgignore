@@ -7,3 +7,4 @@ syntax: regexp
 Src/.*/bin/
 Src/.*/obj/
 Src/.*/csx/
+Src/packages/(?!repositories.config).+

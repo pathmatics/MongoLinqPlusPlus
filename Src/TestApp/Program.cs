@@ -24,7 +24,6 @@ using System;
 using System.Collections;
 using System.Diagnostics;
 using System.Linq;
-using MongoDB.Driver.Linq;
 using MongoLinqPlusPlus.Tests;
 using Newtonsoft.Json;
 using UnitTests;
