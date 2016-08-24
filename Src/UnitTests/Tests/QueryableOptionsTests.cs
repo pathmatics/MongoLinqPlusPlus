@@ -34,7 +34,7 @@ namespace MongoLinqPlusPlus.Tests
         [TestMethod]
         public void AllowMongoDiskUse()
         {
-            var _mongoQuery = TestHelpers.InitMongo(s => System.Diagnostics.Debug.Write(s), true);
+            var _mongoQuery = TestRepository.GetDefaultDataQueryablePlusPlus(s => System.Diagnostics.Debug.Write(s), true);
 
             Assert.IsTrue(TestHelpers.AreEqual(new[] { _mongoQuery, _memryQuery }.Select(queryable =>
                 queryable.Where(c => c.FirstName == "Tom")

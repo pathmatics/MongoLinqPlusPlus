@@ -24,6 +24,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+using MongoDB.Bson;
 using Newtonsoft.Json;
 
 namespace MongoLinqPlusPlus.Tests
@@ -31,36 +32,6 @@ namespace MongoLinqPlusPlus.Tests
     /// <summary>Helpers for our unit tests</summary>
     public static class TestHelpers
     {
-        /// <summary>Initialize our Mongo database with fresh data and get an IQueryable to it</summary>
-        public static IQueryable<TestDocument> InitMongo(Action<string> loggingDelegate = null, bool allowMongoDiskUse = false)
-        {
-            var repo = new TestRepository();
-            repo.Collection.Drop();
-            repo.LoadTestData();
-            return new TestRepository().Collection.QueryablePlusPlus(allowMongoDiskUse, loggingDelegate);
-        }
-
-        /// <summary>
-        /// Initializes our test MongoDB with a set number of rows and get back Queryables to the mongo and in-memory data.
-        /// </summary>
-        /// <param name="numRows">The number of rows to create - there will be duplicates.</param>
-        /// <param name="mongoQueryable">Out: queryable to Mongo data</param>
-        /// <param name="memryQueryable">Out: queryable to in-memory data</param>
-        /// <param name="loggingDelegate">The logging delegate to write log messages to</param>
-        /// <param name="allowMongoDiskUse">Allow mongo disk use?</param>
-        /// <returns>The test repository itself</returns>
-        public static TestRepository InitMongoBulk(int numRows,
-                                                   out IQueryable<TestDocument> mongoQueryable,
-                                                   out IQueryable<TestDocument> memryQueryable,
-                                                   Action<string> loggingDelegate = null,
-                                                   bool allowMongoDiskUse = false)
-        {
-            var repo = new TestRepository();
-            repo.Collection.Drop();
-            memryQueryable = repo.LoadBulkTestData(numRows, loggingDelegate);
-            mongoQueryable = new TestRepository().Collection.QueryablePlusPlus(allowMongoDiskUse, loggingDelegate);
-            return repo;
-        }
 
         /// <summary>
         /// My own implementation of GetHashCode since the built in function wasn't giving me different
@@ -76,8 +47,11 @@ namespace MongoLinqPlusPlus.Tests
                 var type = obj.GetType();
 
                 // Handle any well known type with the default implementation
-                if (obj is int || obj is long || obj is bool || obj is char || obj is byte || obj is DateTime || obj is double || obj is float || obj is string || obj is Enum || obj is Guid)
+                if (obj is int || obj is long || obj is bool || obj is char || obj is byte || obj is DateTime
+                    || obj is double || obj is float || obj is string || obj is Enum || obj is Guid || obj is ObjectId)
+                {
                     return obj.GetHashCode();
+                }
 
                 int hashCode = 0;
 
@@ -216,7 +190,7 @@ namespace MongoLinqPlusPlus.Tests
             var type = mongoObj.GetType();
 
             // Handle any simple type
-            if (mongoObj is int || mongoObj is long || mongoObj is bool || mongoObj is char || mongoObj is byte || mongoObj is DateTime || mongoObj is double || mongoObj is float || mongoObj is string || mongoObj is Enum || mongoObj is Guid)
+            if (mongoObj is int || mongoObj is long || mongoObj is bool || mongoObj is char || mongoObj is byte || mongoObj is DateTime || mongoObj is double || mongoObj is float || mongoObj is string || mongoObj is Enum || mongoObj is Guid || mongoObj is ObjectId)
                 return mongoObj.Equals(memryObj);
 
             // Check each property

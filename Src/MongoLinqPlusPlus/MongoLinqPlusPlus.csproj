@@ -60,11 +60,10 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="GuidConverter.cs" />
+    <Compile Include="BsonSerializerConverter.cs" />
     <Compile Include="GroupingDocument.cs" />
     <Compile Include="PipelineDocument.cs" />
     <Compile Include="ExpressionSimplifier.cs" />
-    <Compile Include="DateTimeConverter.cs" />
     <Compile Include="GroupingConverter.cs" />
     <Compile Include="Exceptions.cs" />
     <Compile Include="TypeExtensions.cs" />

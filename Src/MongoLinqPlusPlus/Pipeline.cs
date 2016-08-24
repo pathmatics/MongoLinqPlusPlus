@@ -75,8 +75,9 @@ namespace MongoLinqPlusPlus
         /// </summary>
         private JsonConverter[] _customConverters = {
             new GroupingConverter(typeof(TDocType)),
-            new GuidConverter(),
-            new DateTimeConverter()
+            new BsonSerializerConverter<Guid>(),
+            new BsonSerializerConverter<ObjectId>(),
+            new BsonSerializerConverter<DateTime>()
         };
 
         private readonly Dictionary<ExpressionType, Func<string, BsonValue, IMongoQuery>> NodeToMongoQueryBuilderFuncDict =
@@ -332,6 +333,9 @@ namespace MongoLinqPlusPlus
                 return new BsonString((string) obj);
 
             if (obj is Guid)
+                return BsonValue.Create(obj);
+
+            if (obj is ObjectId)
                 return BsonValue.Create(obj);
 
             if (TypeSystem.FindIEnumerable(obj.GetType()) != null)

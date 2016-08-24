@@ -32,7 +32,7 @@ namespace MongoLinqPlusPlus.TestApp
 {
     class Program
     {
-        private static IQueryable<TestDocument> _mongoQuery = TestHelpers.InitMongo(Console.Write);
+        private static IQueryable<TestDocument> _mongoQuery = TestRepository.GetDefaultDataQueryablePlusPlus(Console.Write);
         private static IQueryable<TestDocument> _memryQuery = TestRepository.TestDocuments.AsQueryable();
 
         static void Main()

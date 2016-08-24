@@ -21,41 +21,14 @@
 // SOFTWARE.
 
 using System;
-using System.Collections;
-using System.Collections.Generic;
-using System.Linq;
-using MongoDB.Bson.Serialization;
-using Newtonsoft.Json;
-using Newtonsoft.Json.Converters;
-using Newtonsoft.Json.Linq;
+using MongoDB.Bson;
+using MongoDB.Bson.Serialization.Attributes;
 
-namespace MongoLinqPlusPlus
+namespace MongoLinqPlusPlus.Tests
 {
-    /// <summary>
-    /// Class to enable Json.Net to deserialize groupings.
-    /// TODO: Revisit this code.
-    /// </summary>
-    internal class GuidConverter : CustomCreationConverter<object>
+    public class ObjectIdDocument
     {
-        public override bool CanConvert(Type objectType)
-        {
-            return objectType == typeof(Guid);
-        }
-
-        public override object Create(Type objectType)
-        {
-            var retval = objectType.GetConstructor(new Type[0]).Invoke(new object[0]);
-            return retval;
-        }
-
-        public override object ReadJson(JsonReader reader, Type objectType, object existingValue, JsonSerializer serializer)
-        {
-            // Load JObject from stream
-            JObject jObject = JObject.Load(reader);
-
-            // Utilze the bson serializer
-            return BsonSerializer.Deserialize<Guid>(jObject.ToString());
-        }
+        public ObjectId _id;
+        public int Value;
     }
 }
-

@@ -20,64 +20,53 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
+using System;
 using System.Linq;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace MongoLinqPlusPlus.Tests
 {
     [TestClass]
-    public class ThenByTests
+    public class ObjectIdTests
     {
-        private IQueryable<TestDocument> _mongoQuery = TestRepository.GetDefaultDataQueryablePlusPlus(s => System.Diagnostics.Debug.Write(s));
-        private IQueryable<TestDocument> _memryQuery = TestRepository.TestDocuments.AsQueryable();
+        private IQueryable<ObjectIdDocument> _mongoQuery = ObjectIdDocumentRepository.GetDefaultDataQueryablePlusPlus(s => System.Diagnostics.Debug.Write(s));
+        private IQueryable<ObjectIdDocument> _memryQuery = ObjectIdDocumentRepository.TestDocuments.AsQueryable();
 
         [TestMethod]
-        public void OrderBy()
+        public void ObjectId_Deserialize()
         {
             Assert.IsTrue(TestHelpers.AreEqual(new[] { _mongoQuery, _memryQuery }.Select(queryable =>
-                queryable.OrderBy(c => c.FirstName).ThenBy(c => c.SSN)
+                queryable
             )));
 
             Assert.IsTrue(TestHelpers.AreEqual(new[] { _mongoQuery, _memryQuery }.Select(queryable =>
-                queryable.Select(c => new {
-                           Social = c.SSN,
-                           Pets = c.NumPets
-                         })
-                         .OrderBy(c => c.Pets)
-                         .ThenBy(c => c.Social)
-            )));
-
-            Assert.IsTrue(TestHelpers.AreEqual(new[] { _mongoQuery, _memryQuery }.Select(queryable =>
-                queryable.OrderBy(c => c.FirstName).ThenBy(c => c.LastName).ThenBy(c => c.SSN)
-            )));
-
-            Assert.IsTrue(TestHelpers.AreEqual(new[] { _mongoQuery, _memryQuery }.Select(queryable =>
-                queryable.OrderBy(c => c.FirstName).ThenBy(c => c.Birthday)
+                queryable.Select(c => c._id)
             )));
         }
 
         [TestMethod]
-        public void OrderByDescending()
+        public void ObjectId_Queries()
         {
+            var testId = _memryQuery.Skip(10).First()._id;
+
             Assert.IsTrue(TestHelpers.AreEqual(new[] { _mongoQuery, _memryQuery }.Select(queryable =>
-                queryable.OrderBy(c => c.FirstName).ThenBy(c => c.SSN)
+                queryable.Where(c => c._id == testId)
             )));
 
             Assert.IsTrue(TestHelpers.AreEqual(new[] { _mongoQuery, _memryQuery }.Select(queryable =>
-                queryable.Select(c => new {
-                             Social = c.SSN,
-                             Pets = c.NumPets
-                         })
-                         .OrderBy(c => c.Pets)
-                         .ThenByDescending(c => c.Social)
+                queryable.Where(c => c._id >= testId)
             )));
 
             Assert.IsTrue(TestHelpers.AreEqual(new[] { _mongoQuery, _memryQuery }.Select(queryable =>
-                queryable.OrderBy(c => c.FirstName).ThenBy(c => c.LastName).ThenByDescending(c => c.SSN)
+                queryable.Where(c => c._id < testId)
             )));
 
             Assert.IsTrue(TestHelpers.AreEqual(new[] { _mongoQuery, _memryQuery }.Select(queryable =>
-                queryable.OrderBy(c => c.FirstName).ThenByDescending(c => c.Birthday)
+                queryable.Where(c => new[] { testId }.Contains(c._id))
+            )));
+
+            Assert.IsTrue(TestHelpers.AreEqual(new[] { _mongoQuery, _memryQuery }.Select(queryable =>
+                queryable.GroupBy(c => c._id)
             )));
         }
     }

@@ -42,12 +42,37 @@ namespace MongoLinqPlusPlus.Tests
             }
         }
 
-        public MongoCollection<TestDocument> Collection { get { return Database.GetCollection<TestDocument>("test"); } }
+        public MongoCollection<TestDocument> Collection => Database.GetCollection<TestDocument>("test");
 
-        public void LoadTestData()
+        /// <summary>Initialize our Mongo database with fresh data and get an IQueryable to it</summary>
+        public static IQueryable<TestDocument> GetDefaultDataQueryablePlusPlus(Action<string> loggingDelegate = null, bool allowMongoDiskUse = false)
         {
-            foreach (var doc in TestDocuments)
-                this.Collection.Insert(doc);
+            var repo = new TestRepository();
+            repo.Collection.Drop();
+            repo.Collection.InsertBatch(TestDocuments);
+            return repo.Collection.QueryablePlusPlus(allowMongoDiskUse, loggingDelegate);
+        }
+
+        /// <summary>
+        /// Initializes our test MongoDB with a set number of rows and get back Queryables to the mongo and in-memory data.
+        /// </summary>
+        /// <param name="numRows">The number of rows to create - there will be duplicates.</param>
+        /// <param name="mongoQueryable">Out: queryable to Mongo data</param>
+        /// <param name="memryQueryable">Out: queryable to in-memory data</param>
+        /// <param name="loggingDelegate">The logging delegate to write log messages to</param>
+        /// <param name="allowMongoDiskUse">Allow mongo disk use?</param>
+        /// <returns>The test repository itself</returns>
+        public static TestRepository InitMongoBulk(int numRows,
+                                                   out IQueryable<TestDocument> mongoQueryable,
+                                                   out IQueryable<TestDocument> memryQueryable,
+                                                   Action<string> loggingDelegate = null,
+                                                   bool allowMongoDiskUse = false)
+        {
+            var repo = new TestRepository();
+            repo.Collection.Drop();
+            memryQueryable = repo.LoadBulkTestData(numRows, loggingDelegate);
+            mongoQueryable = new TestRepository().Collection.QueryablePlusPlus(allowMongoDiskUse, loggingDelegate);
+            return repo;
         }
 
         /// <summary>

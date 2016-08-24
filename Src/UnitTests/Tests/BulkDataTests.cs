@@ -34,7 +34,7 @@ namespace MongoLinqPlusPlus.Tests
         [TestInitialize]
         public void Init()
         {
-            TestHelpers.InitMongoBulk(10000, out _mongoQuery, out _memryQuery, s => System.Diagnostics.Debug.Write(s));
+            TestRepository.InitMongoBulk(10000, out _mongoQuery, out _memryQuery, s => System.Diagnostics.Debug.Write(s));
         }
 
         [TestMethod]

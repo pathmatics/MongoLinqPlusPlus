@@ -31,23 +31,26 @@ using Newtonsoft.Json.Linq;
 
 namespace MongoLinqPlusPlus
 {
-    /// <summary>Class to enable Json.Net to deserialize DateTime's serialized to json from the Mongo client. </summary>
-    internal class DateTimeConverter : DateTimeConverterBase
+    /// <summary>Class to utilze the Bson Deserializer for a few custom types (DateTime, ObjectId, etc)</summary>
+    internal class BsonSerializerConverter<T> : CustomCreationConverter<T> where T : new() 
     {
-        /// <summary>Not implemented.</summary>
-        public override void WriteJson(JsonWriter writer, object value, JsonSerializer serializer)
+        public override bool CanConvert(Type objectType)
         {
-            throw new NotImplementedException();
+            return objectType == typeof(T);
         }
 
-        /// <summary>Pass the json representation of the DateTime off to the BsonDeserializer</summary>
+        public override T Create(Type objectType)
+        {
+            return new T();
+        }
+
         public override object ReadJson(JsonReader reader, Type objectType, object existingValue, JsonSerializer serializer)
         {
             // Load JObject from stream
             JObject jObject = JObject.Load(reader);
 
-            // Pass this on to the BsonSerializer
-            return BsonSerializer.Deserialize<DateTime>(jObject.ToString());
+            // Utilze the bson serializer
+            return BsonSerializer.Deserialize<T>(jObject.ToString());
         }
     }
 }
