@@ -60,7 +60,8 @@ namespace MongoLinqPlusPlus.TestApp
                                      c.Birthday.Second,
                                      c.Birthday.Millisecond,
                                      c.Birthday.DayOfWeek,
-                                     c.Birthday.DayOfYear
+                                     c.Birthday.DayOfYear,
+                                     c.Birthday.Kind
                                  })
                                  .ToArray();
 

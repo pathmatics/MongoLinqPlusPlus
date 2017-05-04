@@ -618,6 +618,14 @@ namespace MongoLinqPlusPlus
                 var memberExpression = (MemberExpression) expression;
                 if (memberExpression.Member.DeclaringType == typeof(DateTime))
                 {
+                    if (memberExpression.Member.Name == "Date"
+                        || memberExpression.Member.Name == "TimeOfDay"
+                        || memberExpression.Member.Name == "Ticks"
+                        || memberExpression.Member.Name == "Kind")
+                    {
+                        throw new InvalidQueryException($"{memberExpression.Member.Name} property on DateTime not supported due to lack of Mongo support :(");
+                    }
+
                     string mongoDateOperator;
                     if (NodeToMongoDateOperatorDict.TryGetValue(memberExpression.Member.Name, out mongoDateOperator))
                     {
