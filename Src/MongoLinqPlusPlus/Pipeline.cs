@@ -125,6 +125,18 @@ namespace MongoLinqPlusPlus
             {"Count", "sum"}
         };
 
+        private readonly Dictionary<string, string> NodeToMongoDateOperatorDict  = new Dictionary<string, string> {
+            {"Year", "$year"},
+            {"Month", "$month"},
+            {"Day", "$dayOfMonth"},
+            {"Hour", "$hour"},
+            {"Minute", "$minute"},
+            {"Second", "$second"},
+            {"Millisecond", "$millisecond"},
+            {"DayOfWeek", "$dayOfWeek"},
+            {"DayOfYear", "$dayOfYear"},
+        };
+
         /// <summary>Constructs a new MongoPipeline from a typed MongoCollection</summary>
         public MongoPipeline(MongoCollection<TDocType> collection, bool allowMongoDiskUse, Action<string> loggingDelegate)
         {
@@ -602,6 +614,24 @@ namespace MongoLinqPlusPlus
             // c.Age
             if (expression is MemberExpression)
             {
+                // Handle member access of DateTime objects
+                var memberExpression = (MemberExpression) expression;
+                if (memberExpression.Member.DeclaringType == typeof(DateTime))
+                {
+                    string mongoDateOperator;
+                    if (NodeToMongoDateOperatorDict.TryGetValue(memberExpression.Member.Name, out mongoDateOperator))
+                    {
+                        // .Net DayOfWeek is 0 indexed, Mongo is 1 indexed
+                        if (mongoDateOperator == "$dayOfWeek")
+                        {
+                            var array = new BsonArray(new[] { new BsonDocument(mongoDateOperator, BuildMongoSelectExpression(memberExpression.Expression)), (BsonValue) 1});
+                            return new BsonDocument("$subtract", array);
+                        }
+
+                        return new BsonDocument(mongoDateOperator, BuildMongoSelectExpression(memberExpression.Expression));
+                    }
+                }
+
                 return new BsonString("$" + GetMongoFieldName(expression));
             }
 

@@ -55,5 +55,23 @@ namespace MongoLinqPlusPlus.Tests
                     })
             )));
         }
+
+        [TestMethod]
+        public void DateTimeOperators()
+        {
+            Assert.IsTrue(TestHelpers.AreEqual(new[] { _mongoQuery, _memryQuery }.Select(queryable =>
+                queryable.Select(c => new {
+                             c.Birthday.Year,
+                             c.Birthday.Month,
+                             c.Birthday.Day,
+                             c.Birthday.Hour,
+                             c.Birthday.Minute,
+                             c.Birthday.Second,
+                             c.Birthday.Millisecond,
+                             c.Birthday.DayOfWeek,
+                             c.Birthday.DayOfYear
+                         })
+            )));
+        }
     }
 }

@@ -49,10 +49,26 @@ namespace MongoLinqPlusPlus.TestApp
             sw.Restart();
             docs = _mongoQuery.Where(c => c.NumPets != 55).OrderBy(c => c.SSN).Take(5000).ToArray();
             Console.WriteLine("LinqPlusPlus  Queryable: " + sw.Elapsed);
+
 */
+        var results = _mongoQuery.Select(c => new {
+                                     c.Birthday.Year,
+                                     c.Birthday.Month,
+                                     c.Birthday.Day,
+                                     c.Birthday.Hour,
+                                     c.Birthday.Minute,
+                                     c.Birthday.Second,
+                                     c.Birthday.Millisecond,
+                                     c.Birthday.DayOfWeek,
+                                     c.Birthday.DayOfYear
+                                 })
+                                 .ToArray();
+
+
+        /*                
 
             Assert.IsTrue(TestHelpers.AreEqual(new[] { _mongoQuery, _memryQuery }.Select(queryable =>
-                queryable.GroupBy(c => c.NumPets)
+                queryable.GroupBy(c => c.Birthday.Year)
                          .Select(c => new { First = c.First() })
                          .Take(1)
             )));
@@ -61,7 +77,7 @@ namespace MongoLinqPlusPlus.TestApp
             var results = _mongoQuery.GroupBy(c => c.NumPets)
                          .Select(c => new { First = c.First() })
                          .Take(1)
-                         .ToArray();
+                         .ToArray();*/
             
             var json = JsonConvert.SerializeObject(results, Formatting.Indented);
             Console.WriteLine(json);
