@@ -42,7 +42,7 @@ namespace MongoLinqPlusPlus.Tests
                 FirstName = "Tom",
                 LastName = "Jones",
                 IsMale = true,
-                Birthday = new DateTime(1988, 1, 1).ToUniversalTime(),
+                Birthday = new DateTime(1988, 1, 2,3,4,5,DateTimeKind.Utc).AddMilliseconds(6),
                 CurrentAddress = Addresses[0],
                 NumPets = 1,
                 PreviousAddresses = new[] { Addresses[1], Addresses[2] },

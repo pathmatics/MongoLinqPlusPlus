@@ -618,26 +618,33 @@ namespace MongoLinqPlusPlus
                 var memberExpression = (MemberExpression) expression;
                 if (memberExpression.Member.DeclaringType == typeof(DateTime))
                 {
-                    if (memberExpression.Member.Name == "Date"
-                        || memberExpression.Member.Name == "TimeOfDay"
-                        || memberExpression.Member.Name == "Ticks"
-                        || memberExpression.Member.Name == "Kind")
+                    if (memberExpression.Member.Name == "Date")
                     {
-                        throw new InvalidQueryException($"{memberExpression.Member.Name} property on DateTime not supported due to lack of Mongo support :(");
+                        // No support for Date but we can hack it by subtracting out the time component (in milliseconds)
+                        var hours = new BsonDocument("$hour", BuildMongoSelectExpression(memberExpression.Expression));
+                        var minutes = new BsonDocument("$minute", BuildMongoSelectExpression(memberExpression.Expression));
+                        var seconds = new BsonDocument("$second", BuildMongoSelectExpression(memberExpression.Expression));
+                        var millis = new BsonDocument("$millisecond", BuildMongoSelectExpression(memberExpression.Expression));
+                        var hoursAsMillis = new BsonDocument("$multiply", new BsonArray(new[] { hours, (BsonValue) 3600000}));
+                        var minutesAsMillis = new BsonDocument("$multiply", new BsonArray(new[] { minutes, (BsonValue) 60000}));
+                        var secondsAsMillis = new BsonDocument("$multiply", new BsonArray(new[] { seconds, (BsonValue) 1000}));
+                        var totalMillis = new BsonDocument("$add", new BsonArray(new[] { hoursAsMillis, minutesAsMillis, secondsAsMillis, millis }));
+                        var array = new BsonArray(new[] { BuildMongoSelectExpression(memberExpression.Expression), totalMillis});
+                        return new BsonDocument("$subtract", array);
+                    }
+
+                    // .Net DayOfWeek is 0 indexed, Mongo is 1 indexed
+                    if (memberExpression.Member.Name == "DayOfWeek")
+                    {
+                        var array = new BsonArray(new[] { new BsonDocument("$dayOfWeek", BuildMongoSelectExpression(memberExpression.Expression)), (BsonValue) 1});
+                        return new BsonDocument("$subtract", array);
                     }
 
                     string mongoDateOperator;
                     if (NodeToMongoDateOperatorDict.TryGetValue(memberExpression.Member.Name, out mongoDateOperator))
-                    {
-                        // .Net DayOfWeek is 0 indexed, Mongo is 1 indexed
-                        if (mongoDateOperator == "$dayOfWeek")
-                        {
-                            var array = new BsonArray(new[] { new BsonDocument(mongoDateOperator, BuildMongoSelectExpression(memberExpression.Expression)), (BsonValue) 1});
-                            return new BsonDocument("$subtract", array);
-                        }
-
                         return new BsonDocument(mongoDateOperator, BuildMongoSelectExpression(memberExpression.Expression));
-                    }
+
+                    throw new InvalidQueryException($"{memberExpression.Member.Name} property on DateTime not supported due to lack of Mongo support :(");
                 }
 
                 return new BsonString("$" + GetMongoFieldName(expression));

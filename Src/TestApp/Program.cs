@@ -52,6 +52,8 @@ namespace MongoLinqPlusPlus.TestApp
 
 */
         var results = _mongoQuery.Select(c => new {
+                                     c.Birthday,
+                                     DadteDay = c.Birthday.Date,
                                      c.Birthday.Year,
                                      c.Birthday.Month,
                                      c.Birthday.Day,
@@ -60,8 +62,7 @@ namespace MongoLinqPlusPlus.TestApp
                                      c.Birthday.Second,
                                      c.Birthday.Millisecond,
                                      c.Birthday.DayOfWeek,
-                                     c.Birthday.DayOfYear,
-                                     c.Birthday.Kind
+                                     c.Birthday.DayOfYear
                                  })
                                  .ToArray();
 

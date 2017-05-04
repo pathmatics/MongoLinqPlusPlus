@@ -69,7 +69,8 @@ namespace MongoLinqPlusPlus.Tests
                              c.Birthday.Second,
                              c.Birthday.Millisecond,
                              c.Birthday.DayOfWeek,
-                             c.Birthday.DayOfYear
+                             c.Birthday.DayOfYear,
+                             c.Birthday.Date
                          })
             )));
         }
