@@ -44,19 +44,6 @@ namespace MongoLinqPlusPlus.Tests
             )));
 
             Assert.IsTrue(TestHelpers.AreEqual(new[] { _mongoQuery, _memryQuery }.Select(queryable =>
-                queryable.GroupBy(c => c.FirstName)
-                         .Select(c => c.Key)
-                         .GroupBy(c => c)
-            )));
-
-            Assert.IsTrue(TestHelpers.AreEqual(new[] { _mongoQuery, _memryQuery }.Select(queryable =>
-                queryable.GroupBy(c => c.FirstName)
-                         .Select(c => c.Key)
-                         .GroupBy(c => c)
-                         .Select (c => c.Key)
-            )));
-
-            Assert.IsTrue(TestHelpers.AreEqual(new[] { _mongoQuery, _memryQuery }.Select(queryable =>
                 queryable.GroupBy(c => c.IsMale)
             )));
 
@@ -85,6 +72,41 @@ namespace MongoLinqPlusPlus.Tests
                              c.SSN
                          })
                          .Select(c => c.Key.SSN)
+            )));
+        }
+
+        [TestMethod]
+        public void GroupByExpression()
+        {
+            Assert.IsTrue(TestHelpers.AreEqual(new[] { _mongoQuery, _memryQuery }.Select(queryable =>
+                queryable.GroupBy(c => c.Birthday.Date)
+            )));
+
+            Assert.IsTrue(TestHelpers.AreEqual(new[] { _mongoQuery, _memryQuery }.Select(queryable =>
+                queryable.GroupBy(c => c.Birthday.Year + 1)
+            )));
+        }
+
+        [TestMethod]
+        public void GroupByParameterExpression()
+        {
+            // TODO: Support this
+            /*
+            Assert.IsTrue(TestHelpers.AreEqual(new[] { _mongoQuery, _memryQuery }.Select(queryable =>
+                queryable.GroupBy(c => c)
+            )));*/
+
+            Assert.IsTrue(TestHelpers.AreEqual(new[] { _mongoQuery, _memryQuery }.Select(queryable =>
+                queryable.GroupBy(c => c.FirstName)
+                         .Select(c => c.Key)
+                         .GroupBy(c => c)
+            )));
+
+            Assert.IsTrue(TestHelpers.AreEqual(new[] { _mongoQuery, _memryQuery }.Select(queryable =>
+                queryable.GroupBy(c => c.FirstName)
+                         .Select(c => c.Key)
+                         .GroupBy(c => c)
+                         .Select (c => c.Key)
             )));
         }
 

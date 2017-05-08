@@ -268,22 +268,23 @@ namespace MongoLinqPlusPlus
         public void EmitPipelineStageForGroupBy(LambdaExpression lambdaExp)
         {
             // GroupBy supports the following modes:
-            //    MemberExpression:    GroupBy(c => c.Age)
-            //    NewExpression:       GroupBy(c => new { c.Age, Name = c.FirstName })
             //    ParameterExpression: GroupBy(c => c)
+            //    NewExpression:       GroupBy(c => new { c.Age, Name = c.FirstName })
+            //    Other expressions:   GroupBy(c => c.Age + 1)   
 
-            // Handle the simple case: GroupBy(c => c.Age)
-            if (lambdaExp.Body is MemberExpression)
+            // Handle the first case: GroupBy(c => c)
+            if (lambdaExp.Body is ParameterExpression)
             {
-                string fieldName = GetMongoFieldName(lambdaExp.Body);
+                // This point was probably reached by doing something like:
+                //   .Select(c => c.FirstName).GroupBy(c => c)
 
-                // Perform the grouping
-                var pipelineOperation = new BsonDocument {new BsonElement("_id", "$" + fieldName)};
+                // Perform the grouping on the _result_ document (which we'll assume we have)
+                var pipelineOperation = new BsonDocument { new BsonElement("_id", "$" + PIPELINE_DOCUMENT_RESULT_NAME) };
                 AddToPipeline("$group", pipelineOperation).GroupNeedsCleanup = true;
                 return;
             }
 
-            // Handle the hard case: GroupBy(c => new { c.Age, Name = c.FirstName })
+            // Handle an anonymous type: GroupBy(c => new { c.Age, Name = c.FirstName })
             if (lambdaExp.Body is NewExpression)
             {
                 var newExp = (NewExpression) lambdaExp.Body;
@@ -301,21 +302,14 @@ namespace MongoLinqPlusPlus
                 var pipelineOperation = new BsonDocument {new BsonElement("_id", new BsonDocument(fieldNames))};
                 AddToPipeline("$group", pipelineOperation).GroupNeedsCleanup = true;
                 return;
-            }
+            }                     
 
-            // Handle the OTHER hard case: GroupBy(c => c)
-            if (lambdaExp.Body is ParameterExpression)
-            {
-                // This point was probably reached by doing something like:
-                //   .Select(c => c.FirstName).GroupBy(c => c)
+            // Handle all other expression types
+            var bsonValueExpression = BuildMongoSelectExpression(lambdaExp.Body);
 
-                // Perform the grouping on the _result_ document (which we'll assume we have)
-                var pipelineOperation = new BsonDocument { new BsonElement("_id", "$" + PIPELINE_DOCUMENT_RESULT_NAME) };
-                AddToPipeline("$group", pipelineOperation).GroupNeedsCleanup = true;
-                return;
-            }
-
-            throw new InvalidQueryException("GroupBy does not support expression type " + lambdaExp.Body.NodeType);
+            // Perform the grouping
+            AddToPipeline("$group", new BsonDocument {new BsonElement("_id", bsonValueExpression)}).GroupNeedsCleanup = true;
+            return;
         }
 
         /// <summary>
