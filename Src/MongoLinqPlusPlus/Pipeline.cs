@@ -293,10 +293,10 @@ namespace MongoLinqPlusPlus
                 // Get the mongo field names for each property in the new {...}
                 var fieldNames = newExp.Arguments
                     .Select((c, i) => new {
-                        MongoFieldName = GetMongoFieldName(c),
-                        KeyFieldName = newExpProperties[i].Name
+                        KeyFieldName = newExpProperties[i].Name,
+                        ValueMongoExpression = BuildMongoSelectExpression(c)
                     })
-                    .Select(c => new BsonElement(c.KeyFieldName, "$" + c.MongoFieldName));
+                    .Select(c => new BsonElement(c.KeyFieldName, c.ValueMongoExpression));
 
                 // Perform the grouping on the multi-part key
                 var pipelineOperation = new BsonDocument {new BsonElement("_id", new BsonDocument(fieldNames))};
@@ -610,6 +610,14 @@ namespace MongoLinqPlusPlus
             {
                 // Handle member access of DateTime objects
                 var memberExpression = (MemberExpression) expression;
+                if (memberExpression.Member.DeclaringType == typeof(string))
+                {
+                    if (memberExpression.Member.Name == "Length")
+                        return new BsonDocument("$strLenCP", BuildMongoSelectExpression(memberExpression.Expression));
+
+                    throw new InvalidQueryException($"{memberExpression.Member.Name} property on String not supported due to lack of Mongo support :(");
+                }
+
                 if (memberExpression.Member.DeclaringType == typeof(DateTime))
                 {
                     if (memberExpression.Member.Name == "Date")
@@ -728,7 +736,16 @@ namespace MongoLinqPlusPlus
 
                     // Test for empty
                     return new BsonDocument("$eq", new BsonArray(new[] {new BsonString(""), ifNullDoc.AsBsonValue}));
+                }
 
+                if (callExp.Type == typeof(string))
+                {
+                    if (callExp.Method.Name == "ToUpper")
+                        return new BsonDocument("$toUpper", BuildMongoSelectExpression(callExp.Object));
+                    if (callExp.Method.Name == "ToLower")
+                        return new BsonDocument("$toLower", BuildMongoSelectExpression(callExp.Object));
+
+                    throw new InvalidQueryException($"Can't translate method {callExp.Type.Name}.{callExp.Method.Name} to Mongo expression");
                 }
 
                 // c.Sum(d => d.Age), c.Count(), etc
@@ -816,15 +833,15 @@ namespace MongoLinqPlusPlus
             // Handle type typed hard case: Select(c => new Foo { Bar = c.FirstName })
             if (lambdaExp.Body is MemberInitExpression)
             {
-                var memberInitExpression = (MemberInitExpression) lambdaExp.Body;
-                var fieldNames = memberInitExpression.Bindings
-                                                     .Cast<MemberAssignment>()
-                                                     .Select(c => new {
-                                                         FieldName = GetMongoFieldName(c.Member),
-                                                         ExpressionValue = BuildMongoSelectExpression(c.Expression, true)
-                                                     })
-                                                     .Select(c => new BsonElement(c.FieldName, c.ExpressionValue))
-                                                     .ToList();
+                var memberInitExp = (MemberInitExpression) lambdaExp.Body;
+                var fieldNames = memberInitExp.Bindings
+                                              .Cast<MemberAssignment>()
+                                              .Select(c => new {
+                                                  FieldName = GetMongoFieldName(c.Member),
+                                                  ExpressionValue = BuildMongoSelectExpression(c.Expression, true)
+                                              })
+                                              .Select(c => new BsonElement(c.FieldName, c.ExpressionValue))
+                                              .ToList();
 
                 // Remove the unnecessary _id field
                 if (fieldNames.All(c => c.Name != "_id"))

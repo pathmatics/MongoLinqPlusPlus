@@ -20,69 +20,34 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-using System;
 using System.Linq;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace MongoLinqPlusPlus.Tests
 {
     [TestClass]
-    public class DateTimeTests
+    public class StringTests
     {
         private IQueryable<TestDocument> _mongoQuery = TestRepository.GetDefaultDataQueryablePlusPlus(s => System.Diagnostics.Debug.Write(s));
         private IQueryable<TestDocument> _memryQuery = TestRepository.TestDocuments.AsQueryable();
 
         [TestMethod]
-        public void DateTimeSerialization()
+        public void StringMethods()
         {
             Assert.IsTrue(TestHelpers.AreEqual(new[] { _mongoQuery, _memryQuery }.Select(queryable =>
-                queryable.Select(c => c.Birthday)
-            )));
-
-            Assert.IsTrue(TestHelpers.AreEqual(new[] { _mongoQuery, _memryQuery }.Select(queryable =>
-                queryable.GroupBy(c => c.Birthday)
-            )));
-
-            Assert.IsTrue(TestHelpers.AreEqual(new[] { _mongoQuery, _memryQuery }.Select(queryable =>
-                queryable.GroupBy(c => c.Birthday)
-                         .Select(c => c.Key)
-            )));
-
-            Assert.IsTrue(TestHelpers.AreEqual(new[] { _mongoQuery, _memryQuery }.Select(queryable =>
-                queryable.Select(c => new {
-                        c.FirstName,
-                        c.Birthday
-                    })
-            )));
-        }
-
-        [TestMethod]
-        public void DateTimeOperators()
-        {
-            Assert.IsTrue(TestHelpers.AreEqual(new[] { _mongoQuery, _memryQuery }.Select(queryable =>
-                queryable.Select(c => new {
-                             c.Birthday.Year,
-                             c.Birthday.Month,
-                             c.Birthday.Day,
-                             c.Birthday.Hour,
-                             c.Birthday.Minute,
-                             c.Birthday.Second,
-                             c.Birthday.Millisecond,
-                             c.Birthday.DayOfWeek,
-                             c.Birthday.DayOfYear,
-                             c.Birthday.Date
+                queryable.Where(c => c.FirstName != null)
+                         .Select(c => new {
+                             Upper = c.FirstName.ToUpper(),
                          })
             )));
-        }
 
-        [TestMethod]
-        public void DateTimeGroupBy()
-        {
             Assert.IsTrue(TestHelpers.AreEqual(new[] { _mongoQuery, _memryQuery }.Select(queryable =>
-                queryable.GroupBy(c => new {
-                             Date = c.Birthday.Date
-                          })
-                         .Select(c => c.Key)
+                queryable.Where(c => c.FirstName != null)
+                         .Select(c => new {
+                             Upper = c.FirstName.ToUpper(),
+                             Lower = c.FirstName.ToLower(),
+                             // Length = c.FirstName.Length // 3.4 Specific
+                         })
             )));
         }
     }

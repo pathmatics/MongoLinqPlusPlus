@@ -65,6 +65,7 @@
     <Compile Include="DummyClass.cs" />
     <Compile Include="ObjectIdDocument.cs" />
     <Compile Include="ObjectIdDocumentRepository.cs" />
+    <Compile Include="Tests\StringTests.cs" />
     <Compile Include="Tests\GuidTests.cs" />
     <Compile Include="Tests\IEnumerableTests.cs" />
     <Compile Include="Tests\GroupByTests.cs" />

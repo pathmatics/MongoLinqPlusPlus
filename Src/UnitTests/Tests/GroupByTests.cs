@@ -88,6 +88,18 @@ namespace MongoLinqPlusPlus.Tests
         }
 
         [TestMethod]
+        public void GroupByNewExpression()
+        {
+            Assert.IsTrue(TestHelpers.AreEqual(new[] { _mongoQuery, _memryQuery }.Select(queryable =>
+                queryable.GroupBy(c => new { c.NumPets })
+            )));
+
+            Assert.IsTrue(TestHelpers.AreEqual(new[] { _mongoQuery, _memryQuery }.Select(queryable =>
+                queryable.GroupBy(c => new { Bar = c.NumPets + 2 })
+            )));
+        }
+
+        [TestMethod]
         public void GroupByParameterExpression()
         {
             // TODO: Support this
