@@ -53,12 +53,17 @@ namespace MongoLinqPlusPlus.Tests
                     return obj.GetHashCode();
                 }
 
-                int hashCode = 0;
+                // Default hashcode for non-null shouldn't be 0.  That way an object with no properties is distint from null
+                int hashCode = 55;
 
                 // Handle an enumerable type
-                if (obj is IEnumerable<object>)
+                if (obj is IEnumerable)
                 {
-                    foreach (var subItem in (IEnumerable<object>) obj)
+                    // Increment the hashcode to represent an empty Enumerable.
+                    // This way an empty array gets a different hashcode from null.
+                    hashCode += 854;
+
+                    foreach (var subItem in (IEnumerable) obj)
                         hashCode += MyGetHashCode(subItem);
 
                     // For IGrouping, include the Key property as well

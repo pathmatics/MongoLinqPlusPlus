@@ -23,59 +23,42 @@
 using System;
 using System.Linq;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
-using UnitTests;
 
 namespace MongoLinqPlusPlus.Tests
 {
     [TestClass]
-    public class ExpressionSimplificationTests
+    public class ArrayTests
     {
         private IQueryable<TestDocument> _mongoQuery = TestRepository.GetDefaultDataQueryablePlusPlus(s => System.Diagnostics.Debug.Write(s));
         private IQueryable<TestDocument> _memryQuery = TestRepository.TestDocuments.AsQueryable();
 
+        private Random _rand = new Random();
+
         [TestMethod]
-        public void Expression_Where_Simplification()
+        public void Contains()
         {
             Assert.IsTrue(TestHelpers.AreEqual(new[] { _mongoQuery, _memryQuery }.Select(queryable =>
-                queryable.Where(c => c.NumPets == 5 + 2)
-            )));
-
-            var someArray = new[] {1, 2};
-            Assert.IsTrue(TestHelpers.AreEqual(new[] { _mongoQuery, _memryQuery }.Select(queryable =>
-                queryable.Where(c => c.NumPets == someArray.Length)
+                queryable.Select(c => c.OldIds != null && c.OldIds.Contains(1))
             )));
 
             Assert.IsTrue(TestHelpers.AreEqual(new[] { _mongoQuery, _memryQuery }.Select(queryable =>
-                queryable.Where(c => c.NumPets == someArray.Count())
+                queryable.Select(c => c.OldNames != null && c.OldNames.Contains("Bob"))
             )));
         }
 
         [TestMethod]
-        public void Expression_Select_Simplification()
+        public void ArgumentNullException()
         {
-            Assert.IsTrue(TestHelpers.AreEqual(new[] { _mongoQuery, _memryQuery }.Select(queryable =>
-                queryable.Select(c => c.NumPets == (5 + 2))
-            )));
-
-            var someArray = new[] { 1, 2 };
-            Assert.IsTrue(TestHelpers.AreEqual(new[] { _mongoQuery, _memryQuery }.Select(queryable =>
-                queryable.Select(c => c.NumPets == someArray.Length)
-            )));
-
-            Assert.IsTrue(TestHelpers.AreEqual(new[] { _mongoQuery, _memryQuery }.Select(queryable =>
-                queryable.Select(c => c.NumPets == someArray.Count())
-            )));
-
-            Assert.IsTrue(TestHelpers.AreEqual(new[] { _mongoQuery, _memryQuery }.Select(queryable =>
-                queryable.Select(c => new {
-                    Test = c.NumPets == someArray.Count()
-                })
-            )));
-
-            Assert.IsTrue(TestHelpers.AreEqual(new[] { _mongoQuery, _memryQuery }.Select(queryable =>
-                queryable.Select(c => new DummyClass {
-                    Id = c.NumPets + someArray.Count()
-                })
+            Assert.IsTrue(TestHelpers.AreEqual(new[] { _mongoQuery, _memryQuery }.Select(queryable => {
+                    try
+                    {
+                        return _rand.Next() + queryable.Select(c => c.OldIds.Contains(1)).Count();
+                    }
+                    catch (ArgumentNullException)
+                    {
+                        return queryable.Select(c => c.OldIds == null || c.OldIds.Contains(1)).Count();
+                    }
+                }
             )));
         }
     }

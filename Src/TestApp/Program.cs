@@ -52,17 +52,7 @@ namespace MongoLinqPlusPlus.TestApp
 
 */
         var results = _mongoQuery.Select(c => new {
-                                     c.Birthday,
-                                     DadteDay = c.Birthday.Date,
-                                     c.Birthday.Year,
-                                     c.Birthday.Month,
-                                     c.Birthday.Day,
-                                     c.Birthday.Hour,
-                                     c.Birthday.Minute,
-                                     c.Birthday.Second,
-                                     c.Birthday.Millisecond,
-                                     c.Birthday.DayOfWeek,
-                                     c.Birthday.DayOfYear
+                                     HasId1 = c.OldIds != null && c.OldIds.Contains(1),
                                  })
                                  .ToArray();
 

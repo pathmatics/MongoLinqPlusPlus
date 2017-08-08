@@ -94,7 +94,16 @@ namespace MongoLinqPlusPlus
             }
 
             var pipeline = new MongoPipeline<TDocument>(_collection, AllowMongoDiskUse, LoggingDelegate);
-            return pipeline.Execute<TResult>(localExpression);
+            try
+            {
+                return pipeline.Execute<TResult>(localExpression);
+            }
+            catch (MongoCommandException c)
+            {
+                if (c.Message.Contains("$in requires an array as a second argument, found: null"))
+                    throw new ArgumentNullException(".Contains on null Enumerable blew up.", c);
+                throw;
+            }
         }
 
         /// <summary>I haven't seen this called yet...</summary>

@@ -32,6 +32,7 @@ namespace MongoLinqPlusPlus.Tests
 
     public class Address
     {
+        [BsonElement("ha")]
         public string Street;
         public int Apartment;
         public string City;
@@ -48,6 +49,8 @@ namespace MongoLinqPlusPlus.Tests
         public DateTime Birthday;
         public Address CurrentAddress;
         public Address[] PreviousAddresses;
+        public int[] OldIds;
+        public string[] OldNames;
         public int NumPets;
         public long StudentId;
         public int? NullableInt;

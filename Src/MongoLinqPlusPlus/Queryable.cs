@@ -35,7 +35,7 @@ namespace MongoLinqPlusPlus
     {
         public IEnumerator<TData> GetEnumerator()
         {
-            return (Provider.Execute<IEnumerable<TData>>(Expression)).GetEnumerator();
+            return Provider.Execute<IEnumerable<TData>>(Expression).GetEnumerator();
         }
 
         IEnumerator IEnumerable.GetEnumerator()
@@ -44,7 +44,7 @@ namespace MongoLinqPlusPlus
         }
 
         public Expression Expression { get; internal set; }
-        public Type ElementType { get { return typeof(TData); } }
+        public Type ElementType => typeof(TData);
         public IQueryProvider Provider { get; internal set; }
     }
 }

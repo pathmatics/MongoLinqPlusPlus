@@ -3,6 +3,7 @@ syntax: glob
 *.csproj.user
 *.DotSettings.user
 StyleCop.Cache
+Src/.vs
 syntax: regexp
 Src/.*/bin/
 Src/.*/obj/

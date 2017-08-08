@@ -748,11 +748,17 @@ namespace MongoLinqPlusPlus
                     throw new InvalidQueryException($"Can't translate method {callExp.Type.Name}.{callExp.Method.Name} to Mongo expression");
                 }
 
-                // c.Sum(d => d.Age), c.Count(), etc
-                if (expression.NodeType == ExpressionType.Call)
+                // c.Contains (where c is an Enumerable)
+                if (callExp.Method.Name == "Contains" && callExp.Method.ReflectedType == typeof (Enumerable))
                 {
-                    return GetMongoFieldNameForMethodOnGrouping(callExp);
+                    var searchValue = BuildMongoSelectExpression(callExp.Arguments[1]);
+                    var searchTarget = BuildMongoSelectExpression(callExp.Arguments[0]);
+                    
+                    return new BsonDocument("$in", new BsonArray(new[] { searchValue, searchTarget }) );
                 }
+
+                // c.Sum(d => d.Age), c.Count(), etc
+                return GetMongoFieldNameForMethodOnGrouping(callExp);
             }
 
             // Casts
