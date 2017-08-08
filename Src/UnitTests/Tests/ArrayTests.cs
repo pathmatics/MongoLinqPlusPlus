@@ -35,7 +35,7 @@ namespace MongoLinqPlusPlus.Tests
         private Random _rand = new Random();
 
         [TestMethod]
-        public void Contains()
+        public void SelectArrayFieldContains()
         {
             Assert.IsTrue(TestHelpers.AreEqual(new[] { _mongoQuery, _memryQuery }.Select(queryable =>
                 queryable.Select(c => c.OldIds != null && c.OldIds.Contains(1))
@@ -43,6 +43,19 @@ namespace MongoLinqPlusPlus.Tests
 
             Assert.IsTrue(TestHelpers.AreEqual(new[] { _mongoQuery, _memryQuery }.Select(queryable =>
                 queryable.Select(c => c.OldNames != null && c.OldNames.Contains("Bob"))
+            )));
+        }
+
+        [TestMethod]
+        public void WhereArrayFieldContains()
+        {
+            Assert.IsTrue(TestHelpers.AreEqual(new[] { _mongoQuery, _memryQuery }.Select(queryable =>
+                // ReSharper disable once ReplaceWithSingleCallToCount
+                queryable.Where(c => c.OldIds != null && c.OldIds.Contains(1)).Count()
+            )));
+
+            Assert.IsTrue(TestHelpers.AreEqual(new[] { _mongoQuery, _memryQuery }.Select(queryable =>
+                queryable.Count(c => c.OldNames != null && c.OldNames.Contains("Bob"))
             )));
         }
 

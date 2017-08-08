@@ -143,7 +143,7 @@ namespace MongoLinqPlusPlus.Tests
         }
 
         [TestMethod]
-        public void Where_ArrayContains()
+        public void Where_ConstantArrayContains()
         {
             int[] numPetsArray = {2, 3, 4};
             Assert.IsTrue(TestHelpers.AreEqual(new[] { _mongoQuery, _memryQuery }.Select(queryable =>

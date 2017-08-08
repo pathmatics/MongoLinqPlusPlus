@@ -441,25 +441,34 @@ namespace MongoLinqPlusPlus
             {
                 var callExp = (MethodCallExpression) expression;
 
-                // Only support .Contains within Where()
+                // Support .Contains within Where()
                 if (callExp.Method.Name == "Contains")
                 {
-
+                    // Part 1 - Support .Where(c => someLocalEnumerable.Contains(c.Field))
                     // Extract the IEnumerable that .Contains is being called on
                     // Important to note that it can be in callExp.Object (for a List) or in callExp.Arguments[0] (for a constant, read-only array)
-                    var localEnumerable = ((ConstantExpression) (callExp.Object ?? callExp.Arguments[0])).Value;
-                    if (TypeSystem.FindIEnumerable(localEnumerable.GetType()) == null)
+                    var arrayConstantExpression = (callExp.Object ?? callExp.Arguments[0]) as ConstantExpression;
+                    if (arrayConstantExpression != null)
                     {
-                        throw new InvalidQueryException("In Where(), Contains() only supported on IEnumerable");
+                        var localEnumerable = arrayConstantExpression.Value;
+                        if (TypeSystem.FindIEnumerable(localEnumerable.GetType()) == null)
+                        {
+                            throw new InvalidQueryException("In Where(), Contains() only supported on IEnumerable");
+                        }
+
+                        // Get the field that we're going to search for within the IEnumerable
+                        var mongoFieldName = GetMongoFieldName(callExp.Arguments.Last());
+
+                        // Evaluate the IEnumerable
+                        var array = (BsonArray) GetBsonValueFromObject(localEnumerable);
+
+                        return Query.In(mongoFieldName, array.AsEnumerable());
                     }
 
-                    // Get the field that we're going to search for within the IEnumerable
-                    var mongoFieldName = GetMongoFieldName(callExp.Arguments.Last());
-
-                    // Evaluate the IEnumerable
-                    var array = (BsonArray) GetBsonValueFromObject(localEnumerable);
-
-                    return Query.In(mongoFieldName, array.AsEnumerable());
+                    // Par 2 - Support .Where(c => c.SomeArrayProperty.Contains("foo"))
+                    string searchTargetMongoFieldName = GetMongoFieldName(callExp.Arguments[0]);
+                    var searchItem = BsonValue.Create(((ConstantExpression) callExp.Arguments[1]).Value);
+                    return Query.All(searchTargetMongoFieldName, new[] {searchItem});
                 }
 
                 if (callExp.Method.Name == "IsNullOrEmpty" && callExp.Object == null && callExp.Method.ReflectedType == typeof(string))
