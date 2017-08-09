@@ -89,6 +89,20 @@ namespace MongoLinqPlusPlus.Tests
         }
 
         [TestMethod]
+        public void Where_Array_Any_Contains()
+        {
+            var ids = new[] {1, 2};
+            Assert.IsTrue(TestHelpers.AreEqual(new[] { _mongoQuery, _memryQuery }.Select(queryable =>
+                queryable.Where(c => c.OldIds != null && c.OldIds.Any(d => ids.Contains(d)))
+            )));
+
+            var zips = new[] {90405, 90401};
+            Assert.IsTrue(TestHelpers.AreEqual(new[] { _mongoQuery, _memryQuery }.Select(queryable =>
+                queryable.Where(c => c.PreviousAddresses.Any(d => zips.Contains(d.Zip)))
+            )));
+        }
+
+        [TestMethod]
         public void Where_Array_Any()
         {
             Assert.IsTrue(TestHelpers.AreEqual(new[] { _mongoQuery, _memryQuery }.Select(queryable =>

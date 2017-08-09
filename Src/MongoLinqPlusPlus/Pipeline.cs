@@ -491,6 +491,9 @@ namespace MongoLinqPlusPlus
                         // Evaluate the IEnumerable
                         var array = (BsonArray) GetBsonValueFromObject(localEnumerable);
 
+                        if (mongoFieldName == null)
+                            return Query.Create("$in", array);
+
                         return Query.In(mongoFieldName, array.AsEnumerable());
                     }
 
