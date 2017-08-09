@@ -89,6 +89,28 @@ namespace MongoLinqPlusPlus.Tests
         }
 
         [TestMethod]
+        public void Where_Array_Any()
+        {
+            Assert.IsTrue(TestHelpers.AreEqual(new[] { _mongoQuery, _memryQuery }.Select(queryable =>
+                queryable.Where(c => c.PreviousAddresses.Any(d => d.Zip == 90405))
+            )));
+
+            Assert.IsTrue(TestHelpers.AreEqual(new[] { _mongoQuery, _memryQuery }.Select(queryable =>
+                queryable.Where(c => c.PreviousAddresses.Any(d => d.Zip == 90405 || d.State == States.CA))
+            )));
+
+            Assert.IsTrue(TestHelpers.AreEqual(new[] { _mongoQuery, _memryQuery }.Select(queryable =>
+                queryable.Where(c => c.OldIds != null && c.OldIds.Any(d => d == 4))
+            )));
+            
+
+            Assert.IsTrue(TestHelpers.AreEqual(new[] { _mongoQuery, _memryQuery }.Select(queryable =>
+                queryable.Where(c => c.OldIds != null && c.OldIds.Any(d => d != 4 && d > 1))
+            )));
+        }
+
+
+        [TestMethod]
         public void Where_Array_Length()
         {
             Assert.IsTrue(TestHelpers.AreEqual(new[] { _mongoQuery, _memryQuery }.Select(queryable =>
@@ -121,8 +143,8 @@ namespace MongoLinqPlusPlus.Tests
         {
             Assert.IsTrue(TestHelpers.AreEqual(new[] { _mongoQuery, _memryQuery }.Select(queryable =>
                 queryable.Where(c => (c.FirstName != "John" || c.FirstName == "Bob" || c.FirstName == "June")
-                                && (c.IsMale || (!c.IsMale && c.NumPets >= 1))
-                                && (c.CurrentAddress.State != States.WA))
+                                && (c.IsMale || !c.IsMale && c.NumPets >= 1)
+                                && c.CurrentAddress.State != States.WA)
             )));
         }
 

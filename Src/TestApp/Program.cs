@@ -51,10 +51,10 @@ namespace MongoLinqPlusPlus.TestApp
             Console.WriteLine("LinqPlusPlus  Queryable: " + sw.Elapsed);
 
 */
-        var results = _mongoQuery.Select(c => new {
-                                     HasId1 = c.OldIds != null && c.OldIds.Contains(1),
-                                 })
-                                 .ToArray();
+
+
+            var results = _mongoQuery.Where(c => c.PreviousAddresses.Any(d => d.Zip == 90405))
+                .Count();
 
 
         /*                

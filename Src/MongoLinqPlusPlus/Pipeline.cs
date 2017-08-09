@@ -80,14 +80,13 @@ namespace MongoLinqPlusPlus
             new BsonSerializerConverter<DateTime>()
         };
 
-        private readonly Dictionary<ExpressionType, Func<string, BsonValue, IMongoQuery>> NodeToMongoQueryBuilderFuncDict =
-            new Dictionary<ExpressionType, Func<string, BsonValue, IMongoQuery>> {
-            {ExpressionType.Equal, Query.EQ},
-            {ExpressionType.NotEqual, Query.NE},
-            {ExpressionType.GreaterThan, Query.GT},
-            {ExpressionType.GreaterThanOrEqual, Query.GTE},
-            {ExpressionType.LessThan, Query.LT},
-            {ExpressionType.LessThanOrEqual, Query.LTE},
+        private readonly Dictionary<ExpressionType, string> NodeToMongoQueryBuilderFuncDict = new Dictionary<ExpressionType, string> {
+            {ExpressionType.Equal, "$eq"},
+            {ExpressionType.NotEqual, "$ne"},
+            {ExpressionType.GreaterThan, "$gt"},
+            {ExpressionType.GreaterThanOrEqual, "$gte"},
+            {ExpressionType.LessThan, "$lt"},
+            {ExpressionType.LessThanOrEqual, "$lte"},
         };
 
         private readonly Dictionary<ExpressionType, Func<string, int, IMongoQuery>> NodeToMongoQueryBuilderArrayLengthFuncDict =
@@ -211,16 +210,17 @@ namespace MongoLinqPlusPlus
         /// <summary>
         /// Gets the name of the Mongo Field that the specified MemberExpression maps to.
         /// </summary>
-        private string GetMongoFieldName(Expression expression)
+        private string GetMongoFieldName(Expression expression, bool isNamedProperty)
         {
             if (expression.NodeType == ExpressionType.Convert)
             {
                 // A field that's an enum goes through a cast to an int.
-                return GetMongoFieldName(((UnaryExpression) expression).Operand);
+                return GetMongoFieldName(((UnaryExpression) expression).Operand, isNamedProperty);
             }
 
             if (expression is MemberExpression)
             {
+                isNamedProperty = true;
                 var memberExp = (MemberExpression) expression;
 
                 // We might have a nested MemberExpression like c.Key.Name
@@ -228,7 +228,7 @@ namespace MongoLinqPlusPlus
                 string prefix = "";
                 if (memberExp.Expression is MemberExpression)
                 {
-                    prefix = GetMongoFieldName(memberExp.Expression) + '.';
+                    prefix = GetMongoFieldName(memberExp.Expression, isNamedProperty) + '.';
                 }
                 else if (memberExp.Expression is MethodCallExpression)
                 {
@@ -243,8 +243,7 @@ namespace MongoLinqPlusPlus
 
             if (expression.NodeType == ExpressionType.Parameter)
             {
-                // Handle a the field name for .OrderBy(c => c)
-                return PIPELINE_DOCUMENT_RESULT_NAME;
+                return isNamedProperty ? PIPELINE_DOCUMENT_RESULT_NAME : null;
             }
 
             if (expression.NodeType == ExpressionType.Call)
@@ -361,7 +360,27 @@ namespace MongoLinqPlusPlus
         /// We build an IMongoQuery rather than a BsonValue simply as a shortcut.
         /// It's easier to build an IMongoQuery and then call .ToBsonDocument on the result.
         /// </summary>
-        private IMongoQuery BuildMongoWhereExpressionAsQuery(Expression expression)
+        /// <param name="expression">Expression to build a query for</param>
+        /// <param name="isLambdaParamResultHack">
+        /// Required for proper query sematics in $elemmatch expressions.
+        /// 
+        /// Whether a reference to a lambda parameter in the expression should be treated as a reference
+        /// to the field named PIPELINE_DOCUMENT_RESULT_NAME.  Generally this will be true.  This the case
+        /// for something like this:
+        /// .Select(c => c.Age)
+        /// .Where(c => c > 15)
+        /// In this case the variable 'c' is referring to the _result_ field in the document
+        /// 
+        /// Pass in false when dealing with a sub-predicate like this:
+        /// .Where(c => c.SubArrayOfInts.Any(d => d == 15))
+        /// In this case the variable 'd' is is referring to a sub-item in the nested array and
+        /// requires different syntax of any $elemmatch expressions.
+        /// 
+        /// TODO: We should do a better job here entirely.  We currently don't do a good job
+        /// of tracking our lambda params through the full Where call.  For example, this is undefined:
+        /// .Where(c => c.SubArray.Any(d => d.Value == c.SomeOtherLocalProperty))
+        /// </param>
+        private IMongoQuery BuildMongoWhereExpressionAsQuery(Expression expression, bool isLambdaParamResultHack)
         {
             // Handle binary operators (&&, ==, >, etc)
             if (expression is BinaryExpression)
@@ -388,37 +407,44 @@ namespace MongoLinqPlusPlus
                     var queryFunc = NodeToMongoQueryBuilderArrayLengthFuncDict[localNodeType];
 
                     // Get our operands
-                    string mongoFieldName = GetMongoFieldName(((UnaryExpression) binExp.Left).Operand);
                     int rhs = (int) ((ConstantExpression) binExp.Right).Value;
+                    string mongoFieldName = GetMongoFieldName(((UnaryExpression) binExp.Left).Operand, isLambdaParamResultHack);
+                    if (mongoFieldName == null)
+                        throw new NotImplementedException("ExpressionType.ArrayLength on lambda parameters not supported. ie: .Where(c => c.SubArray.Any(d => d.Length > 5))");
+
+                    // Generate the query
+                    var query = queryFunc(mongoFieldName, rhs);
 
                     // Optionally invert our query
-                    return invert ? Query.Not(queryFunc(mongoFieldName, rhs)) : queryFunc(mongoFieldName, rhs);
+                    return invert ? Query.Not(query) : query;
                 }
-
 
                 // If this binary expression is in our expression node type -> Mongo query dict, then use it
                 if (NodeToMongoQueryBuilderFuncDict.Keys.Contains(expression.NodeType))
                 {
                     // The left side of the operator MUST be a mongo field name
-                    string mongoFieldName = GetMongoFieldName(binExp.Left);
+                    string mongoFieldName = GetMongoFieldName(binExp.Left, isLambdaParamResultHack);
 
                     // Build the Mongo expression for the right side of the binary operator
-                    BsonValue rightValue = BuildMongoWhereExpressionAsBsonValue(binExp.Right);
+                    BsonValue rightValue = BuildMongoWhereExpressionAsBsonValue(binExp.Right, isLambdaParamResultHack);
 
                     // Retrieve the function (like Query.EQ) that we'll use to generate our mongo query
-                    var queryFunc = NodeToMongoQueryBuilderFuncDict[expression.NodeType];
+                    var queryOperator = NodeToMongoQueryBuilderFuncDict[expression.NodeType];
 
                     // Generate the query and return it as a new BsonDocument
-                    IMongoQuery query = queryFunc(mongoFieldName, rightValue);
-                    return query;
+                    var queryDoc = new BsonDocument(queryOperator, rightValue);
+                    if (mongoFieldName != null)
+                        queryDoc = new BsonDocument(mongoFieldName, queryDoc);
+
+                    return Query.Create(queryDoc);
                 }
 
                 // Handle && and ||
                 if (expression.NodeType == ExpressionType.AndAlso || expression.NodeType == ExpressionType.OrElse)
                 {
                     // Build the Mongo expression for the left side of the binary operator
-                    var leftQuery = BuildMongoWhereExpressionAsQuery(binExp.Left);
-                    var rightQuery = BuildMongoWhereExpressionAsQuery(binExp.Right);
+                    var leftQuery = BuildMongoWhereExpressionAsQuery(binExp.Left, isLambdaParamResultHack);
+                    var rightQuery = BuildMongoWhereExpressionAsQuery(binExp.Right, isLambdaParamResultHack);
                     return expression.NodeType == ExpressionType.AndAlso ? Query.And(leftQuery, rightQuery) : Query.Or(leftQuery, rightQuery);
                 }
             }
@@ -427,21 +453,24 @@ namespace MongoLinqPlusPlus
             if (expression.NodeType == ExpressionType.Not)
             {
                 var unExp = (UnaryExpression) expression;
-                return Query.Not(BuildMongoWhereExpressionAsQuery(unExp.Operand));
+                return Query.Not(BuildMongoWhereExpressionAsQuery(unExp.Operand, isLambdaParamResultHack));
             }
 
             // Handle .IsMale case in: .Where(c => c.IsMale || c.Age == 15)
             if (expression.NodeType == ExpressionType.MemberAccess)
             {
-                return Query.EQ(GetMongoFieldName(expression), true);
+                return Query.EQ(GetMongoFieldName(expression, isLambdaParamResultHack), true);
             }
 
-            // Handle .Contains in .Where(c => ageArray.Contains(c.Age))
+            // Handle method calls on sub properties
+            // .Where(c => string.IsNullOrEmpty(c.Name))
+            // .Where(c => c.Names.Contains("Bob"))
+            // etc...
             if (expression.NodeType == ExpressionType.Call)
             {
                 var callExp = (MethodCallExpression) expression;
 
-                // Support .Contains within Where()
+                // Support .Where(c => c.ArrayProp.Contains(1)) and .Where(c => new[] { 1, 2, 3}.Contains(c.Id))
                 if (callExp.Method.Name == "Contains")
                 {
                     // Part 1 - Support .Where(c => someLocalEnumerable.Contains(c.Field))
@@ -457,7 +486,7 @@ namespace MongoLinqPlusPlus
                         }
 
                         // Get the field that we're going to search for within the IEnumerable
-                        var mongoFieldName = GetMongoFieldName(callExp.Arguments.Last());
+                        var mongoFieldName = GetMongoFieldName(callExp.Arguments.Last(), isLambdaParamResultHack);
 
                         // Evaluate the IEnumerable
                         var array = (BsonArray) GetBsonValueFromObject(localEnumerable);
@@ -466,15 +495,33 @@ namespace MongoLinqPlusPlus
                     }
 
                     // Par 2 - Support .Where(c => c.SomeArrayProperty.Contains("foo"))
-                    string searchTargetMongoFieldName = GetMongoFieldName(callExp.Arguments[0]);
+                    string searchTargetMongoFieldName = GetMongoFieldName(callExp.Arguments[0], isLambdaParamResultHack);
                     var searchItem = BsonValue.Create(((ConstantExpression) callExp.Arguments[1]).Value);
                     return Query.All(searchTargetMongoFieldName, new[] {searchItem});
                 }
 
+                // Support .Where(c => string.IsNullOrEmpty(c.Name))
                 if (callExp.Method.Name == "IsNullOrEmpty" && callExp.Object == null && callExp.Method.ReflectedType == typeof(string))
                 {
-                    var mongoFieldName = GetMongoFieldName(callExp.Arguments.Single());
+                    var mongoFieldName = GetMongoFieldName(callExp.Arguments.Single(), isLambdaParamResultHack);
                     return Query.Or(Query.EQ(mongoFieldName, BsonNull.Value), Query.EQ(mongoFieldName, new BsonString("")));
+                }
+
+                // Support .Where(c => c.SomeArrayProp.Any()) and .Where(c => c.SomeArrayProp.Any(d => d.SubProp > 5))
+                if (callExp.Method.Name == "Any")
+                {
+                    // Support .Where(c => c.SomeArrayProp.Any())
+                    if (callExp.Arguments.Count() == 1)
+                    {
+                        throw new NotImplementedException("TODO: Implement .Where(c => c.SomeArrayProp.Any())");
+                    }
+
+                    // Support .Where(c => c.SomeArrayProp.Any(d => d.SubProp > 5))
+                    var mongoFieldName = GetMongoFieldName(callExp.Arguments[0], isLambdaParamResultHack);
+                    var predicateExpression = (LambdaExpression) callExp.Arguments[1];
+                    
+                    var query = Query.ElemMatch(mongoFieldName, BuildMongoWhereExpressionAsQuery(predicateExpression.Body, false));
+                    return query;
                 }
 
                 throw new InvalidQueryException("No translation for method " + callExp.Method.Name);
@@ -505,9 +552,10 @@ namespace MongoLinqPlusPlus
 
 
         /// <summary>
-        /// Builds a Mongo expression for use in a $match statement from a given expression
+        /// Builds a Mongo expression for use in a $match statement from a given expression.
+        /// See documentation of BuildMongoWhereExpressionAsQuery for the explanation around isLambdaParamResultHack
         /// </summary>
-        private BsonValue BuildMongoWhereExpressionAsBsonValue(Expression expression)
+        private BsonValue BuildMongoWhereExpressionAsBsonValue(Expression expression, bool isLambdaParamResultHack)
         {
             if (expression is MemberExpression)
             {
@@ -523,7 +571,7 @@ namespace MongoLinqPlusPlus
                 return GetBsonValueFromObject(((ConstantExpression) expression).Value);
             }
 
-            return BuildMongoWhereExpressionAsQuery(expression).ToBsonDocument();
+            return BuildMongoWhereExpressionAsQuery(expression, isLambdaParamResultHack).ToBsonDocument();
         }
 
         /// <summary>
@@ -658,7 +706,7 @@ namespace MongoLinqPlusPlus
                     throw new InvalidQueryException($"{memberExpression.Member.Name} property on DateTime not supported due to lack of Mongo support :(");
                 }
 
-                return new BsonString("$" + GetMongoFieldName(expression));
+                return new BsonString("$" + GetMongoFieldName(expression, true));
             }
 
             // 15
@@ -891,7 +939,7 @@ namespace MongoLinqPlusPlus
                     return;
             }
 
-            AddToPipeline("$match", BuildMongoWhereExpressionAsQuery(lambdaExp.Body).ToBsonDocument());
+            AddToPipeline("$match", BuildMongoWhereExpressionAsQuery(lambdaExp.Body, true).ToBsonDocument());
         }
 
         /// <summary>Adds a new $limit stage to the pipeline for a .Take method call</summary>
@@ -971,7 +1019,7 @@ namespace MongoLinqPlusPlus
         /// <summary>Adds a pipeline stage ($sort) for OrderBy and OrderByDescending</summary>
         public void EmitPipelineStageForOrderBy(LambdaExpression lambdaExp, bool ascending)
         {
-            string field = GetMongoFieldName(lambdaExp.Body);
+            string field = GetMongoFieldName(lambdaExp.Body, true);
             AddToPipeline("$sort", new BsonDocument(field, ascending ? 1 : -1));
         }
 
@@ -979,7 +1027,7 @@ namespace MongoLinqPlusPlus
         public void EmitPipelineStageForThenBy(LambdaExpression lambdaExp, bool ascending)
         {
             var sortDoc = GetLastOccurrenceOfPipelineStage("$sort", false);
-            string field = GetMongoFieldName(lambdaExp.Body);
+            string field = GetMongoFieldName(lambdaExp.Body, true);
             if (sortDoc.Contains(field))
                 throw new InvalidQueryException("ThenBy(Descending) can't resort on previous sort field.");
 
