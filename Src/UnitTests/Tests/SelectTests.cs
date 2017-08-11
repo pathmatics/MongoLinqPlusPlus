@@ -107,6 +107,23 @@ namespace MongoLinqPlusPlus.Tests
         }
 
         [TestMethod]
+        public void Select_NestedObject()
+        {
+            Assert.IsTrue(TestHelpers.AreEqual(new[] { _mongoQuery, _memryQuery }.Select(queryable =>
+                queryable.Select(c => c.CurrentAddress)
+            )));
+
+            Assert.IsTrue(TestHelpers.AreEqual(new[] { _mongoQuery, _memryQuery }.Select(queryable =>
+                queryable.Select(c => c.PreviousAddresses)
+            )));
+
+            Assert.IsTrue(TestHelpers.AreEqual(new[] { _mongoQuery, _memryQuery }.Select(queryable =>
+                queryable.Select(c => c.CurrentAddress)
+                         .Select(c => c.Zip)
+            )));
+        }
+
+        [TestMethod]
         public void Select_Ternary()
         {
             Assert.IsTrue(TestHelpers.AreEqual(new[] { _mongoQuery, _memryQuery }.Select(queryable =>
@@ -265,6 +282,5 @@ namespace MongoLinqPlusPlus.Tests
                 })
             )));
         }
-
     }
 }

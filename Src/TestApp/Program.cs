@@ -53,8 +53,16 @@ namespace MongoLinqPlusPlus.TestApp
 */
 
 
-            var results = _mongoQuery.Where(c => c.PreviousAddresses.Any(d => d.Zip == 90405))
-                .Count();
+/*            var results = _mongoQuery.Take(1)
+                                     .Select(c => c.PreviousAddresses)
+                                     .SelectMany(c => c)
+                                     .Select(c => c.Zip)
+                                     .ToArray();*/
+
+            var results = _mongoQuery.Take(1)
+                .SelectMany(c => c.PreviousAddresses)
+                .Select(c => c.Zip)
+                .ToArray();
 
 
         /*                

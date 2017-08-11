@@ -23,7 +23,6 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
-using System.IO;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
@@ -69,6 +68,11 @@ namespace MongoLinqPlusPlus
         private MongoCollection<TDocType> _collection;
         private readonly bool _allowMongoDiskUse;
         private int _nextUniqueVariableId = 0;
+
+        /// <summary>
+        /// Whether the current working pipeline document has the current working value in the _result_ field or at the root.
+        /// </summary>
+        private bool _currentPipelineDocumentUsesResultHack = false;
 
         /// <summary>
         /// Custom converters to use when utilizing Json.net for deserialization 
@@ -147,10 +151,7 @@ namespace MongoLinqPlusPlus
         /// <summary>Log a string to the logging delegate</summary>
         private void LogLine(string s)
         {
-            if (_loggingDelegate == null)
-                return;
-
-            _loggingDelegate(s + Environment.NewLine);
+            _loggingDelegate?.Invoke(s + Environment.NewLine);
         }
 
         /// <summary>Log a string with format parameters to the logging delegate</summary>
@@ -238,7 +239,10 @@ namespace MongoLinqPlusPlus
                     prefix = (fieldName.StartsWith("$") ? fieldName.Substring(1) : fieldName) + '.';
                 }
 
-                return prefix + GetMongoFieldName(memberExp.Member);
+                var finalFieldName = prefix + GetMongoFieldName(memberExp.Member);
+                if (_currentPipelineDocumentUsesResultHack)
+                    finalFieldName = PIPELINE_DOCUMENT_RESULT_NAME + "." + finalFieldName;
+                return finalFieldName;
             }
 
             if (expression.NodeType == ExpressionType.Parameter)
@@ -280,6 +284,7 @@ namespace MongoLinqPlusPlus
                 // Perform the grouping on the _result_ document (which we'll assume we have)
                 var pipelineOperation = new BsonDocument { new BsonElement("_id", "$" + PIPELINE_DOCUMENT_RESULT_NAME) };
                 AddToPipeline("$group", pipelineOperation).GroupNeedsCleanup = true;
+                _currentPipelineDocumentUsesResultHack = false;
                 return;
             }
 
@@ -300,6 +305,7 @@ namespace MongoLinqPlusPlus
                 // Perform the grouping on the multi-part key
                 var pipelineOperation = new BsonDocument {new BsonElement("_id", new BsonDocument(fieldNames))};
                 AddToPipeline("$group", pipelineOperation).GroupNeedsCleanup = true;
+                _currentPipelineDocumentUsesResultHack = false;
                 return;
             }                     
 
@@ -308,6 +314,7 @@ namespace MongoLinqPlusPlus
 
             // Perform the grouping
             AddToPipeline("$group", new BsonDocument {new BsonElement("_id", bsonValueExpression)}).GroupNeedsCleanup = true;
+            _currentPipelineDocumentUsesResultHack = false;
             return;
         }
 
@@ -859,10 +866,43 @@ namespace MongoLinqPlusPlus
             else
             {
                 var stage = _pipeline.AsEnumerable().LastOrDefault(c => c.PipelineOperator == pipelineOperator);
-                return stage != null ? (BsonDocument) stage.Operation : null;
+                return (BsonDocument) stage?.Operation;
             }
         }
 
+        public void EmitPipelineStageForSelectMany(LambdaExpression lambdaExp)
+        {
+            // Support .SelectMany(c => c.SomeArrayProperty)
+            if (lambdaExp.Body.NodeType == ExpressionType.MemberAccess)
+            {
+                var fieldName = GetMongoFieldName(lambdaExp.Body, true);
+                AddToPipeline("$unwind", "$" + fieldName);
+
+                // Each document now contains the original fields and a single array element in the $fieldName field
+                // So we need to run another stage to project out just the fields we're interested in - in this case that's just $fieldName
+
+                BsonValue expressionValue = BuildMongoSelectExpression(lambdaExp.Body);
+                AddToPipeline("$project", new BsonDocument {
+                    new BsonElement(PIPELINE_DOCUMENT_RESULT_NAME, expressionValue),
+                    new BsonElement("_id", new BsonInt32(0)),
+                });
+                _currentPipelineDocumentUsesResultHack = true;
+
+                return;
+            }
+
+            // Support .SelectMany(c => c)
+            if (lambdaExp.Body.NodeType == ExpressionType.Parameter)
+            {
+                var fieldName = GetMongoFieldName(lambdaExp.Body, true);
+                AddToPipeline("$unwind", "$" + fieldName);
+                _currentPipelineDocumentUsesResultHack = true;
+                return;
+            }
+
+            throw new InvalidQueryException("Unsupported Expression inside SelectMany");
+        }
+        
         /// <summary>Adds a new $project stage to the pipeline for a .Select method call</summary>
         public void EmitPipelineStageForSelect(LambdaExpression lambdaExp)
         {
@@ -873,7 +913,7 @@ namespace MongoLinqPlusPlus
             //    Non-new expression: Select(c => (c.Age + 10) > 15)
 
             // Handle the hard case: Select(c => new { c.Age, Name = c.FirstName,  })
-            if (lambdaExp.Body is NewExpression)
+            if (lambdaExp.Body.NodeType == ExpressionType.New)
             {
                 var newExp = (NewExpression) lambdaExp.Body;
                 var newExpProperties = newExp.Type.GetProperties();
@@ -896,7 +936,7 @@ namespace MongoLinqPlusPlus
                 return;
             }
 
-            // Handle type typed hard case: Select(c => new Foo { Bar = c.FirstName })
+            // Handle typed hard case: Select(c => new Foo { Bar = c.FirstName })
             if (lambdaExp.Body is MemberInitExpression)
             {
                 var memberInitExp = (MemberInitExpression) lambdaExp.Body;
@@ -924,6 +964,23 @@ namespace MongoLinqPlusPlus
                 new BsonElement(PIPELINE_DOCUMENT_RESULT_NAME, expressionValue),
                 new BsonElement("_id", new BsonInt32(0)),
             });
+            _currentPipelineDocumentUsesResultHack = true;
+
+/*
+            // This 'simple' case might also be a nested object
+            // .Select(c => c.Address)
+            // In this case, we don't want our working document to look like { _result_ : {State: CA, Zip: 90405, etc}}
+            // We want to promote the nested address doc to be the root so we just have {State: CA, Zip: 90405, etc}
+            // This is supported via the $replaceRoot pipeline stage
+
+            // Don't promote (or inspect) types that are Enumerables
+            var type = lambdaExp.Body.Type;
+            if (!typeof(Enumerable).IsAssignableFrom(type)
+                && (type.GetFields(BindingFlags.SetProperty | BindingFlags.GetProperty | BindingFlags.Instance | BindingFlags.Public).Length > 0
+                    || type.GetProperties(BindingFlags.SetProperty | BindingFlags.GetProperty | BindingFlags.Instance | BindingFlags.Public).Length > 0))
+            {
+                AddToPipeline("$replaceRoot", new BsonDocument("newRoot", "$" + PIPELINE_DOCUMENT_RESULT_NAME));
+            }*/
         }
 
         /// <summary>Adds a new $match stage to the pipeline for a .Where method call</summary>
@@ -976,6 +1033,8 @@ namespace MongoLinqPlusPlus
                 {"_id", new BsonDocument()},
                 {PIPELINE_DOCUMENT_RESULT_NAME, new BsonDocument("$sum", 1)}
             });
+            _currentPipelineDocumentUsesResultHack = true;
+
         }
 
         /// <summary>Adds a new $project stage to the pipeline for a .Any method call</summary>
@@ -1017,6 +1076,8 @@ namespace MongoLinqPlusPlus
                 {"_id", new BsonDocument()},
                 {PIPELINE_DOCUMENT_RESULT_NAME, new BsonDocument(mongoAggregationName, bsonValue)}
             });
+            _currentPipelineDocumentUsesResultHack = true;
+
         }
 
         /// <summary>Adds a pipeline stage ($sort) for OrderBy and OrderByDescending</summary>
@@ -1084,6 +1145,12 @@ namespace MongoLinqPlusPlus
                 case "Select":
                 {
                     EmitPipelineStageForSelect(GetLambda(expression));
+                    _lastPipelineOperation = PipelineResultType.Enumerable;
+                    return;
+                }
+                case "SelectMany":
+                {
+                    EmitPipelineStageForSelectMany(GetLambda(expression));
                     _lastPipelineOperation = PipelineResultType.Enumerable;
                     return;
                 }
