@@ -32,24 +32,25 @@ namespace MongoLinqPlusPlus.Tests
     /// </summary>
     public partial class TestRepository
     {
-        public MongoDatabase Database
+        public IMongoCollection<TestDocument> Collection
         {
             get
             {
                 MongoDefaults.MaxConnectionIdleTime = TimeSpan.FromMinutes(1);
                 var client = new MongoClient("mongodb://localhost");
-                return client.GetServer().GetDatabase("mongoLinqPlusPlus");
+                return client.GetDatabase("mongoLinqPlusPlus").GetCollection<TestDocument>("test");
             }
         }
 
-        public MongoCollection<TestDocument> Collection => Database.GetCollection<TestDocument>("test");
+        public void DropCollection() => Collection.Database.DropCollection("test");
 
+        
         /// <summary>Initialize our Mongo database with fresh data and get an IQueryable to it</summary>
         public static IQueryable<TestDocument> GetDefaultDataQueryablePlusPlus(Action<string> loggingDelegate = null, bool allowMongoDiskUse = false)
         {
             var repo = new TestRepository();
-            repo.Collection.Drop();
-            repo.Collection.InsertBatch(TestDocuments);
+            repo.DropCollection();
+            repo.Collection.InsertMany(TestDocuments);
             return repo.Collection.QueryablePlusPlus(allowMongoDiskUse, loggingDelegate);
         }
 
@@ -69,7 +70,7 @@ namespace MongoLinqPlusPlus.Tests
                                                    bool allowMongoDiskUse = false)
         {
             var repo = new TestRepository();
-            repo.Collection.Drop();
+            repo.DropCollection();
             memryQueryable = repo.LoadBulkTestData(numRows, loggingDelegate);
             mongoQueryable = new TestRepository().Collection.QueryablePlusPlus(allowMongoDiskUse, loggingDelegate);
             return repo;
@@ -92,7 +93,7 @@ namespace MongoLinqPlusPlus.Tests
                                        .ToArray();
 
             foreach (var partition in memoryData.Partition(1000))
-                this.Collection.InsertBatch(partition);
+                this.Collection.InsertMany(partition);
 
             if (loggingDelegate != null)
                 loggingDelegate("Done bulk loading Mongo\r\n");

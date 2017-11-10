@@ -32,24 +32,24 @@ namespace MongoLinqPlusPlus.Tests
     /// </summary>
     public class ObjectIdDocumentRepository
     {
-        public static MongoCollection<ObjectIdDocument> Collection { get; private set; }
+        public static IMongoCollection<ObjectIdDocument> Collection { get; private set; }
 
         static ObjectIdDocumentRepository()
         {
             MongoDefaults.MaxConnectionIdleTime = TimeSpan.FromMinutes(1);
             var client = new MongoClient("mongodb://localhost");
-            var db = client.GetServer().GetDatabase("mongoLinqPlusPlus");
+            var db = client.GetDatabase("mongoLinqPlusPlus");
             Collection = db.GetCollection<ObjectIdDocument>("objectIdDocs");
 
             // Drop any existing data and insert a new batch of documents.
-            Collection.Drop();
-            Collection.InsertBatch(Enumerable.Range(0, 100).Select(c => new ObjectIdDocument {Value = c}));
+            db.DropCollection("objectIdDocs");
+            Collection.InsertMany(Enumerable.Range(0, 100).Select(c => new ObjectIdDocument {Value = c}));
 
             // Now pull the documents out and put them in our TestDocuments property.  It's important that
             // we wrote them into Mongo first and them extracted them because the ObjectId _id field will
             // get set automatically by Mongo (as opposed to explicitly by us).  So now we know that our
             // in memory set of documents matches our database backed set of documents exactly.
-            TestDocuments = Collection.FindAll().ToArray();
+            TestDocuments = Collection.Find(FilterDefinition<ObjectIdDocument>.Empty).ToEnumerable().ToArray();
         }
 
         public static IEnumerable<ObjectIdDocument> TestDocuments { get; private set; }

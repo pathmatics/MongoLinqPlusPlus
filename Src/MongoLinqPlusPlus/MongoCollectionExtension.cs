@@ -38,7 +38,7 @@ namespace MongoLinqPlusPlus
         /// <typeparam name="TMongoDocument">The document type stored in the collection</typeparam>
         /// <param name="collection">A Mongo collection to query</param>
         /// <returns>An IQueryable for running Linq queries against</returns>
-        public static IQueryable<TMongoDocument> QueryablePlusPlus<TMongoDocument>(this MongoCollection<TMongoDocument> collection)
+        public static IQueryable<TMongoDocument> QueryablePlusPlus<TMongoDocument>(this IMongoCollection<TMongoDocument> collection)
         {
             return collection.QueryablePlusPlus(false, null);
         }
@@ -53,7 +53,7 @@ namespace MongoLinqPlusPlus
         /// a risk that the query is too big to be handled in memory.
         /// </param>
         /// <returns>An IQueryable for running Linq queries against</returns>
-        public static IQueryable<TMongoDocument> QueryablePlusPlus<TMongoDocument>(this MongoCollection<TMongoDocument> collection, bool allowMongoDiskUse)
+        public static IQueryable<TMongoDocument> QueryablePlusPlus<TMongoDocument>(this IMongoCollection<TMongoDocument> collection, bool allowMongoDiskUse)
         {
             return collection.QueryablePlusPlus(allowMongoDiskUse, null);
         }
@@ -65,7 +65,7 @@ namespace MongoLinqPlusPlus
         /// <param name="collection">A Mongo collection to query</param>
         /// <param name="loggingDelegate">Callback function for debug logging</param>
         /// <returns>An IQueryable for running Linq queries against</returns>
-        public static IQueryable<TMongoDocument> QueryablePlusPlus<TMongoDocument>(this MongoCollection<TMongoDocument> collection, Action<string> loggingDelegate)
+        public static IQueryable<TMongoDocument> QueryablePlusPlus<TMongoDocument>(this IMongoCollection<TMongoDocument> collection, Action<string> loggingDelegate)
         {
             return collection.QueryablePlusPlus(false, loggingDelegate);
         }
@@ -81,7 +81,7 @@ namespace MongoLinqPlusPlus
         /// </param>
         /// <param name="loggingDelegate">Callback function for debug logging</param>
         /// <returns>An IQueryable for running Linq queries against</returns>
-        public static IQueryable<TMongoDocument> QueryablePlusPlus<TMongoDocument>(this MongoCollection<TMongoDocument> collection, bool allowMongoDiskUse, Action<string> loggingDelegate)
+        public static IQueryable<TMongoDocument> QueryablePlusPlus<TMongoDocument>(this IMongoCollection<TMongoDocument> collection, bool allowMongoDiskUse, Action<string> loggingDelegate)
         {
             var queryable = new MongoAggregationQueryable<TMongoDocument>();
             queryable.Expression = Expression.Constant(queryable);

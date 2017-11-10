@@ -65,7 +65,7 @@ namespace MongoLinqPlusPlus
 
         private List<PipelineStage> _pipeline = new List<PipelineStage>();
         private PipelineResultType _lastPipelineOperation = PipelineResultType.Enumerable;
-        private MongoCollection<TDocType> _collection;
+        private IMongoCollection<TDocType> _collection;
         private readonly bool _allowMongoDiskUse;
         private int _nextUniqueVariableId = 0;
 
@@ -141,7 +141,7 @@ namespace MongoLinqPlusPlus
         };
 
         /// <summary>Constructs a new MongoPipeline from a typed MongoCollection</summary>
-        public MongoPipeline(MongoCollection<TDocType> collection, bool allowMongoDiskUse, Action<string> loggingDelegate)
+        public MongoPipeline(IMongoCollection<TDocType> collection, bool allowMongoDiskUse, Action<string> loggingDelegate)
         {
             _loggingDelegate = loggingDelegate;
             _collection = collection;
@@ -1225,7 +1225,7 @@ namespace MongoLinqPlusPlus
                     && methodExpression.Arguments[0] is ConstantExpression)
                 {
                     // Todo: Any way to avoid the boxing?
-                    return (TResult) (object) (int) _collection.Count();
+                    return (TResult) (object) (int) _collection.Count(Builders<TDocType>.Filter.Empty);
                 }
 
                 EmitPipelineStageForMethod(methodExpression);
@@ -1245,16 +1245,14 @@ namespace MongoLinqPlusPlus
             LogLine(string.Join("\r\n", pipelineStages.Select(c => c.ToString())));
             LogLine();
 
-            var commandResult = _collection.Aggregate(new AggregateArgs {
-                OutputMode = AggregateOutputMode.Cursor,
-                AllowDiskUse = _allowMongoDiskUse,
-                Pipeline = pipelineStages
-            });
+
+            var pipelineDefinition = PipelineDefinition<TDocType, BsonDocument>.Create(pipelineStages);
+            var commandResult = _collection.Aggregate(pipelineDefinition, new AggregateOptions { AllowDiskUse = _allowMongoDiskUse, UseCursor = true});
 
             // Handle aggregated result types
             if ((_lastPipelineOperation & PipelineResultType.Aggregation) != 0)
             {
-                var results = commandResult.Take(2).ToArray();
+                var results = commandResult.ToEnumerable().Take(2).ToArray();
 
                 if (results.Length == 0)
                     return default(TResult);
@@ -1308,7 +1306,7 @@ namespace MongoLinqPlusPlus
 
             int numResults = 0;
 
-            foreach (var resultDoc in commandResult)
+            foreach (var resultDoc in commandResult.ToEnumerable())
             {
                 // See if we have an array of simple result types
                 // [{ _result_: 5}, { _result_: 2}, ...]

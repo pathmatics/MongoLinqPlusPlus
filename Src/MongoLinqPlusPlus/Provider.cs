@@ -34,7 +34,7 @@ namespace MongoLinqPlusPlus
     internal class MongoAggregationQueryProvider<TDocument> : IQueryProvider
     {
         /// <summary>The Mongo collection to query against</summary>
-        private MongoCollection<TDocument> _collection;
+        private IMongoCollection<TDocument> _collection;
 
         public object Queryable { get; set; }
         public Action<string> LoggingDelegate { get; set; }
@@ -56,7 +56,7 @@ namespace MongoLinqPlusPlus
         /// instead, use the QueryablePlusPlus extension a Mongo Collection
         /// </summary>
         /// <param name="collection"></param>
-        public MongoAggregationQueryProvider(MongoCollection<TDocument> collection)
+        public MongoAggregationQueryProvider(IMongoCollection<TDocument> collection)
         {
             _collection = collection;
         }
