@@ -34,6 +34,15 @@ namespace MongoLinqPlusPlus.Tests
         [TestMethod]
         public void StringMethods()
         {
+
+            Assert.IsTrue(TestHelpers.AreEqual(new[] { _mongoQuery, _memryQuery }.Select(queryable =>
+                queryable.Where(c => c.FirstName != null)
+                         .Select(c => new {
+                             StartsWith = c.FirstName.StartsWith("Tom"),
+                         })
+                         .Where(c => c.StartsWith)
+            )));
+
             Assert.IsTrue(TestHelpers.AreEqual(new[] { _mongoQuery, _memryQuery }.Select(queryable =>
                 queryable.Where(c => c.FirstName != null)
                          .Select(c => new {

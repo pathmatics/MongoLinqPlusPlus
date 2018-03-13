@@ -522,9 +522,7 @@ namespace MongoLinqPlusPlus
                 {
                     // Support .Where(c => c.SomeArrayProp.Any())
                     if (callExp.Arguments.Count() == 1)
-                    {
                         throw new NotImplementedException("TODO: Implement .Where(c => c.SomeArrayProp.Any())");
-                    }
 
                     // Support .Where(c => c.SomeArrayProp.Any(d => d.SubProp > 5))
                     var mongoFieldName = GetMongoFieldName(callExp.Arguments[0], isLambdaParamResultHack);
@@ -534,7 +532,7 @@ namespace MongoLinqPlusPlus
                     return query;
                 }
 
-                throw new InvalidQueryException("No translation for method " + callExp.Method.Name);
+                throw new InvalidQueryException($"No translation for method {callExp.Method.Name}.  Mongo doesn't support very many expressions in a top level .Where ($match stage).  Consider doing .Select().Where() for better support.");
             }
 
             if (expression is ConstantExpression)
@@ -805,14 +803,27 @@ namespace MongoLinqPlusPlus
                     return new BsonDocument("$eq", new BsonArray(new[] {new BsonString(""), ifNullDoc.AsBsonValue}));
                 }
 
-                if (callExp.Type == typeof(string))
+                if (callExp.Object.Type == typeof(string))
                 {
+                    if (callExp.Method.Name == "StartsWith" && callExp.Arguments.Count() == 1)
+                    {
+                        var constantExpression = callExp.Arguments.Single() as ConstantExpression;
+                        if (constantExpression == null)
+                            throw new InvalidQueryException($".StartsWith(...) only supports a single, constant, String argument");
+
+                        // ^-- We could relax that requirement if we didn't implement this using $substr.
+                        // By using $substr we need to have the length of our argument to StartsWith.
+
+                        string searchString = (string) constantExpression.Value;
+                        var substringDoc = new BsonDocument("$substr", new BsonArray(new[] {BuildMongoSelectExpression(callExp.Object), 0, searchString.Length}));
+                        return new BsonDocument("$eq", new BsonArray(new[] { substringDoc, constantExpression.Value }));
+                    }
                     if (callExp.Method.Name == "ToUpper")
                         return new BsonDocument("$toUpper", BuildMongoSelectExpression(callExp.Object));
                     if (callExp.Method.Name == "ToLower")
                         return new BsonDocument("$toLower", BuildMongoSelectExpression(callExp.Object));
 
-                    throw new InvalidQueryException($"Can't translate method {callExp.Type.Name}.{callExp.Method.Name} to Mongo expression");
+                    throw new InvalidQueryException($"Can't translate method {callExp.Object.Type.Name}.{callExp.Method.Name} to Mongo expression");
                 }
 
                 // c.Contains (where c is an Enumerable)
