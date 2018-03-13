@@ -803,7 +803,7 @@ namespace MongoLinqPlusPlus
                     return new BsonDocument("$eq", new BsonArray(new[] {new BsonString(""), ifNullDoc.AsBsonValue}));
                 }
 
-                if (callExp.Object.Type == typeof(string))
+                if (callExp.Object?.Type == typeof(string))
                 {
                     if (callExp.Method.Name == "StartsWith" && callExp.Arguments.Count() == 1)
                     {
