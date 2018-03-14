@@ -75,6 +75,39 @@ namespace MongoLinqPlusPlus.Tests
         [TestMethod]
         public void SelectMany_SubSelect()
         {
+            Assert.IsTrue(TestHelpers.AreEqual(new[] { _mongoQuery, _memryQuery }.Select(queryable =>
+                queryable.SelectMany(c => c.PreviousAddresses)
+                         .Select(c => c.Zip)
+            )));
+
+            // Try the State property which has a field name mapping
+            Assert.IsTrue(TestHelpers.AreEqual(new[] { _mongoQuery, _memryQuery }.Select(queryable =>
+                queryable.SelectMany(c => c.PreviousAddresses)
+                         .Select(c => c.State)
+            )));
+
+            // Try the State property which has a field name mapping
+            Assert.IsTrue(TestHelpers.AreEqual(new[] { _mongoQuery, _memryQuery }.Select(queryable =>
+                queryable.SelectMany(c => c.PreviousAddresses)
+                         .Select(c => new {
+                               c.State,
+                               c.Zip
+                         })
+            )));
+
+            // Make sure we can do something useful with the result
+            Assert.IsTrue(TestHelpers.AreEqual(new[] { _mongoQuery, _memryQuery }.Select(queryable =>
+                queryable.SelectMany(c => c.PreviousAddresses)
+                         .Select(c => new {
+                             c.State,
+                             c.Zip
+                         })
+                         .GroupBy(c => c.Zip)
+                         .Select(c => new {
+                             State = c.Key,
+                             Count = c.Count()
+                         })
+            )));
         }
     }
 }

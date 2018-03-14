@@ -944,6 +944,8 @@ namespace MongoLinqPlusPlus
 
                 // Perform the projection on multiple fields
                 AddToPipeline("$project", new BsonDocument(fieldNames));
+
+                _currentPipelineDocumentUsesResultHack = false;
                 return;
             }
 
@@ -966,6 +968,8 @@ namespace MongoLinqPlusPlus
 
                 // Perform the projection on multiple fields
                 AddToPipeline("$project", new BsonDocument(fieldNames));
+
+                _currentPipelineDocumentUsesResultHack = false;
                 return;
             }
 
