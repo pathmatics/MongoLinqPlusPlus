@@ -34,7 +34,7 @@ namespace MongoLinqPlusPlus
         /// <summary>Returns true if this type is Anonymous, otherwise false.</summary>
         public static bool IsAnonymousType(this Type type)
         {
-            bool hasCompilerGeneratedAttribute = type.GetCustomAttributes(typeof(CompilerGeneratedAttribute), false).Count() > 0;
+            bool hasCompilerGeneratedAttribute = type.GetCustomAttributes(typeof(CompilerGeneratedAttribute), false).Any();
             bool nameContainsAnonymousType = type.FullName.Contains("AnonymousType");
             bool isAnonymousType = hasCompilerGeneratedAttribute && nameContainsAnonymousType;
 

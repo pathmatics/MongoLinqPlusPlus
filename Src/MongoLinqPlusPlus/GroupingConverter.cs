@@ -50,11 +50,8 @@ namespace MongoLinqPlusPlus
             return objectType.FullName.StartsWith("System.Linq.IGrouping`2");
         }
 
-        public override object Create(Type objectType)
-        {
-            var retval = objectType.GetConstructor(new Type[0]).Invoke(new object[0]);
-            return retval;
-        }
+        /// <summary>Required override</summary>
+        public override object Create(Type objectType)  => throw new NotImplementedException("Looks like we don't actually need this...");
 
         public override object ReadJson(JsonReader reader, Type objectType, object existingValue, JsonSerializer serializer)
         {

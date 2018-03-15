@@ -76,6 +76,7 @@ namespace MongoLinqPlusPlus.Tests
         [TestMethod]
         public void Select_Expression()
         {
+
             Assert.IsTrue(TestHelpers.AreEqual(new[] { _mongoQuery, _memryQuery }.Select(queryable =>
                 queryable.Select(c => c.IsMale)
             )));
@@ -93,6 +94,16 @@ namespace MongoLinqPlusPlus.Tests
             )));
 
             Assert.IsTrue(TestHelpers.AreEqual(new[] { _mongoQuery, _memryQuery }.Select(queryable =>
+                queryable.Select(c => c.PreviousAddresses)
+            )));
+
+            Assert.IsTrue(TestHelpers.AreEqual(new[] { _mongoQuery, _memryQuery }.Select(queryable =>
+                queryable.Select(c => new {
+                    c.PreviousAddresses
+                })
+            )));
+
+            Assert.IsTrue(TestHelpers.AreEqual(new[] { _mongoQuery, _memryQuery }.Select(queryable =>
                 queryable.Select(c => new
                 {
                     c.IsMale,
@@ -101,7 +112,7 @@ namespace MongoLinqPlusPlus.Tests
                     NumPetsAgain = c.NumPets * 15 - 2,
                     c.CurrentAddress.State,
                     IsInCali = c.CurrentAddress.State == States.CA,
-                    c.SSN
+                    c.SSN,
                 })
             )));
         }

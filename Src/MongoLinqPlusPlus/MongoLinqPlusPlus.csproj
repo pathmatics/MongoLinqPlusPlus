@@ -58,7 +58,7 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="BsonSerializerConverter.cs" />
+    <Compile Include="MongoBsonConverter.cs" />
     <Compile Include="GroupingDocument.cs" />
     <Compile Include="PipelineDocument.cs" />
     <Compile Include="ExpressionSimplifier.cs" />

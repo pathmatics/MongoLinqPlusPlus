@@ -79,9 +79,7 @@ namespace MongoLinqPlusPlus
         /// </summary>
         private JsonConverter[] _customConverters = {
             new GroupingConverter(typeof(TDocType)),
-            new BsonSerializerConverter<Guid>(),
-            new BsonSerializerConverter<ObjectId>(),
-            new BsonSerializerConverter<DateTime>()
+            new MongoBsonConverter(),
         };
 
         private readonly Dictionary<ExpressionType, string> NodeToMongoQueryBuilderFuncDict = new Dictionary<ExpressionType, string> {

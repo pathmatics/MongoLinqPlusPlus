@@ -59,9 +59,11 @@ namespace MongoLinqPlusPlus.TestApp
                                      .Select(c => c.Zip)
                                      .ToArray();*/
 
-            var results = _mongoQuery.Where(c => c.FirstName == "Tom").Take(1).ToArray();
-            results = _mongoQuery.Where(c => c.FirstName.StartsWith("Tom")).Take(1).ToArray();
-
+            var results = _mongoQuery.Take(1)
+                .Select(c => new {
+                    c.Birthday
+                })                                     //.Select(c => c.PreviousAddresses)
+                                     .ToArray();
 
         /*                
 
