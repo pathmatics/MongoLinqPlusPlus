@@ -75,6 +75,12 @@ namespace MongoLinqPlusPlus
         private bool _currentPipelineDocumentUsesResultHack = false;
 
         /// <summary>
+        /// Dictionary to help resolve lambda parameter mongo field names in nested Select/SelectMany statements.
+        /// .SelectMany(c => c.SubArray.Select(d => new { c.SomeRootElement, d.SomeChildElement }))
+        /// </summary>
+        private Dictionary<string, string> _subSelectParameterPrefixes = new Dictionary<string, string>();
+
+        /// <summary>
         /// Custom converters to use when utilizing Json.net for deserialization 
         /// </summary>
         private JsonConverter[] _customConverters = {
@@ -228,6 +234,11 @@ namespace MongoLinqPlusPlus
                 if (memberExp.Expression is MemberExpression)
                 {
                     prefix = GetMongoFieldName(memberExp.Expression, isNamedProperty) + '.';
+                }
+                else if (memberExp.Expression is ParameterExpression)
+                {
+                    var paramExpression = (ParameterExpression) memberExp.Expression;
+                    _subSelectParameterPrefixes.TryGetValue(paramExpression.Name, out prefix);
                 }
                 else if (memberExp.Expression is MethodCallExpression)
                 {
@@ -907,6 +918,38 @@ namespace MongoLinqPlusPlus
                 AddToPipeline("$unwind", "$" + fieldName);
                 _currentPipelineDocumentUsesResultHack = true;
                 return;
+            }
+
+            // Support .SelectMany(c => c.SubArray.Select(d => ...))
+            if (lambdaExp.Body.NodeType == ExpressionType.Call)
+            {
+                var callExpression = (MethodCallExpression) lambdaExp.Body;
+                if (callExpression.Method.Name == "Select" && callExpression.Arguments.Count == 2)
+                {
+                    // .SelectMany(c => c.SubArray.Select(d => ...))
+
+                    // Get the name for the "SubArray" field
+                    var fieldExpression = callExpression.Arguments[0];
+                    var fieldName = GetMongoFieldName(fieldExpression, true);
+
+                    // Unwind that field
+                    AddToPipeline("$unwind", "$" + fieldName);
+
+                    // Each document now has all the original fields as well as a "SubArray" field with a
+                    // singular value of the sub-array.  (See https://docs.mongodb.com/manual/reference/operator/aggregation/unwind/)
+
+                    // Now we need to project the result document type.
+                    var selectExpression = (LambdaExpression) callExpression.Arguments[1];
+
+                    string subSelectLambdaParamName = selectExpression.Parameters.Single().Name;
+                    _subSelectParameterPrefixes.Add(subSelectLambdaParamName, fieldName + ".");
+
+                    EmitPipelineStageForSelect(selectExpression);
+
+                    _subSelectParameterPrefixes.Remove(subSelectLambdaParamName);
+
+                    return;
+                }
             }
 
             throw new InvalidQueryException("Unsupported Expression inside SelectMany");

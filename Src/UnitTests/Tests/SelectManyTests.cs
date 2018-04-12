@@ -73,7 +73,7 @@ namespace MongoLinqPlusPlus.Tests
         }
 
         [TestMethod]
-        public void SelectMany_SubSelect()
+        public void SelectMany_ThenSelect()
         {
             Assert.IsTrue(TestHelpers.AreEqual(new[] { _mongoQuery, _memryQuery }.Select(queryable =>
                 queryable.SelectMany(c => c.PreviousAddresses)
@@ -107,6 +107,27 @@ namespace MongoLinqPlusPlus.Tests
                              State = c.Key,
                              Count = c.Count()
                          })
+            )));
+        }
+
+        [TestMethod]
+        public void SelectMany_SubSelect()
+        {
+            Assert.IsTrue(TestHelpers.AreEqual(new[] { _mongoQuery, _memryQuery }.Select(queryable =>
+                queryable.SelectMany(c => c.PreviousAddresses.Select(d => new {
+                             d.Zip
+                         }))
+            )));
+
+            Assert.IsTrue(TestHelpers.AreEqual(new[] { _mongoQuery, _memryQuery }.Select(queryable =>
+                queryable.SelectMany(c => c.PreviousAddresses.Select(d => d.Zip))
+            )));
+
+            Assert.IsTrue(TestHelpers.AreEqual(new[] { _mongoQuery, _memryQuery }.Select(queryable =>
+                queryable.SelectMany(c => c.PreviousAddresses.Select(d => new {
+                    c.FirstName,
+                    d.Zip
+                }))
             )));
         }
     }

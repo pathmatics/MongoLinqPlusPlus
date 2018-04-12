@@ -59,10 +59,9 @@ namespace MongoLinqPlusPlus.TestApp
                                      .Select(c => c.Zip)
                                      .ToArray();*/
 
-            var results = _mongoQuery.Take(1)
-                .Select(c => new {
-                    c.Birthday
-                })                                     //.Select(c => c.PreviousAddresses)
+            var results = _mongoQuery.SelectMany(c => c.PreviousAddresses.Select(d => new {
+                                          d.Zip
+                                     }))
                                      .ToArray();
 
         /*                
