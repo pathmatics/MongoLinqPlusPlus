@@ -88,24 +88,6 @@ namespace MongoLinqPlusPlus
             new MongoBsonConverter(),
         };
 
-        private readonly Dictionary<ExpressionType, string> NodeToMongoQueryBuilderFuncDict = new Dictionary<ExpressionType, string> {
-            {ExpressionType.Equal, "$eq"},
-            {ExpressionType.NotEqual, "$ne"},
-            {ExpressionType.GreaterThan, "$gt"},
-            {ExpressionType.GreaterThanOrEqual, "$gte"},
-            {ExpressionType.LessThan, "$lt"},
-            {ExpressionType.LessThanOrEqual, "$lte"},
-        };
-
-        private readonly Dictionary<ExpressionType, Func<string, int, IMongoQuery>> NodeToMongoQueryBuilderArrayLengthFuncDict =
-            new Dictionary<ExpressionType, Func<string, int, IMongoQuery>> {
-            {ExpressionType.Equal, Query.Size},
-            {ExpressionType.GreaterThan, Query.SizeGreaterThan},
-            {ExpressionType.GreaterThanOrEqual, Query.SizeGreaterThanOrEqual},
-            {ExpressionType.LessThan, Query.SizeLessThan},
-            {ExpressionType.LessThanOrEqual, Query.SizeLessThanOrEqual},
-        };
-
         private readonly Dictionary<ExpressionType, string> NodeToMongoBinaryOperatorDict = new Dictionary<ExpressionType, string> {
             {ExpressionType.Equal, "$eq"},
             {ExpressionType.NotEqual, "$ne"},
@@ -156,12 +138,6 @@ namespace MongoLinqPlusPlus
         private void LogLine(string s)
         {
             _loggingDelegate?.Invoke(s + Environment.NewLine);
-        }
-
-        /// <summary>Log a string with format parameters to the logging delegate</summary>
-        private void LogLine(string s, params object[] parameters)
-        {
-            LogLine(string.Format(s + Environment.NewLine, parameters));
         }
 
         /// <summary>Log a newline to the logging delegate</summary>
@@ -223,10 +199,9 @@ namespace MongoLinqPlusPlus
                 return GetMongoFieldName(((UnaryExpression) expression).Operand, isNamedProperty);
             }
 
-            if (expression is MemberExpression)
+            if (expression is MemberExpression memberExp)
             {
                 isNamedProperty = true;
-                var memberExp = (MemberExpression) expression;
 
                 // We might have a nested MemberExpression like c.Key.Name
                 // So recurse to build the whole mongo field name
@@ -256,6 +231,13 @@ namespace MongoLinqPlusPlus
 
             if (expression.NodeType == ExpressionType.Parameter)
             {
+                if (_subSelectParameterPrefixes.TryGetValue(((ParameterExpression) expression).Name, out string prefix))
+                {
+                    // The prefix will be something like "$foo."
+                    // Remove the trailing . in this case since we're not going to make a subsequent member access.
+                    return prefix.Substring(0, prefix.Length - 1);
+                }
+
                 return isNamedProperty ? PIPELINE_DOCUMENT_RESULT_NAME : null;
             }
 
@@ -298,9 +280,8 @@ namespace MongoLinqPlusPlus
             }
 
             // Handle an anonymous type: GroupBy(c => new { c.Age, Name = c.FirstName })
-            if (lambdaExp.Body is NewExpression)
+            if (lambdaExp.Body is NewExpression newExp)
             {
-                var newExp = (NewExpression) lambdaExp.Body;
                 var newExpProperties = newExp.Type.GetProperties();
 
                 // Get the mongo field names for each property in the new {...}
@@ -324,7 +305,6 @@ namespace MongoLinqPlusPlus
             // Perform the grouping
             AddToPipeline("$group", new BsonDocument {new BsonElement("_id", bsonValueExpression)}).GroupNeedsCleanup = true;
             _currentPipelineDocumentUsesResultHack = false;
-            return;
         }
 
         /// <summary>
@@ -335,28 +315,25 @@ namespace MongoLinqPlusPlus
             if (obj is int || obj is Enum)
                 return new BsonInt32((int) obj);
 
-            if (obj is long)
-                return new BsonInt64((long) obj);
+            if (obj is long l)
+                return new BsonInt64(l);
 
-            if (obj is bool)
-                return new BsonBoolean((bool) obj);
+            if (obj is bool b)
+                return new BsonBoolean(b);
 
-            if (obj is double)
-                return new BsonDouble((double) obj);
+            if (obj is double d)
+                return new BsonDouble(d);
 
-            if (obj is DateTime)
-                return new BsonDateTime((DateTime) obj);
+            if (obj is DateTime time)
+                return new BsonDateTime(time);
 
             if (obj == null)
                 return BsonNull.Value;
 
-            if (obj is string)
-                return new BsonString((string) obj);
+            if (obj is string s)
+                return new BsonString(s);
 
-            if (obj is Guid)
-                return BsonValue.Create(obj);
-
-            if (obj is ObjectId)
+            if (obj is Guid || obj is ObjectId)
                 return BsonValue.Create(obj);
 
             if (TypeSystem.FindIEnumerable(obj.GetType()) != null)
@@ -372,190 +349,6 @@ namespace MongoLinqPlusPlus
         }
 
         /// <summary>
-        /// Builds an IMongoQuery from a given expression for use in a $match stage.
-        /// We build an IMongoQuery rather than a BsonValue simply as a shortcut.
-        /// It's easier to build an IMongoQuery and then call .ToBsonDocument on the result.
-        /// </summary>
-        /// <param name="expression">Expression to build a query for</param>
-        /// <param name="isLambdaParamResultHack">
-        /// Required for proper query sematics in $elemmatch expressions.
-        /// 
-        /// Whether a reference to a lambda parameter in the expression should be treated as a reference
-        /// to the field named PIPELINE_DOCUMENT_RESULT_NAME.  Generally this will be true.  This the case
-        /// for something like this:
-        /// .Select(c => c.Age)
-        /// .Where(c => c > 15)
-        /// In this case the variable 'c' is referring to the _result_ field in the document
-        /// 
-        /// Pass in false when dealing with a sub-predicate like this:
-        /// .Where(c => c.SubArrayOfInts.Any(d => d == 15))
-        /// In this case the variable 'd' is is referring to a sub-item in the nested array and
-        /// requires different syntax of any $elemmatch expressions.
-        /// 
-        /// TODO: We should do a better job here entirely.  We currently don't do a good job
-        /// of tracking our lambda params through the full Where call.  For example, this is undefined:
-        /// .Where(c => c.SubArray.Any(d => d.Value == c.SomeOtherLocalProperty))
-        /// </param>
-        private IMongoQuery BuildMongoWhereExpressionAsQuery(Expression expression, bool isLambdaParamResultHack)
-        {
-            // Handle binary operators (&&, ==, >, etc)
-            if (expression is BinaryExpression)
-            {
-                var binExp = (BinaryExpression) expression;
-
-                // If the LHS is an array length, then we use special operators.
-                if (binExp.Left.NodeType == ExpressionType.ArrayLength)
-                {
-                    // Mongo doesn't natively support .Where(c => c.array.Length != 2)
-                    // So translate that to           .Where(c => !(c.array.Length == 2))
-                    var localNodeType = binExp.NodeType == ExpressionType.NotEqual ? ExpressionType.Equal : binExp.NodeType;
-                    bool invert = binExp.NodeType == ExpressionType.NotEqual;
-
-                    // Validate it's a supported operator
-                    if (!NodeToMongoQueryBuilderArrayLengthFuncDict.Keys.Contains(localNodeType))
-                        throw new InvalidQueryException("Unsupported binary operator '" + binExp.NodeType + "' on Array.Length");
-
-                    // Validate we're comparing to a const
-                    if (binExp.Right.NodeType != ExpressionType.Constant)
-                        throw new InvalidQueryException("Array.Length can only be compared against a constant");
-
-                    // Retrieve the function (like Query.EQ) that we'll use to generate our mongo query
-                    var queryFunc = NodeToMongoQueryBuilderArrayLengthFuncDict[localNodeType];
-
-                    // Get our operands
-                    int rhs = (int) ((ConstantExpression) binExp.Right).Value;
-                    string mongoFieldName = GetMongoFieldName(((UnaryExpression) binExp.Left).Operand, isLambdaParamResultHack);
-                    if (mongoFieldName == null)
-                        throw new NotImplementedException("ExpressionType.ArrayLength on lambda parameters not supported. ie: .Where(c => c.SubArray.Any(d => d.Length > 5))");
-
-                    // Generate the query
-                    var query = queryFunc(mongoFieldName, rhs);
-
-                    // Optionally invert our query
-                    return invert ? Query.Not(query) : query;
-                }
-
-                // If this binary expression is in our expression node type -> Mongo query dict, then use it
-                if (NodeToMongoQueryBuilderFuncDict.Keys.Contains(expression.NodeType))
-                {
-                    // The left side of the operator MUST be a mongo field name
-                    string mongoFieldName = GetMongoFieldName(binExp.Left, isLambdaParamResultHack);
-
-                    // Build the Mongo expression for the right side of the binary operator
-                    BsonValue rightValue = BuildMongoWhereExpressionAsBsonValue(binExp.Right, isLambdaParamResultHack);
-
-                    // Retrieve the function (like Query.EQ) that we'll use to generate our mongo query
-                    var queryOperator = NodeToMongoQueryBuilderFuncDict[expression.NodeType];
-
-                    // Generate the query and return it as a new BsonDocument
-                    var queryDoc = new BsonDocument(queryOperator, rightValue);
-                    if (mongoFieldName != null)
-                        queryDoc = new BsonDocument(mongoFieldName, queryDoc);
-
-                    return Query.Create(queryDoc);
-                }
-
-                // Handle && and ||
-                if (expression.NodeType == ExpressionType.AndAlso || expression.NodeType == ExpressionType.OrElse)
-                {
-                    // Build the Mongo expression for the left side of the binary operator
-                    var leftQuery = BuildMongoWhereExpressionAsQuery(binExp.Left, isLambdaParamResultHack);
-                    var rightQuery = BuildMongoWhereExpressionAsQuery(binExp.Right, isLambdaParamResultHack);
-                    return expression.NodeType == ExpressionType.AndAlso ? Query.And(leftQuery, rightQuery) : Query.Or(leftQuery, rightQuery);
-                }
-            }
-
-            // Handle unary operator not (!)
-            if (expression.NodeType == ExpressionType.Not)
-            {
-                var unExp = (UnaryExpression) expression;
-                return Query.Not(BuildMongoWhereExpressionAsQuery(unExp.Operand, isLambdaParamResultHack));
-            }
-
-            // Handle .IsMale case in: .Where(c => c.IsMale || c.Age == 15)
-            if (expression.NodeType == ExpressionType.MemberAccess)
-            {
-                return Query.EQ(GetMongoFieldName(expression, isLambdaParamResultHack), true);
-            }
-
-            // Handle method calls on sub properties
-            // .Where(c => string.IsNullOrEmpty(c.Name))
-            // .Where(c => c.Names.Contains("Bob"))
-            // etc...
-            if (expression.NodeType == ExpressionType.Call)
-            {
-                var callExp = (MethodCallExpression) expression;
-
-                // Support .Where(c => c.ArrayProp.Contains(1)) and .Where(c => new[] { 1, 2, 3}.Contains(c.Id))
-                if (callExp.Method.Name == "Contains")
-                {
-                    // Part 1 - Support .Where(c => someLocalEnumerable.Contains(c.Field))
-                    // Extract the IEnumerable that .Contains is being called on
-                    // Important to note that it can be in callExp.Object (for a List) or in callExp.Arguments[0] (for a constant, read-only array)
-                    var arrayConstantExpression = (callExp.Object ?? callExp.Arguments[0]) as ConstantExpression;
-                    if (arrayConstantExpression != null)
-                    {
-                        var localEnumerable = arrayConstantExpression.Value;
-                        if (TypeSystem.FindIEnumerable(localEnumerable.GetType()) == null)
-                        {
-                            throw new InvalidQueryException("In Where(), Contains() only supported on IEnumerable");
-                        }
-
-                        // Get the field that we're going to search for within the IEnumerable
-                        var mongoFieldName = GetMongoFieldName(callExp.Arguments.Last(), isLambdaParamResultHack);
-
-                        // Evaluate the IEnumerable
-                        var array = (BsonArray) GetBsonValueFromObject(localEnumerable);
-
-                        if (mongoFieldName == null)
-                            return Query.Create("$in", array);
-
-                        return Query.In(mongoFieldName, array.AsEnumerable());
-                    }
-
-                    // Par 2 - Support .Where(c => c.SomeArrayProperty.Contains("foo"))
-                    string searchTargetMongoFieldName = GetMongoFieldName(callExp.Arguments[0], isLambdaParamResultHack);
-                    var searchItem = BsonValue.Create(((ConstantExpression) callExp.Arguments[1]).Value);
-                    return Query.All(searchTargetMongoFieldName, new[] {searchItem});
-                }
-
-                // Support .Where(c => string.IsNullOrEmpty(c.Name))
-                if (callExp.Method.Name == "IsNullOrEmpty" && callExp.Object == null && callExp.Method.ReflectedType == typeof(string))
-                {
-                    var mongoFieldName = GetMongoFieldName(callExp.Arguments.Single(), isLambdaParamResultHack);
-                    return Query.Or(Query.EQ(mongoFieldName, BsonNull.Value), Query.EQ(mongoFieldName, new BsonString("")));
-                }
-
-                // Support .Where(c => c.SomeArrayProp.Any()) and .Where(c => c.SomeArrayProp.Any(d => d.SubProp > 5))
-                if (callExp.Method.Name == "Any")
-                {
-                    // Support .Where(c => c.SomeArrayProp.Any())
-                    if (callExp.Arguments.Count() == 1)
-                        throw new NotImplementedException("TODO: Implement .Where(c => c.SomeArrayProp.Any())");
-
-                    // Support .Where(c => c.SomeArrayProp.Any(d => d.SubProp > 5))
-                    var mongoFieldName = GetMongoFieldName(callExp.Arguments[0], isLambdaParamResultHack);
-                    var predicateExpression = (LambdaExpression) callExp.Arguments[1];
-                    
-                    var query = Query.ElemMatch(mongoFieldName, BuildMongoWhereExpressionAsQuery(predicateExpression.Body, false));
-                    return query;
-                }
-
-                throw new InvalidQueryException($"No translation for method {callExp.Method.Name}.  Mongo doesn't support very many expressions in a top level .Where ($match stage).  Consider doing .Select().Where() for better support.");
-            }
-
-            if (expression is ConstantExpression)
-            {
-                // This is for handling .Where(c => true) and .Where(c => false).
-                // We can use Query.NotExists to achieve this
-                bool expressionValue = (bool) ((ConstantExpression) expression).Value;
-                return expressionValue ? Query.NotExists("_this_field_does_not_exist_912419254012") : Query.Exists("_this_field_does_not_exist_912419254012");
-            }
-
-            throw new InvalidQueryException("In Where(), can't build Mongo expression for node type" + expression.NodeType);
-        }
-
-        /// <summary>
         /// Gets the lambda (which may be null) from a MethodCallExpression 
         /// </summary>
         /// <returns>A LambdaExpression, possibly null</returns>
@@ -567,29 +360,6 @@ namespace MongoLinqPlusPlus
             return (LambdaExpression) ((UnaryExpression) mce.Arguments[1]).Operand;
         }
 
-
-        /// <summary>
-        /// Builds a Mongo expression for use in a $match statement from a given expression.
-        /// See documentation of BuildMongoWhereExpressionAsQuery for the explanation around isLambdaParamResultHack
-        /// </summary>
-        private BsonValue BuildMongoWhereExpressionAsBsonValue(Expression expression, bool isLambdaParamResultHack)
-        {
-            if (expression is MemberExpression)
-            {
-                throw new InvalidQueryException("Can't use field name on right hand side of expression.");
-
-                // It would sure be nice if we could do this.
-                // Except Mongo doesn't support this yet: .Where(c => c.Field1 == c.Field2).
-                // return new BsonString("$" + GetMongoFieldName(expression));
-            }
-
-            if (expression is ConstantExpression)
-            {
-                return GetBsonValueFromObject(((ConstantExpression) expression).Value);
-            }
-
-            return BuildMongoWhereExpressionAsQuery(expression, isLambdaParamResultHack).ToBsonDocument();
-        }
 
         /// <summary>
         /// Allow an aggregation to be run on each group of a grouping.
@@ -672,18 +442,16 @@ namespace MongoLinqPlusPlus
         /// <summary>
         /// Builds a Mongo expression for use in a $project statement from a given expression 
         /// </summary>
-        /// <param name="expression"></param>
-        /// <param name="specialTreatmentForConst"></param>
-        /// <returns></returns>
+        /// <param name="expression">Expression to convert to a BsonValue representing an Aggregation Framework expression</param>
+        /// <param name="specialTreatmentForConst">TODO: Explain what this was for again...</param>
         public BsonValue BuildMongoSelectExpression(Expression expression, bool specialTreatmentForConst = false)
         {
             // TODO: What about enums here?
 
             // c.Age
-            if (expression is MemberExpression)
+            if (expression is MemberExpression memberExpression)
             {
                 // Handle member access of DateTime objects
-                var memberExpression = (MemberExpression) expression;
                 if (memberExpression.Member.DeclaringType == typeof(string))
                 {
                     if (memberExpression.Member.Name == "Length")
@@ -716,21 +484,18 @@ namespace MongoLinqPlusPlus
                         return new BsonDocument("$subtract", array);
                     }
 
-                    string mongoDateOperator;
-                    if (NodeToMongoDateOperatorDict.TryGetValue(memberExpression.Member.Name, out mongoDateOperator))
+                    if (NodeToMongoDateOperatorDict.TryGetValue(memberExpression.Member.Name, out string mongoDateOperator))
                         return new BsonDocument(mongoDateOperator, BuildMongoSelectExpression(memberExpression.Expression));
 
                     throw new InvalidQueryException($"{memberExpression.Member.Name} property on DateTime not supported due to lack of Mongo support :(");
                 }
 
-                return new BsonString("$" + GetMongoFieldName(expression, true));
+                return new BsonString("$" + GetMongoFieldName(memberExpression, true));
             }
 
             // 15
-            if (expression is ConstantExpression)
+            if (expression is ConstantExpression constExp)
             {
-                var constExp = (ConstantExpression) expression;
-
                 // Handle a special case:
                 //     .Select(c => 15)
                 // This would naturally tranlate to:
@@ -760,10 +525,8 @@ namespace MongoLinqPlusPlus
             }
 
             // c.Age + 10
-            if (expression is BinaryExpression && NodeToMongoBinaryOperatorDict.ContainsKey(expression.NodeType))
+            if (expression is BinaryExpression binExp && NodeToMongoBinaryOperatorDict.ContainsKey(expression.NodeType))
             {
-                var binExp = (BinaryExpression) expression;
-
                 BsonValue leftValue = BuildMongoSelectExpression(binExp.Left);
                 BsonValue rightValue = BuildMongoSelectExpression(binExp.Right);
 
@@ -816,9 +579,8 @@ namespace MongoLinqPlusPlus
                 {
                     if (callExp.Method.Name == "StartsWith" && callExp.Arguments.Count() == 1)
                     {
-                        var constantExpression = callExp.Arguments.Single() as ConstantExpression;
-                        if (constantExpression == null)
-                            throw new InvalidQueryException($".StartsWith(...) only supports a single, constant, String argument");
+                        if (!(callExp.Arguments.Single() is ConstantExpression constantExpression))
+                            throw new InvalidQueryException(".StartsWith(...) only supports a single, constant, String argument");
 
                         // ^-- We could relax that requirement if we didn't implement this using $substr.
                         // By using $substr we need to have the length of our argument to StartsWith.
@@ -827,6 +589,20 @@ namespace MongoLinqPlusPlus
                         var substringDoc = new BsonDocument("$substr", new BsonArray(new[] {BuildMongoSelectExpression(callExp.Object), 0, searchString.Length}));
                         return new BsonDocument("$eq", new BsonArray(new[] { substringDoc, constantExpression.Value }));
                     }
+
+                    if (callExp.Method.Name == "Contains" && callExp.Arguments.Count() == 1)
+                    {
+                        if (!(callExp.Arguments.Single() is ConstantExpression constantExpression))
+                            throw new InvalidQueryException(".StartsWith(...) only supports a single, constant, String argument");
+
+                        // ^-- We could relax that requirement if we didn't implement this using $substr.
+                        // By using $substr we need to have the length of our argument to StartsWith.
+
+                        string searchString = (string) constantExpression.Value;
+                        var substringDoc = new BsonDocument("$indexOfCP", new BsonArray(new[] {BuildMongoSelectExpression(callExp.Object), new BsonString(searchString)}));
+                        return new BsonDocument("$gte", new BsonArray(new[] { substringDoc, BsonValue.Create(0)}));
+                    }
+
                     if (callExp.Method.Name == "ToUpper")
                         return new BsonDocument("$toUpper", BuildMongoSelectExpression(callExp.Object));
                     if (callExp.Method.Name == "ToLower")
@@ -835,13 +611,87 @@ namespace MongoLinqPlusPlus
                     throw new InvalidQueryException($"Can't translate method {callExp.Object.Type.Name}.{callExp.Method.Name} to Mongo expression");
                 }
 
-                // c.Contains (where c is an Enumerable)
-                if (callExp.Method.Name == "Contains" && callExp.Method.ReflectedType == typeof (Enumerable))
+                // Support two cases for Contains:
+                // 1: Contains on a property that is an Enumerable searching for some constant
+                //    c.SomeEnumerableProperty.Contains("someConst")
+                // 2: Contains on a constant expression searching for some property
+                //    new[] { 1,2,3}.Contains(c.SomeProperty)
+                if (callExp.Method.Name == "Contains"/* && callExp.Method.ReflectedType == typeof (Enumerable)*/)
                 {
-                    var searchValue = BuildMongoSelectExpression(callExp.Arguments[1]);
-                    var searchTarget = BuildMongoSelectExpression(callExp.Arguments[0]);
+                    BsonValue searchValue, arrayToSearch;
+
+                    if (callExp.Method.ReflectedType == typeof(Enumerable))
+                    {
+                        // Case 1: c.SomeEnumerableProperty.Contains("someConst")
+                        searchValue = BuildMongoSelectExpression(callExp.Arguments[1]);
+                        arrayToSearch = BuildMongoSelectExpression(callExp.Arguments[0]);
+                    }
+                    else
+                    {
+                        // Case 2: new[] { 1,2,3}.Contains(c.SomeProperty)
+                        arrayToSearch = BuildMongoSelectExpression(callExp.Object);
+                        searchValue = BuildMongoSelectExpression(callExp.Arguments[0]);
+                    }
+
                     
-                    return new BsonDocument("$in", new BsonArray(new[] { searchValue, searchTarget }) );
+                    return new BsonDocument("$in", new BsonArray(new[] { searchValue, arrayToSearch }) );
+                }
+
+                // c.Any(predicate) (where c is an Enumerable)
+                if (callExp.Method.Name == "Any" && callExp.Method.ReflectedType == typeof(Enumerable))
+                {
+                    var searchPredicate = (LambdaExpression) callExp.Arguments[1];
+                    
+                    string subSelectLambdaParamName = searchPredicate.Parameters.Single().Name;
+                    _subSelectParameterPrefixes.Add(subSelectLambdaParamName, "$foo" + ".");
+
+                    var searchValue = BuildMongoSelectExpression(searchPredicate.Body);
+
+                    _subSelectParameterPrefixes.Remove(subSelectLambdaParamName);
+
+                    var searchTarget = BuildMongoSelectExpression(callExp.Arguments[0]);
+
+                    // There's no direct translation for Any.  So we'll essentially build:
+                    // c.Where(predicate).Count() > 0
+
+                    var filterDoc = new BsonDocument("$filter", new BsonDocument {
+                        new BsonElement("input", searchTarget),
+                        new BsonElement("as", "foo"),
+                        new BsonElement("cond", searchValue),
+                    });
+
+                    var countDoc = new BsonDocument("$size", filterDoc);
+                    var gteZeroDoc = new BsonDocument("$gte", new BsonArray(new[] { countDoc, BsonValue.Create(1)}));
+                    return gteZeroDoc;
+                }
+
+                // c.All(predicate) (where c is an Enumerable)
+                if (callExp.Method.Name == "All" && callExp.Method.ReflectedType == typeof(Enumerable))
+                {
+                    var searchPredicate = (LambdaExpression) callExp.Arguments[1];
+                    
+                    string subSelectLambdaParamName = searchPredicate.Parameters.Single().Name;
+                    _subSelectParameterPrefixes.Add(subSelectLambdaParamName, "$foo" + ".");
+
+                    var searchValue = BuildMongoSelectExpression(searchPredicate.Body);
+
+                    _subSelectParameterPrefixes.Remove(subSelectLambdaParamName);
+
+                    var searchTarget = BuildMongoSelectExpression(callExp.Arguments[0]);
+
+                    // There's no direct translation for Any.  So we'll essentially build:
+                    // c.Where(predicate).Count() == c.Length
+
+                    var filterDoc = new BsonDocument("$filter", new BsonDocument {
+                        new BsonElement("input", searchTarget),
+                        new BsonElement("as", "foo"),
+                        new BsonElement("cond", searchValue),
+                    });
+
+                    var filterCountDoc = new BsonDocument("$size", filterDoc);
+                    var expectedCountDoc = new BsonDocument("$size", searchTarget);
+                    var gteZeroDoc = new BsonDocument("$eq", new BsonArray(new[] { filterCountDoc, expectedCountDoc}));
+                    return gteZeroDoc;
                 }
 
                 // c.Sum(d => d.Age), c.Count(), etc
@@ -860,6 +710,11 @@ namespace MongoLinqPlusPlus
             {
                 var arrayLenExp = (UnaryExpression) expression;
                 return new BsonDocument("$size", BuildMongoSelectExpression(arrayLenExp.Operand));
+            }
+
+            if (expression.NodeType == ExpressionType.Parameter)
+            {
+                return new BsonString("$" + GetMongoFieldName(expression, true));
             }
 
             throw new InvalidQueryException("In Select(), can't build Mongo expression for node type" + expression.NodeType);
@@ -991,9 +846,8 @@ namespace MongoLinqPlusPlus
             }
 
             // Handle typed hard case: Select(c => new Foo { Bar = c.FirstName })
-            if (lambdaExp.Body is MemberInitExpression)
+            if (lambdaExp.Body is MemberInitExpression memberInitExp)
             {
-                var memberInitExp = (MemberInitExpression) lambdaExp.Body;
                 var fieldNames = memberInitExp.Bindings
                                               .Cast<MemberAssignment>()
                                               .Select(c => new {
@@ -1022,6 +876,7 @@ namespace MongoLinqPlusPlus
             });
             _currentPipelineDocumentUsesResultHack = true;
 
+            // TODO: Figure out why is the below commented out..
 /*
             // This 'simple' case might also be a nested object
             // .Select(c => c.Address)
@@ -1046,16 +901,18 @@ namespace MongoLinqPlusPlus
                 return;
 
             // Special case, handle .Where(c => true) and .Where(c => false)
-            if (lambdaExp.Body is ConstantExpression)
+            if (lambdaExp.Body is ConstantExpression constExp)
             {
-                var constExp = (ConstantExpression) lambdaExp.Body;
-
                 // No-op if this lambda is .Where(c => true)
                 if ((bool) constExp.Value)
                     return;
             }
 
-            AddToPipeline("$match", BuildMongoWhereExpressionAsQuery(lambdaExp.Body, true).ToBsonDocument());
+            var booleanExpression = new BsonDocument("$expr", BuildMongoSelectExpression(lambdaExp.Body));
+
+            AddToPipeline("$match", booleanExpression);
+
+            //AddToPipeline("$match", BuildMongoWhereExpressionAsQuery(lambdaExp.Body, true).ToBsonDocument());
         }
 
         /// <summary>Adds a new $limit stage to the pipeline for a .Take method call</summary>
@@ -1170,9 +1027,9 @@ namespace MongoLinqPlusPlus
 
             // First recursively process the earlier method call in the method chain
             // That is, in blahblahblah.Where(...).Take(5), recursively process the .Where before handling the .Take
-            if (expression.Arguments[0] is MethodCallExpression)
+            if (expression.Arguments[0] is MethodCallExpression callExpression)
             {
-                EmitPipelineStageForMethod((MethodCallExpression) expression.Arguments[0]);
+                EmitPipelineStageForMethod(callExpression);
             }
 
             switch (expression.Method.Name)
@@ -1271,10 +1128,8 @@ namespace MongoLinqPlusPlus
         {
             // Build the pipeline
 
-            if (expression is MethodCallExpression)
+            if (expression is MethodCallExpression methodExpression)
             {
-                var methodExpression = (MethodCallExpression) expression;
-
                 // queryable.Count() via aggregation framework is slow.  Handle that case specifically by asking the collection itself.
                 if (methodExpression.Method.Name == "Count"
                     && methodExpression.Arguments.Count == 1
@@ -1319,7 +1174,7 @@ namespace MongoLinqPlusPlus
                 // The result is in a document structured as { _result_ : value }
                 var resultDoc = results[0];
 
-                // Special treatment for any
+                // Special treatment for Any
                 if (_lastPipelineOperation == PipelineResultType.Any)
                 {
                     bool any = ((BsonInt32) resultDoc[PIPELINE_DOCUMENT_RESULT_NAME]).Value == 1;

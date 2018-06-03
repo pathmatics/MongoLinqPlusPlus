@@ -33,7 +33,7 @@ namespace MongoLinqPlusPlus.Tests
         private IQueryable<TestDocument> _memryQuery = TestRepository.TestDocuments.AsQueryable();
 
         [TestMethod]
-        public void InnerContains()
+        public void InnerContains_ConstArray()
         {
             var namesArray = new[] { "Tom", "Bob", "Larry" };
             var namesList = namesArray.ToList();
@@ -49,6 +49,17 @@ namespace MongoLinqPlusPlus.Tests
 
             Assert.IsTrue(TestHelpers.AreEqual(new[] { _mongoQuery, _memryQuery }.Select(queryable =>
                 queryable.Where(c => namesEnumerable.Contains(c.FirstName))
+            )));
+        }
+        [TestMethod]
+        public void InnerContains_ArrayProperty()
+        {
+            Assert.IsTrue(TestHelpers.AreEqual(new[] { _mongoQuery, _memryQuery }.Select(queryable =>
+                queryable.Where(c => c.OldNames != null && c.OldNames.Contains("Bob"))
+            )));
+
+            Assert.IsTrue(TestHelpers.AreEqual(new[] { _mongoQuery, _memryQuery }.Select(queryable =>
+                queryable.Where(c => c.OldIds != null && c.OldIds.Contains(-12921951))
             )));
         }
     }
