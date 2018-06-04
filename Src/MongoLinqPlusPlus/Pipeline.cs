@@ -622,7 +622,7 @@ namespace MongoLinqPlusPlus
 
             // Get the operand for the operator
             BsonValue mongoOperand;
-            if (callExp.Method.Name == "Count" || callExp.Method.Name == "First" || callExp.Method.Name == "Last")
+            if ((callExp.Method.Name == "Count" && callExp.Arguments.Count == 1) || callExp.Method.Name == "First" || callExp.Method.Name == "Last")
             {
                 // We don't support a lambda within the .Count
                 // No good:   .Select(d => d.Count(e => e.Age > 15))
@@ -630,6 +630,7 @@ namespace MongoLinqPlusPlus
                     throw new InvalidQueryException("Argument within " + callExp.Method.Name + " within Select not supported");
 
                 // If we're counting, then the expression is {$count: 1}
+                // .GroupBy(...).Select(g => g.Count())
                 if (callExp.Method.Name == "Count")
                     mongoOperand = new BsonInt32(1);
                 else
@@ -649,6 +650,20 @@ namespace MongoLinqPlusPlus
             else
             {
                 throw new InvalidQueryException("Unsupported usage of " + callExp.Method.Name + " within Select");
+            }
+
+            // Handle the special case for Count
+            // .GroupBy(...).Select(g => g.Count(predicate))
+            if (callExp.Method.Name == "Count")
+            {
+                // Mongo doesn't explicitly support Count(predicate) 
+                // So instead build this: Sum(predicate ? 1 : 0)
+                mongoOperator = "sum";
+                mongoOperand = new BsonDocument("$cond", new BsonDocument(new[] {
+                    new BsonElement("if", mongoOperand),
+                    new BsonElement("then", new BsonInt32(1)),
+                    new BsonElement("else", new BsonInt32(0)),
+                }.AsEnumerable()));
             }
 
             // Build the expression being aggregated
@@ -790,7 +805,7 @@ namespace MongoLinqPlusPlus
 
                 // Special handling for method calls on IGrouping...
                 // c.Sum(d => d.Age), c.Count(), etc
-                if (callExp.Arguments.Any() && callExp.Arguments[0].Type.Name.StartsWith("IGrouping`"))
+                if (callExp.Arguments.Any() && callExp.Arguments[0].Type.Name == "IGrouping`2")
                 {
                     return GetMongoFieldNameForMethodOnGrouping(callExp);
                 }
@@ -874,7 +889,8 @@ namespace MongoLinqPlusPlus
                     var searchPredicate = (LambdaExpression) callExp.Arguments[1];
                     
                     string subSelectLambdaParamName = searchPredicate.Parameters.Single().Name;
-                    _subSelectParameterPrefixes.Add(subSelectLambdaParamName, "$foo" + ".");
+                    string internalVariableName = "foo" + ++_nextUniqueVariableId;
+                    _subSelectParameterPrefixes.Add(subSelectLambdaParamName, $"${internalVariableName}" + ".");
 
                     var searchValue = BuildMongoSelectExpression(searchPredicate.Body);
 
@@ -887,7 +903,7 @@ namespace MongoLinqPlusPlus
 
                     var filterDoc = new BsonDocument("$filter", new BsonDocument {
                         new BsonElement("input", searchTarget),
-                        new BsonElement("as", "foo"),
+                        new BsonElement("as", internalVariableName),
                         new BsonElement("cond", searchValue),
                     });
 
@@ -902,7 +918,8 @@ namespace MongoLinqPlusPlus
                     var searchPredicate = (LambdaExpression) callExp.Arguments[1];
                     
                     string subSelectLambdaParamName = searchPredicate.Parameters.Single().Name;
-                    _subSelectParameterPrefixes.Add(subSelectLambdaParamName, "$foo" + ".");
+                    string internalVariableName = "foo" + ++_nextUniqueVariableId;
+                    _subSelectParameterPrefixes.Add(subSelectLambdaParamName, $"${internalVariableName}" + ".");
 
                     var searchValue = BuildMongoSelectExpression(searchPredicate.Body);
 
@@ -915,7 +932,7 @@ namespace MongoLinqPlusPlus
 
                     var filterDoc = new BsonDocument("$filter", new BsonDocument {
                         new BsonElement("input", searchTarget),
-                        new BsonElement("as", "foo"),
+                        new BsonElement("as", internalVariableName),
                         new BsonElement("cond", searchValue),
                     });
 
@@ -937,7 +954,8 @@ namespace MongoLinqPlusPlus
                     var searchPredicate = (LambdaExpression) callExp.Arguments[1];
                     
                     string subSelectLambdaParamName = searchPredicate.Parameters.Single().Name;
-                    _subSelectParameterPrefixes.Add(subSelectLambdaParamName, "$foo" + ".");
+                    string internalVariableName = "foo" + ++_nextUniqueVariableId;
+                    _subSelectParameterPrefixes.Add(subSelectLambdaParamName, $"${internalVariableName}" + ".");
 
                     var searchValue = BuildMongoSelectExpression(searchPredicate.Body);
 
@@ -949,7 +967,7 @@ namespace MongoLinqPlusPlus
 
                     var filterDoc = new BsonDocument("$filter", new BsonDocument {
                         new BsonElement("input", arrayToSearch),
-                        new BsonElement("as", "foo"),
+                        new BsonElement("as", internalVariableName),
                         new BsonElement("cond", searchValue),
                     });
 
@@ -957,8 +975,7 @@ namespace MongoLinqPlusPlus
                     return filterCountDoc;
                 }
 
-                // c.Sum(d => d.Age), c.Count(), etc
-                return GetMongoFieldNameForMethodOnGrouping(callExp);
+                throw new InvalidQueryException("Unsupported Call Expression for method " + callExp.Method.Name);
             }
 
             // Casts

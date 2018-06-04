@@ -146,7 +146,21 @@ namespace MongoLinqPlusPlus.Tests
             )));
 
             Assert.IsTrue(TestHelpers.AreEqual(new[] { _mongoQuery, _memryQuery }.Select(queryable =>
-                queryable.Where(c => c.OldIds != null).GroupBy(c => c.FirstName).Select(c => c.Average(d => d.OldIds.Count()))
+                queryable.Where(c => c.OldIds != null)
+                         .GroupBy(c => c.FirstName)
+                         .Select(c => c.Average(d => d.OldIds.Count()))
+            )));
+
+            Assert.IsTrue(TestHelpers.AreEqual(new[] { _mongoQuery, _memryQuery }.Select(queryable =>
+                queryable.Where(c => c.OldIds != null)
+                    .GroupBy(c => c.FirstName)
+                    .Select(c => c.Sum(d => new[] { true }.Contains(d.IsMale) ? 1 : 0))
+            )));
+
+            Assert.IsTrue(TestHelpers.AreEqual(new[] { _mongoQuery, _memryQuery }.Select(queryable =>
+                queryable.Where(c => c.OldIds != null)
+                    .GroupBy(c => c.FirstName)
+                    .Select(c => c.Count(d => new[] { true }.Contains(d.IsMale)))
             )));
         }
     }
