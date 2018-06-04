@@ -167,6 +167,18 @@ namespace MongoLinqPlusPlus.Tests
         }
 
         [TestMethod]
+        public void Select_ArrayCount()
+        {
+            Assert.IsTrue(TestHelpers.AreEqual(new[] { _mongoQuery, _memryQuery }.Select(queryable =>
+                queryable.Select(c => c.PreviousAddresses.Count(d => d.Zip == 90405))
+            )));
+
+            Assert.IsTrue(TestHelpers.AreEqual(new[] { _mongoQuery, _memryQuery }.Select(queryable =>
+                queryable.Select(c => c.PreviousAddresses.Count())
+            )));
+        }
+
+        [TestMethod]
         public void Select_StringIsNullOrEmpty()
         {
             Assert.IsTrue(TestHelpers.AreEqual(new[] { _mongoQuery, _memryQuery }.Select(queryable =>

@@ -59,7 +59,10 @@ namespace MongoLinqPlusPlus.TestApp
                                      .Select(c => c.Zip)
                                      .ToArray();*/
 
-            var results = _mongoQuery.Where(c => c.OldIds != null && c.OldIds.All(d => d != 4))
+            var results = _mongoQuery.Where(c => c.OldIds != null)
+                                     .Select(c => new {
+                                         Num = c.OldIds.Count(d => d == 4)
+                                     })
                                      .ToArray();
 
         /*                

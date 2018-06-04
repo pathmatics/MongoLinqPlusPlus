@@ -394,10 +394,8 @@ namespace MongoLinqPlusPlus
         private IMongoQuery BuildMongoWhereExpressionAsQuery(Expression expression, bool isLambdaParamResultHack)
         {
             // Handle binary operators (&&, ==, >, etc)
-            if (expression is BinaryExpression)
+            if (expression is BinaryExpression binExp)
             {
-                var binExp = (BinaryExpression) expression;
-
                 // If the LHS is an array length, then we use special operators.
                 if (binExp.Left.NodeType == ExpressionType.ArrayLength)
                 {
@@ -487,8 +485,7 @@ namespace MongoLinqPlusPlus
                     // Part 1 - Support .Where(c => someLocalEnumerable.Contains(c.Field))
                     // Extract the IEnumerable that .Contains is being called on
                     // Important to note that it can be in callExp.Object (for a List) or in callExp.Arguments[0] (for a constant, read-only array)
-                    var arrayConstantExpression = (callExp.Object ?? callExp.Arguments[0]) as ConstantExpression;
-                    if (arrayConstantExpression != null)
+                    if ((callExp.Object ?? callExp.Arguments[0]) is ConstantExpression arrayConstantExpression)
                     {
                         var localEnumerable = arrayConstantExpression.Value;
                         if (TypeSystem.FindIEnumerable(localEnumerable.GetType()) == null)
@@ -539,11 +536,11 @@ namespace MongoLinqPlusPlus
                 throw new InvalidQueryException($"No translation for method {callExp.Method.Name}.  Mongo doesn't support very many expressions in a top level .Where ($match stage).  Consider doing .Select().Where() for better support.");
             }
 
-            if (expression is ConstantExpression)
+            if (expression is ConstantExpression constantExpression)
             {
                 // This is for handling .Where(c => true) and .Where(c => false).
                 // We can use Query.NotExists to achieve this
-                bool expressionValue = (bool) ((ConstantExpression) expression).Value;
+                bool expressionValue = (bool) constantExpression.Value;
                 return expressionValue ? Query.NotExists("_this_field_does_not_exist_912419254012") : Query.Exists("_this_field_does_not_exist_912419254012");
             }
 
@@ -566,9 +563,9 @@ namespace MongoLinqPlusPlus
                 // return new BsonString("$" + GetMongoFieldName(expression));
             }
 
-            if (expression is ConstantExpression)
+            if (expression is ConstantExpression constantExpression)
             {
-                return GetBsonValueFromObject(((ConstantExpression) expression).Value);
+                return GetBsonValueFromObject(constantExpression.Value);
             }
 
             return BuildMongoWhereExpressionAsQuery(expression, isLambdaParamResultHack).ToBsonDocument();
@@ -790,6 +787,14 @@ namespace MongoLinqPlusPlus
             if (expression.NodeType == ExpressionType.Call)
             {
                 var callExp = (MethodCallExpression) expression;
+
+                // Special handling for method calls on IGrouping...
+                // c.Sum(d => d.Age), c.Count(), etc
+                if (callExp.Arguments.Any() && callExp.Arguments[0].Type.Name.StartsWith("IGrouping`"))
+                {
+                    return GetMongoFieldNameForMethodOnGrouping(callExp);
+                }
+
                 if (callExp.Method.Name == "IsNullOrEmpty" && callExp.Object == null && callExp.Method.ReflectedType == typeof (string))
                 {
                    BsonValue expressionToTest = BuildMongoSelectExpression(callExp.Arguments.Single());
@@ -918,6 +923,38 @@ namespace MongoLinqPlusPlus
                     var expectedCountDoc = new BsonDocument("$size", searchTarget);
                     var gteZeroDoc = new BsonDocument("$eq", new BsonArray(new[] { filterCountDoc, expectedCountDoc}));
                     return gteZeroDoc;
+                }
+
+                // c.Count(predicate) (where c is an Enumerable)
+                if (callExp.Method.Name == "Count" && callExp.Method.ReflectedType == typeof(Enumerable))
+                {
+                    var arrayToSearch = BuildMongoSelectExpression(callExp.Arguments[0]);
+
+                    // Handle the trival case (no predicate)
+                    if (callExp.Arguments.Count() == 1)
+                        return new BsonDocument("$size", arrayToSearch);
+                    
+                    var searchPredicate = (LambdaExpression) callExp.Arguments[1];
+                    
+                    string subSelectLambdaParamName = searchPredicate.Parameters.Single().Name;
+                    _subSelectParameterPrefixes.Add(subSelectLambdaParamName, "$foo" + ".");
+
+                    var searchValue = BuildMongoSelectExpression(searchPredicate.Body);
+
+                    _subSelectParameterPrefixes.Remove(subSelectLambdaParamName);
+
+
+                    // Emit the expression for: 
+                    // c.Where(predicate).Count()
+
+                    var filterDoc = new BsonDocument("$filter", new BsonDocument {
+                        new BsonElement("input", arrayToSearch),
+                        new BsonElement("as", "foo"),
+                        new BsonElement("cond", searchValue),
+                    });
+
+                    var filterCountDoc = new BsonDocument("$size", filterDoc);
+                    return filterCountDoc;
                 }
 
                 // c.Sum(d => d.Age), c.Count(), etc
