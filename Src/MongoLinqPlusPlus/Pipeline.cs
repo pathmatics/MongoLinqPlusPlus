@@ -1134,14 +1134,37 @@ namespace MongoLinqPlusPlus
                     return;
             }
 
-            try
+            
+            // Split .Where(c => xxx && yyy && zzz)
+            // int   .Where(c => xxx).Where(c => yyy).Where(c => zzz)
+            // That way each can use back to old $match semantics as appropriate
+            // and fall back to $expr individually. (old $match is superior because Mongo
+            // server as of 3.6.4 has bugs hitting indexes properly for $expr.)
+
+            var booleanAndQueue = new Queue<Expression>();
+            booleanAndQueue.Enqueue(lambdaExp.Body);
+
+            while (booleanAndQueue.Any())
             {
-                AddToPipeline("$match", BuildMongoWhereExpressionAsQuery(lambdaExp.Body, true).ToBsonDocument());
-            }
-            catch (InvalidQueryException)
-            {
-                LogLine(".Where couldn't be translated to old $match sytax.  Trying again using $expr expression...");
-                AddToPipeline("$match", new BsonDocument("$expr", BuildMongoSelectExpression(lambdaExp.Body)));
+                var exp = booleanAndQueue.Dequeue();
+                if (exp.NodeType == ExpressionType.AndAlso)
+                {
+                    // We found an AND expression.  Enqueue the right operand
+                    var andExp = (BinaryExpression) exp;
+                    booleanAndQueue.Enqueue(andExp.Right);
+                    exp = andExp.Left;
+                }
+
+                // Now add a pipeline stage for the left operand
+                try
+                {
+                    AddToPipeline("$match", BuildMongoWhereExpressionAsQuery(exp, true).ToBsonDocument());
+                }
+                catch (InvalidQueryException)
+                {
+                    LogLine(".Where couldn't be translated to old $match sytax.  Trying again using $expr expression...");
+                    AddToPipeline("$match", new BsonDocument("$expr", BuildMongoSelectExpression(exp)));
+                }
             }
         }
 
