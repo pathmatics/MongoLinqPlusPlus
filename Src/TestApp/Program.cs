@@ -53,31 +53,30 @@ namespace MongoLinqPlusPlus.TestApp
 */
 
 
-/*            var results = _mongoQuery.Take(1)
-                                     .Select(c => c.PreviousAddresses)
-                                     .SelectMany(c => c)
-                                     .Select(c => c.Zip)
-                                     .ToArray();*/
 
-            var results = _mongoQuery.Where(c => c.OldIds != null)
+            var results = _mongoQuery.Where(c => 4 == c.NumPets)
+                                     .Take(1)
                                      .Select(c => new {
-                                         Num = c.OldIds.Count(d => d == 4)
+                                         c.FirstName,
+                                         c.NumPets,
+                                         c.NullableDate,
+                                         c.Birthday
                                      })
                                      .ToArray();
 
-        /*                
-
-            Assert.IsTrue(TestHelpers.AreEqual(new[] { _mongoQuery, _memryQuery }.Select(queryable =>
-                queryable.GroupBy(c => c.Birthday.Year)
-                         .Select(c => new { First = c.First() })
-                         .Take(1)
-            )));
-            
-            Console.WriteLine("\r\n------------ TEST PROGRAM RESULTS -------------\r\n");
-            var results = _mongoQuery.GroupBy(c => c.NumPets)
-                         .Select(c => new { First = c.First() })
-                         .Take(1)
-                         .ToArray();*/
+            /*                
+    
+                Assert.IsTrue(TestHelpers.AreEqual(new[] { _mongoQuery, _memryQuery }.Select(queryable =>
+                    queryable.GroupBy(c => c.Birthday.Year)
+                             .Select(c => new { First = c.First() })
+                             .Take(1)
+                )));
+                
+                Console.WriteLine("\r\n------------ TEST PROGRAM RESULTS -------------\r\n");
+                var results = _mongoQuery.GroupBy(c => c.NumPets)
+                             .Select(c => new { First = c.First() })
+                             .Take(1)
+                             .ToArray();*/
             
             var json = JsonConvert.SerializeObject(results, Formatting.Indented);
             Console.WriteLine(json);

@@ -40,5 +40,14 @@ namespace MongoLinqPlusPlus
 
             return isAnonymousType;
         }
+
+        /// <summary>
+        /// Returns true iff this type is a non-nullable value type.
+        /// (Not that this behavior differs from the property Type.IsValueType)
+        /// </summary>
+        public static bool IsNonNullableValueType(this Type type)
+        {
+            return type.IsValueType && Nullable.GetUnderlyingType(type) == null;
+        }
     }
 }

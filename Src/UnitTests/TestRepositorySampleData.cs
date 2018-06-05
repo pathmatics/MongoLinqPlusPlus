@@ -204,6 +204,7 @@ namespace MongoLinqPlusPlus.Tests
                 PreviousAddresses = new[] {Addresses[4]},
                 StudentId = 501205021522,
                 NullableInt = 5,
+                NullableDate = new DateTime(2018,1,1).ToUniversalTime(),
                 GPA = 3.33333333,
                 Guid = Guid.Parse("00000005-0005-0005-0005-000000000005")
             }

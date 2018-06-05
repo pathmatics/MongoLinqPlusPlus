@@ -305,5 +305,24 @@ namespace MongoLinqPlusPlus.Tests
                 })
             )));
         }
+
+        [TestMethod]
+        public void Select_Nullable()
+        {
+            Assert.IsTrue(TestHelpers.AreEqual(new[] {_mongoQuery, _memryQuery}.Select(queryable =>
+                queryable.Select(c => new { c.NullableInt })
+            )));
+
+            Assert.IsTrue(TestHelpers.AreEqual(new[] {_mongoQuery, _memryQuery}.Select(queryable =>
+                queryable.Select(c => c.NullableInt)
+            )));
+            Assert.IsTrue(TestHelpers.AreEqual(new[] {_mongoQuery, _memryQuery}.Select(queryable =>
+                queryable.Select(c => new { c.NullableDate })
+            )));
+
+            Assert.IsTrue(TestHelpers.AreEqual(new[] {_mongoQuery, _memryQuery}.Select(queryable =>
+                queryable.Select(c => c.NullableDate)
+            )));
+        }
     }
 }

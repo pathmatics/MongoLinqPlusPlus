@@ -53,10 +53,14 @@ namespace MongoLinqPlusPlus
             {typeof(ushort), false},
             {typeof(double), false},
             {typeof(DateTime), true},
+            {typeof(DateTime?), true},
             {typeof(ObjectId), true},
             {typeof(Guid), true}
         };
 
+        /// <summary>Cached collection of value types</summary>
+        private Dictionary<Type, bool> _valueTypeDict = new Dictionary<Type, bool>();
+        
         /// <summary>
         /// We can convert (return true) for any supplied type which has a property or field with one
         /// of the MongoDB.Bson attributes (BsonElement, BsonId, etc).  Json.Net is not aware of these
@@ -92,6 +96,24 @@ namespace MongoLinqPlusPlus
 
         public override object ReadJson(JsonReader reader, Type objectType, object existingValue, JsonSerializer serializer)
         {
+            // If we're deserializing null, then there's no real deserialization needed.
+            if (reader.TokenType == JsonToken.Null)
+            {
+                if (!objectType.IsValueType)
+                    return null;
+
+                if (!_valueTypeDict.TryGetValue(objectType, out bool isValueType))
+                {
+                    isValueType = objectType.IsNonNullableValueType();
+                    _valueTypeDict[objectType] = isValueType;
+                }
+
+                if (isValueType)
+                    throw new NullReferenceException("Error deserialzing null into value type " + objectType.Name);
+
+                return null;
+            }
+
             var jObject = JObject.Load(reader);
             string json = jObject.ToString();
             return BsonSerializer.Deserialize(json, objectType);
