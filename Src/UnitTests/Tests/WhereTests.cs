@@ -246,7 +246,7 @@ namespace MongoLinqPlusPlus.Tests
         }
 
         [TestMethod]
-        public void Where_Expressions()
+        public void Where_Advanced_Expr_Expressions()
         {
             // In MongoDB 3.6 we can use {$match, {$expr, ... }} to actually use real expressions in our where queries
             // Test that here
@@ -255,6 +255,10 @@ namespace MongoLinqPlusPlus.Tests
             {
                 Assert.IsTrue(TestHelpers.AreEqual(new[] {_mongoQuery, _memryQuery}.Select(queryable =>
                     queryable.Where(c => c.FirstName == c.LastName)
+                )));
+
+                Assert.IsTrue(TestHelpers.AreEqual(new[] {_mongoQuery, _memryQuery}.Select(queryable =>
+                    queryable.Where(c => 4 == c.NumPets)
                 )));
 
                 Assert.IsTrue(TestHelpers.AreEqual(new[] {_mongoQuery, _memryQuery}.Select(queryable =>
