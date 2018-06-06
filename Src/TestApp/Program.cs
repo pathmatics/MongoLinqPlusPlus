@@ -54,14 +54,8 @@ namespace MongoLinqPlusPlus.TestApp
 
 
 
-            var results = _mongoQuery.Where(c => 4 == c.NumPets)
-                                     .Take(1)
-                                     .Select(c => new {
-                                         c.FirstName,
-                                         c.NumPets,
-                                         c.NullableDate,
-                                         c.Birthday
-                                     })
+            var results = _mongoQuery.Where(c => c.NullableDate != null)
+                                     .Select(c => c.NullableDate)
                                      .ToArray();
 
             /*                
@@ -77,6 +71,8 @@ namespace MongoLinqPlusPlus.TestApp
                              .Select(c => new { First = c.First() })
                              .Take(1)
                              .ToArray();*/
+
+            Console.WriteLine(results.Single().Value.Kind);
             
             var json = JsonConvert.SerializeObject(results, Formatting.Indented);
             Console.WriteLine(json);
