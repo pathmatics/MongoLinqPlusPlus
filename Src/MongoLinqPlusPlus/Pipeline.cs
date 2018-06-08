@@ -771,7 +771,14 @@ namespace MongoLinqPlusPlus
                 var array = new BsonArray(new[] {leftValue, rightValue});
 
                 string mongoOperator = NodeToMongoBinaryOperatorDict[expression.NodeType];
-                return new BsonDocument(mongoOperator, array);
+
+                var divideDoc = new BsonDocument(mongoOperator, array);
+
+                // Support integer division
+                if (expression.NodeType == ExpressionType.Divide && (expression.Type == typeof(long) || expression.Type == typeof(int)))
+                    divideDoc = new BsonDocument("$trunc", divideDoc);
+
+                return divideDoc;
             }
 
             // !c.IsMale

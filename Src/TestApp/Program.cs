@@ -54,8 +54,7 @@ namespace MongoLinqPlusPlus.TestApp
 
 
 
-            var results = _mongoQuery.Where(c => c.NullableDate != null)
-                                     .Select(c => c.NullableDate)
+            var results = _mongoQuery.Select(c => new { X = c.NumPets / 2 , c.NumPets})
                                      .ToArray();
 
             /*                
@@ -72,7 +71,6 @@ namespace MongoLinqPlusPlus.TestApp
                              .Take(1)
                              .ToArray();*/
 
-            Console.WriteLine(results.Single().Value.Kind);
             
             var json = JsonConvert.SerializeObject(results, Formatting.Indented);
             Console.WriteLine(json);

@@ -41,7 +41,7 @@ namespace MongoLinqPlusPlus
     {
         private readonly Dictionary<Type, bool> _useMongoBsonDeserializerDict = new Dictionary<Type, bool> {
             {typeof(string), false},
-            {typeof(int), false},
+            {typeof(int), true},        // <-- Needs to be true to handle integer division.  See bugbug below
             {typeof(uint), false},
             {typeof(long), false},
             {typeof(ulong), false},
@@ -96,6 +96,22 @@ namespace MongoLinqPlusPlus
 
         public override object ReadJson(JsonReader reader, Type objectType, object existingValue, JsonSerializer serializer)
         {
+            if (objectType == typeof(int))
+            {
+                if (reader.TokenType == JsonToken.Float)
+                {
+                    // BUGBUG!  The MongoDB documentation for $trunc specifies that it returns an integer.  However, we're actually
+                    // getting a double back from the server (ableit with no decimal part).  So we need to deserialize this ourselves.
+                    return (int) (double) reader.Value;
+                }
+
+                if (reader.TokenType != JsonToken.Integer)
+                    throw new InvalidCastException("No explicit conversion of JsonToken type " + reader.TokenType + " to Int32 implemented.");
+
+                // TODO: Bounds check the long?
+                return (int) (long) reader.Value;
+            }
+
             // If we're deserializing null, then there's no real deserialization needed.
             if (reader.TokenType == JsonToken.Null)
             {
