@@ -4,9 +4,11 @@ A .NET LINQ provider for MongoDB that utilizes the MongoDB Aggregation Framework
 
 ### Why is this useful? ###
 
-The LINQ provider that ships with the MongoDB C# driver is limited in it's functionality.
-The MongoDB Aggregation Framework adds all kinds of goodness that was just waiting to be
-wrapped by a new LINQ provider.  The main benefits of MongoLinqPlusPlus are groupings
+This was written back when the the LINQ provider that ships with the MongoDB C# driver
+was extremely limited in support.  Since they they have improved their LINQ support.
+However, I've still found their LINQ support limited when compared to everything that
+can be done via the Aggregation Framework.  MongoLinqPlusPlus was developed to support
+our query pattern here at PathmaticsThe main benefits of MongoLinqPlusPlus are groupings
 (.GroupBy), projections (.Select), and aggregations (.Sum).  You can even mix them together:
 
     .Where(c => c.Age > 30)
@@ -16,18 +18,20 @@ wrapped by a new LINQ provider.  The main benefits of MongoLinqPlusPlus are grou
         TotalPets = c.Sum(d => d.NumPets)
     })
 
-MongoLinqPlusPlus is still under development.  Use at your own risk.
+MongoLinqPlusPlus is still under active development.  Use at your own risk.
 
 ### What operations are currently supported? ###
-* .Where
-* .Where(localArray.Contains())
+* .Where (including full expression support on 3.6 via $expr) 
 * .Select
+* .SelectMany
 * .GroupBy
-* .GroupBy().Select(group aggregation)
+* .GroupBy().Select(aggregation methods on the group)
 * .OrderBy
 * .OrderByDescending
 * .ThenBy
 * .ThenByDescending
+* .Take
+* .Skip
 * .Sum
 * .Min
 * .Max
@@ -39,17 +43,18 @@ MongoLinqPlusPlus is still under development.  Use at your own risk.
 * .Single
 * .SingleOrDefault
 
-More features are still being added.  All supported functionality is in the unit tests.
+More features are still being added as we need them.  All supported functionality is in the unit tests
+and that has become the source of truth for what is truly supported.  
 
 ### Dependencies ###
 
-* .Net 4.5
-* MongoDB 2.6 server or Mongo 3.x server
+* .Net 4.7
+* MongoDB Mongo 3.6 server (with good support for 3.4)
 * MongoDB 2.0 Legacy .NET client (does not support the new API yet)
 * Json.NET
 
 ### Building ###
-The source should build cleanly in VisualStudio 2013 without jumping through any hoops.
+The source should build cleanly in VisualStudio 2017 without jumping through any hoops.
 
 ### Experimenting ###
 There's a set of unit tests and a very basic test program you can play with.  They
@@ -87,7 +92,7 @@ Pathmatics, Inc
 ### License ###
 The MIT License (MIT)
 
-Copyright (c) 2015 Pathmatics, Inc
+Copyright (c) 2018 Pathmatics, Inc
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
