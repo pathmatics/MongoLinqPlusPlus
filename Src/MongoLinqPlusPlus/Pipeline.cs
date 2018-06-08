@@ -1162,23 +1162,6 @@ namespace MongoLinqPlusPlus
                 new BsonElement("_id", new BsonInt32(0)),
             });
             _currentPipelineDocumentUsesResultHack = true;
-
-            // TODO: Figure out why is the below commented out..
-/*
-            // This 'simple' case might also be a nested object
-            // .Select(c => c.Address)
-            // In this case, we don't want our working document to look like { _result_ : {State: CA, Zip: 90405, etc}}
-            // We want to promote the nested address doc to be the root so we just have {State: CA, Zip: 90405, etc}
-            // This is supported via the $replaceRoot pipeline stage
-
-            // Don't promote (or inspect) types that are Enumerables
-            var type = lambdaExp.Body.Type;
-            if (!typeof(Enumerable).IsAssignableFrom(type)
-                && (type.GetFields(BindingFlags.SetProperty | BindingFlags.GetProperty | BindingFlags.Instance | BindingFlags.Public).Length > 0
-                    || type.GetProperties(BindingFlags.SetProperty | BindingFlags.GetProperty | BindingFlags.Instance | BindingFlags.Public).Length > 0))
-            {
-                AddToPipeline("$replaceRoot", new BsonDocument("newRoot", "$" + PIPELINE_DOCUMENT_RESULT_NAME));
-            }*/
         }
 
         /// <summary>Adds a new $match stage to the pipeline for a .Where method call</summary>
@@ -1235,7 +1218,7 @@ namespace MongoLinqPlusPlus
             AddToPipeline("$limit", new BsonInt32(limit));
         }
 
-        /// <summary>Adds a new $limit stage to the pipeline for a .Take method call</summary>
+        /// <summary>Adds a new $skip stage to the pipeline for a .Skipmethod call</summary>
         public void EmitPipelineStageForSkip(int limit)
         {
             AddToPipeline("$skip", new BsonInt32(limit));
@@ -1325,6 +1308,19 @@ namespace MongoLinqPlusPlus
             sortDoc.Add(field, ascending ? 1 : -1);
         }
 
+        /// <summary>
+        /// Emits a pipeline stage for a .Distinct() call.
+        /// It accomplishes this by translating .Distinct() to .GroupBy(c => c).Select(c => c.Key)
+        /// </summary>
+        public void EmitPipelineStageForDistinct()
+        {
+            // Group by the document itself and then promote the key to the root:
+            // {$group:{ _id: "$$ROOT"}}
+            // {$replaceRoot: {newRoot: "$_id"}}]
+            AddToPipeline("$group", new BsonDocument("_id", "$$ROOT"));
+            AddToPipeline("$replaceRoot", new BsonDocument("newRoot", "$_id"));
+        }
+
         /// <summary>Adds the respective pipeline stage(s) for the supplied method call</summary>
         public void EmitPipelineStageForMethod(MethodCallExpression expression)
         {
@@ -1354,19 +1350,28 @@ namespace MongoLinqPlusPlus
                     return;
                 }
                 case "Take":
+                {
+                    int numToTakeOrSkip = (int) ((ConstantExpression) expression.Arguments[1]).Value;
+                    EmitPipelineStageForTake(numToTakeOrSkip);
+                    return;
+                }
                 case "Skip":
                 {
                     int numToTakeOrSkip = (int) ((ConstantExpression) expression.Arguments[1]).Value;
-                    if (expression.Method.Name == "Take")
-                        EmitPipelineStageForTake(numToTakeOrSkip);
-                    else
-                        EmitPipelineStageForSkip(numToTakeOrSkip);
+                    EmitPipelineStageForSkip(numToTakeOrSkip);
                     return;
                 }
                 case "GroupBy":
                 {
                     EmitPipelineStageForGroupBy(GetLambda(expression));
                     _lastPipelineOperation = _lastPipelineOperation | PipelineResultType.Grouped;
+                    return;
+                }
+                case "Distinct":
+                {
+                    if (expression.Arguments.Count() != 1)
+                        throw new InvalidQueryException(".Distinct() only supported without parameters.");
+                    EmitPipelineStageForDistinct();
                     return;
                 }
                 case "Select":

@@ -54,7 +54,8 @@ namespace MongoLinqPlusPlus.TestApp
 
 
 
-            var results = _mongoQuery.Select(c => new { X = c.NumPets / 2 , c.NumPets})
+            var results = _mongoQuery.GroupBy(c => new { c.FirstName })
+                                     .Select(c => c.Key)
                                      .ToArray();
 
             /*                

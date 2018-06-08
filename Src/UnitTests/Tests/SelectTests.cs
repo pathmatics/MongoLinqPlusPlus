@@ -98,6 +98,10 @@ namespace MongoLinqPlusPlus.Tests
             )));
 
             Assert.IsTrue(TestHelpers.AreEqual(new[] { _mongoQuery, _memryQuery }.Select(queryable =>
+                queryable.Select(c => c.CurrentAddress)
+            )));
+
+            Assert.IsTrue(TestHelpers.AreEqual(new[] { _mongoQuery, _memryQuery }.Select(queryable =>
                 queryable.Select(c => new {
                     c.PreviousAddresses
                 })
