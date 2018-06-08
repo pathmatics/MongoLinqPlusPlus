@@ -106,6 +106,10 @@ namespace MongoLinqPlusPlus.Tests
         public void Where_Array_Any()
         {
             Assert.IsTrue(TestHelpers.AreEqual(new[] { _mongoQuery, _memryQuery }.Select(queryable =>
+                queryable.Where(c => c.OldIds != null && c.OldIds.Any(d => d == 4))
+            )));
+
+            Assert.IsTrue(TestHelpers.AreEqual(new[] { _mongoQuery, _memryQuery }.Select(queryable =>
                 queryable.Where(c => c.PreviousAddresses.Any(d => d.Zip == 90405))
             )));
 
@@ -114,12 +118,23 @@ namespace MongoLinqPlusPlus.Tests
             )));
 
             Assert.IsTrue(TestHelpers.AreEqual(new[] { _mongoQuery, _memryQuery }.Select(queryable =>
-                queryable.Where(c => c.OldIds != null && c.OldIds.Any(d => d == 4))
+                queryable.Where(c => c.OldIds != null && c.OldIds.Any(d => d != 4 && d > 1))
             )));
-            
+        }
+        
+        [TestMethod]
+        public void Where_Array_All()
+        {
+            Assert.IsTrue(TestHelpers.AreEqual(new[] { _mongoQuery, _memryQuery }.Select(queryable =>
+                queryable.Where(c => c.OldIds != null && c.OldIds.All(d => d == 4))
+            )));
 
             Assert.IsTrue(TestHelpers.AreEqual(new[] { _mongoQuery, _memryQuery }.Select(queryable =>
-                queryable.Where(c => c.OldIds != null && c.OldIds.Any(d => d != 4 && d > 1))
+                queryable.Where(c => c.OldIds != null && c.OldIds.All(d => d < 4))
+            )));
+
+            Assert.IsTrue(TestHelpers.AreEqual(new[] { _mongoQuery, _memryQuery }.Select(queryable =>
+                queryable.Where(c => c.PreviousAddresses.All(d => d.Zip != 90405))
             )));
         }
 
@@ -217,14 +232,42 @@ namespace MongoLinqPlusPlus.Tests
         }
 
         [TestMethod]
-        public void Where_Unsupported()
+        public void Where_String_Contains()
         {
+            // We have a null first name in our test data.  Mongo will handle this ok but Linq-to-objects will blow up
+            // So check for null to make this test pass.
+            Assert.IsTrue(TestHelpers.AreEqual(new[] { _mongoQuery, _memryQuery }.Select(queryable =>
+                queryable.Where(c => c.FirstName != null && c.FirstName.Contains("Tom"))
+            )));
+
+            Assert.IsTrue(TestHelpers.AreEqual(new[] { _mongoQuery, _memryQuery }.Select(queryable =>
+                queryable.Where(c => c.LastName.Contains("o"))
+            )));
+        }
+
+        [TestMethod]
+        public void Where_Advanced_Expr_Expressions()
+        {
+            // In MongoDB 3.6 we can use {$match, {$expr, ... }} to actually use real expressions in our where queries
+            // Test that here
+
             try
             {
                 Assert.IsTrue(TestHelpers.AreEqual(new[] {_mongoQuery, _memryQuery}.Select(queryable =>
                     queryable.Where(c => c.FirstName == c.LastName)
                 )));
-                Assert.Fail("This is supposed to fail...");
+
+                Assert.IsTrue(TestHelpers.AreEqual(new[] {_mongoQuery, _memryQuery}.Select(queryable =>
+                    queryable.Where(c => 4 == c.NumPets)
+                )));
+
+                Assert.IsTrue(TestHelpers.AreEqual(new[] {_mongoQuery, _memryQuery}.Select(queryable =>
+                    queryable.Where(c => c.FirstName != c.LastName)
+                )));
+
+                Assert.IsTrue(TestHelpers.AreEqual(new[] {_mongoQuery, _memryQuery}.Select(queryable =>
+                    queryable.Where(c => c.FirstName != null && c.FirstName.Length > c.NumPets + 2)
+                )));
             }
             catch (InvalidQueryException)
             {

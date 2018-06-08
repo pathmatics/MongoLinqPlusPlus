@@ -53,30 +53,24 @@ namespace MongoLinqPlusPlus.TestApp
 */
 
 
-/*            var results = _mongoQuery.Take(1)
-                                     .Select(c => c.PreviousAddresses)
-                                     .SelectMany(c => c)
-                                     .Select(c => c.Zip)
-                                     .ToArray();*/
 
-            var results = _mongoQuery.SelectMany(c => c.PreviousAddresses.Select(d => new {
-                                          d.Zip
-                                     }))
+            var results = _mongoQuery.Select(c => new { X = c.NumPets / 2 , c.NumPets})
                                      .ToArray();
 
-        /*                
+            /*                
+    
+                Assert.IsTrue(TestHelpers.AreEqual(new[] { _mongoQuery, _memryQuery }.Select(queryable =>
+                    queryable.GroupBy(c => c.Birthday.Year)
+                             .Select(c => new { First = c.First() })
+                             .Take(1)
+                )));
+                
+                Console.WriteLine("\r\n------------ TEST PROGRAM RESULTS -------------\r\n");
+                var results = _mongoQuery.GroupBy(c => c.NumPets)
+                             .Select(c => new { First = c.First() })
+                             .Take(1)
+                             .ToArray();*/
 
-            Assert.IsTrue(TestHelpers.AreEqual(new[] { _mongoQuery, _memryQuery }.Select(queryable =>
-                queryable.GroupBy(c => c.Birthday.Year)
-                         .Select(c => new { First = c.First() })
-                         .Take(1)
-            )));
-            
-            Console.WriteLine("\r\n------------ TEST PROGRAM RESULTS -------------\r\n");
-            var results = _mongoQuery.GroupBy(c => c.NumPets)
-                         .Select(c => new { First = c.First() })
-                         .Take(1)
-                         .ToArray();*/
             
             var json = JsonConvert.SerializeObject(results, Formatting.Indented);
             Console.WriteLine(json);

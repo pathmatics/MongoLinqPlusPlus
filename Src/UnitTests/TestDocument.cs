@@ -55,6 +55,7 @@ namespace MongoLinqPlusPlus.Tests
         public int NumPets;
         public long StudentId;
         public int? NullableInt;
+        public DateTime? NullableDate;
         public double GPA;
         public Guid Guid;
 

@@ -197,13 +197,14 @@ namespace MongoLinqPlusPlus.Tests
                 FirstName = null,
                 LastName = "",
                 IsMale = false,
-                Birthday = new DateTime(1984, 6, 30).ToUniversalTime(),
+                Birthday = new DateTime(1984,6,30, 0, 0, 0, DateTimeKind.Utc),
                 CurrentAddress = Addresses[2],
                 OldIds = new[] { 10, 11, 12},
                 NumPets = 0,
                 PreviousAddresses = new[] {Addresses[4]},
                 StudentId = 501205021522,
                 NullableInt = 5,
+                NullableDate = new DateTime(1984,6,30, 0, 0, 0, DateTimeKind.Utc),
                 GPA = 3.33333333,
                 Guid = Guid.Parse("00000005-0005-0005-0005-000000000005")
             }

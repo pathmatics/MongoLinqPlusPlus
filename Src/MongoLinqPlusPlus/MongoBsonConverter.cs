@@ -41,7 +41,7 @@ namespace MongoLinqPlusPlus
     {
         private readonly Dictionary<Type, bool> _useMongoBsonDeserializerDict = new Dictionary<Type, bool> {
             {typeof(string), false},
-            {typeof(int), false},
+            {typeof(int), true},        // <-- Needs to be true to handle integer division.  See bugbug below
             {typeof(uint), false},
             {typeof(long), false},
             {typeof(ulong), false},
@@ -53,10 +53,14 @@ namespace MongoLinqPlusPlus
             {typeof(ushort), false},
             {typeof(double), false},
             {typeof(DateTime), true},
+            {typeof(DateTime?), true},
             {typeof(ObjectId), true},
             {typeof(Guid), true}
         };
 
+        /// <summary>Cached collection of value types</summary>
+        private Dictionary<Type, bool> _valueTypeDict = new Dictionary<Type, bool>();
+        
         /// <summary>
         /// We can convert (return true) for any supplied type which has a property or field with one
         /// of the MongoDB.Bson attributes (BsonElement, BsonId, etc).  Json.Net is not aware of these
@@ -92,6 +96,40 @@ namespace MongoLinqPlusPlus
 
         public override object ReadJson(JsonReader reader, Type objectType, object existingValue, JsonSerializer serializer)
         {
+            if (objectType == typeof(int))
+            {
+                if (reader.TokenType == JsonToken.Float)
+                {
+                    // BUGBUG!  The MongoDB documentation for $trunc specifies that it returns an integer.  However, we're actually
+                    // getting a double back from the server (ableit with no decimal part).  So we need to deserialize this ourselves.
+                    return (int) (double) reader.Value;
+                }
+
+                if (reader.TokenType != JsonToken.Integer)
+                    throw new InvalidCastException("No explicit conversion of JsonToken type " + reader.TokenType + " to Int32 implemented.");
+
+                // TODO: Bounds check the long?
+                return (int) (long) reader.Value;
+            }
+
+            // If we're deserializing null, then there's no real deserialization needed.
+            if (reader.TokenType == JsonToken.Null)
+            {
+                if (!objectType.IsValueType)
+                    return null;
+
+                if (!_valueTypeDict.TryGetValue(objectType, out bool isValueType))
+                {
+                    isValueType = objectType.IsNonNullableValueType();
+                    _valueTypeDict[objectType] = isValueType;
+                }
+
+                if (isValueType)
+                    throw new NullReferenceException("Error deserialzing null into value type " + objectType.Name);
+
+                return null;
+            }
+
             var jObject = JObject.Load(reader);
             string json = jObject.ToString();
             return BsonSerializer.Deserialize(json, objectType);

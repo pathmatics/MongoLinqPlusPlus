@@ -58,6 +58,13 @@ namespace MongoLinqPlusPlus.Tests
                              // Length = c.FirstName.Length // 3.4 Specific
                          })
             )));
+
+            Assert.IsTrue(TestHelpers.AreEqual(new[] { _mongoQuery, _memryQuery }.Select(queryable =>
+                queryable.Where(c => c.FirstName != null)
+                    .Select(c => new {
+                        HasO = c.FirstName.Contains("o")
+                    })
+            )));
         }
     }
 }

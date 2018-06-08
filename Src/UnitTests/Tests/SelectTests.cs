@@ -110,6 +110,10 @@ namespace MongoLinqPlusPlus.Tests
                     IsFemale = !c.IsMale,
                     NumPets = c.NumPets * 15 - 2,
                     NumPetsAgain = c.NumPets * 15 - 2,
+                    NumPetsDivide = c.NumPets / 2,
+                    NumPetsDivide2 = c.NumPets / -1,
+                    NumPetsDviide3 = c.NumPets / -2,
+                    DoubleDivision = c.NumPets / 0.33,
                     c.CurrentAddress.State,
                     IsInCali = c.CurrentAddress.State == States.CA,
                     c.SSN,
@@ -163,6 +167,18 @@ namespace MongoLinqPlusPlus.Tests
 
             Assert.IsTrue(TestHelpers.AreEqual(new[] { _mongoQuery, _memryQuery }.Select(queryable =>
                 queryable.Select(c => c.PreviousAddresses.Length * 2 < 4)
+            )));
+        }
+
+        [TestMethod]
+        public void Select_ArrayCount()
+        {
+            Assert.IsTrue(TestHelpers.AreEqual(new[] { _mongoQuery, _memryQuery }.Select(queryable =>
+                queryable.Select(c => c.PreviousAddresses.Count(d => d.Zip == 90405))
+            )));
+
+            Assert.IsTrue(TestHelpers.AreEqual(new[] { _mongoQuery, _memryQuery }.Select(queryable =>
+                queryable.Select(c => c.PreviousAddresses.Count())
             )));
         }
 
@@ -291,6 +307,25 @@ namespace MongoLinqPlusPlus.Tests
                     MyName = c.FirstName,
                     MyNumPets = c.NumPets
                 })
+            )));
+        }
+
+        [TestMethod]
+        public void Select_Nullable()
+        {
+            Assert.IsTrue(TestHelpers.AreEqual(new[] {_mongoQuery, _memryQuery}.Select(queryable =>
+                queryable.Select(c => new { c.NullableInt })
+            )));
+
+            Assert.IsTrue(TestHelpers.AreEqual(new[] {_mongoQuery, _memryQuery}.Select(queryable =>
+                queryable.Select(c => c.NullableInt)
+            )));
+            Assert.IsTrue(TestHelpers.AreEqual(new[] {_mongoQuery, _memryQuery}.Select(queryable =>
+                queryable.Select(c => new { c.NullableDate })
+            )));
+
+            Assert.IsTrue(TestHelpers.AreEqual(new[] {_mongoQuery, _memryQuery}.Select(queryable =>
+                queryable.Select(c => c.NullableDate)
             )));
         }
     }
