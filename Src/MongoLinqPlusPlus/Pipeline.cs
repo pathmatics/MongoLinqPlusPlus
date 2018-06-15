@@ -241,6 +241,10 @@ namespace MongoLinqPlusPlus
                     prefix = (fieldName.StartsWith("$") ? fieldName.Substring(1) : fieldName) + '.';
                 }
 
+                // String.Length field not support in the Mongo Query syntax.
+                if (memberExp.Member.Name == "Length" && memberExp.Member.DeclaringType == typeof(string))
+                    throw new InvalidQueryException("Can't use String.Length in a legacy $match expression");
+
                 var finalFieldName = prefix + GetMongoFieldName(memberExp.Member);
                 if (_currentPipelineDocumentUsesResultHack)
                     finalFieldName = PIPELINE_DOCUMENT_RESULT_NAME + "." + finalFieldName;
@@ -597,6 +601,9 @@ namespace MongoLinqPlusPlus
         /// <returns>The mongo field name</returns>
         public BsonString GetMongoFieldNameForMethodOnGrouping(MethodCallExpression callExp)
         {
+            if (callExp.Arguments.Count == 0)
+                throw new InvalidQueryException("Unsupported usage of " + callExp.Method.Name);
+               
             // Only allow a function within a Select to be called on a group
             if (callExp.Arguments[0].Type.Name != "IGrouping`2")
                 throw new InvalidQueryException("Aggregation \"" + callExp.Method.Name + "\"can only be run after a GroupBy");
@@ -772,13 +779,18 @@ namespace MongoLinqPlusPlus
 
                 string mongoOperator = NodeToMongoBinaryOperatorDict[expression.NodeType];
 
-                var divideDoc = new BsonDocument(mongoOperator, array);
+                // Support string concatenation via the "+" operator.
+                // If either side is a string, then replace $add with $concat
+                if (binExp.NodeType == ExpressionType.Add && (binExp.Left.Type == typeof(string) || binExp.Right.Type == typeof(string)))
+                    mongoOperator = "$concat";
+
+                var expressionDoc = new BsonDocument(mongoOperator, array);
 
                 // Support integer division
                 if (expression.NodeType == ExpressionType.Divide && (expression.Type == typeof(long) || expression.Type == typeof(int)))
-                    divideDoc = new BsonDocument("$trunc", divideDoc);
+                    expressionDoc = new BsonDocument("$trunc", expressionDoc);
 
-                return divideDoc;
+                return expressionDoc;
             }
 
             // !c.IsMale
@@ -860,6 +872,31 @@ namespace MongoLinqPlusPlus
                         return new BsonDocument("$toUpper", BuildMongoSelectExpression(callExp.Object));
                     if (callExp.Method.Name == "ToLower")
                         return new BsonDocument("$toLower", BuildMongoSelectExpression(callExp.Object));
+                    if (callExp.Method.Name == "Substring")
+                    {
+                        // Handle string.SubString(index, count) and .Substring(index)
+
+                        BsonValue characterCount = callExp.Arguments.Count == 1
+                                                   ? int.MaxValue
+                                                   : BuildMongoSelectExpression(callExp.Arguments[1]);
+
+                        // Build {$substrCP: ["stringToTakeSubstringOf", index, count]}
+                        return new BsonDocument("$substrCP",
+                                                new BsonArray(new[] {
+                                                    BuildMongoSelectExpression(callExp.Object),
+                                                    BuildMongoSelectExpression(callExp.Arguments[0]),
+                                                    characterCount}));
+                    }
+
+                    if (callExp.Method.Name == "IndexOf")
+                    {
+                        // Build {indexOfCP: ["stringToSearchWithin", "stringToSearchFor"]}
+                        return new BsonDocument("$indexOfCP",
+                                                new BsonArray(new[] {
+                                                    BuildMongoSelectExpression(callExp.Object),
+                                                    BuildMongoSelectExpression(callExp.Arguments[0])
+                                                }));
+                    }
 
                     throw new InvalidQueryException($"Can't translate method {callExp.Object.Type.Name}.{callExp.Method.Name} to Mongo expression");
                 }

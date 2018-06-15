@@ -22,6 +22,7 @@
 
 using System.Linq;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
+// ReSharper disable StringIndexOfIsCultureSpecific.1
 
 namespace MongoLinqPlusPlus.Tests
 {
@@ -32,38 +33,195 @@ namespace MongoLinqPlusPlus.Tests
         private IQueryable<TestDocument> _memryQuery = TestRepository.TestDocuments.AsQueryable();
 
         [TestMethod]
-        public void StringMethods()
+        public void String_Length()
+        {
+            Assert.IsTrue(TestHelpers.AreEqual(new[] { _mongoQuery, _memryQuery }.Select(queryable =>
+                queryable.Select(c => c.FirstName.Length)
+            )));
+
+            Assert.IsTrue(TestHelpers.AreEqual(new[] { _mongoQuery, _memryQuery }.Select(queryable =>
+                queryable.Where(c => c.FirstName.Length > 3)
+                         .Select(c => c.FirstName)
+            )));
+        }
+
+        [TestMethod]
+        public void String_ToUpperLower()
+        {
+            Assert.IsTrue(TestHelpers.AreEqual(new[] { _mongoQuery, _memryQuery }.Select(queryable =>
+                queryable.Where(c => c.FirstName.ToLower() == "tom")
+            )));
+
+            Assert.IsTrue(TestHelpers.AreEqual(new[] { _mongoQuery, _memryQuery }.Select(queryable =>
+                queryable.Select(c => c.FirstName.ToUpper())
+            )));
+
+            Assert.IsTrue(TestHelpers.AreEqual(new[] { _mongoQuery, _memryQuery }.Select(queryable =>
+                queryable.Select(c => c.FirstName.ToLower())
+            )));
+        }
+
+        [TestMethod]
+        public void String_StartsWith()
+        {
+            Assert.IsTrue(TestHelpers.AreEqual(new[] { _mongoQuery, _memryQuery }.Select(queryable =>
+                queryable.Where(c => c.FirstName.StartsWith("Tom"))
+            )));
+
+            Assert.IsTrue(TestHelpers.AreEqual(new[] { _mongoQuery, _memryQuery }.Select(queryable =>
+                queryable.Select(c => new {
+                             StartsWith = c.FirstName.StartsWith("Tom"),
+                         })
+            )));
+        }
+
+        [TestMethod]
+        public void String_Contains()
         {
 
             Assert.IsTrue(TestHelpers.AreEqual(new[] { _mongoQuery, _memryQuery }.Select(queryable =>
-                queryable.Where(c => c.FirstName != null)
-                         .Select(c => new {
-                             StartsWith = c.FirstName.StartsWith("Tom"),
-                         })
-                         .Where(c => c.StartsWith)
-            )));
-
-            Assert.IsTrue(TestHelpers.AreEqual(new[] { _mongoQuery, _memryQuery }.Select(queryable =>
-                queryable.Where(c => c.FirstName != null)
-                         .Select(c => new {
-                             Upper = c.FirstName.ToUpper(),
+                queryable.Select(c => new {
+                             HasO = c.FirstName.Contains("o")
                          })
             )));
 
             Assert.IsTrue(TestHelpers.AreEqual(new[] { _mongoQuery, _memryQuery }.Select(queryable =>
-                queryable.Where(c => c.FirstName != null)
+                queryable.Where(c => c.FirstName.Contains("o"))
+            )));
+        }
+
+        [TestMethod]
+        public void String_IndexOf()
+        {
+            
+            Assert.IsTrue(TestHelpers.AreEqual(new[] { _mongoQuery, _memryQuery }.Select(queryable =>
+                queryable.Where(c => c.FirstName.ToLower().IndexOf("t") == 1)
+            )));
+
+            Assert.IsTrue(TestHelpers.AreEqual(new[] { _mongoQuery, _memryQuery }.Select(queryable =>
+                queryable.Select(c => c.FirstName.IndexOf("om"))
+            )));
+
+            Assert.IsTrue(TestHelpers.AreEqual(new[] { _mongoQuery, _memryQuery }.Select(queryable =>
+                queryable.Select(c => c.FirstName.IndexOf("Tom"))
+            )));
+
+            Assert.IsTrue(TestHelpers.AreEqual(new[] { _mongoQuery, _memryQuery }.Select(queryable =>
+                queryable.Select(c => c.FirstName.IndexOf(""))
+            )));
+
+            Assert.IsTrue(TestHelpers.AreEqual(new[] { _mongoQuery, _memryQuery }.Select(queryable =>
+                queryable.Select(c => c.FirstName.IndexOf("asdflkjadslkjfdas"))
+            )));
+        }
+
+        [TestMethod]
+        public void String_Concat()
+        {
+            
+            Assert.IsTrue(TestHelpers.AreEqual(new[] { _mongoQuery, _memryQuery }.Select(queryable =>
+                queryable.Where(c => c.FirstName + c.LastName == "FrankJones")
+            )));
+
+            Assert.IsTrue(TestHelpers.AreEqual(new[] { _mongoQuery, _memryQuery }.Select(queryable =>
+                queryable.Select(c => c.FirstName + " " + c.LastName)
+            )));
+
+            Assert.IsTrue(TestHelpers.AreEqual(new[] { _mongoQuery, _memryQuery }.Select(queryable =>
+                queryable.Select(c => "" + c.LastName)
+            )));
+
+            // Not support in Mongo 3.6.  I think we will get this in mongo 3.8.  Look at $convert.
+            /*
+            Assert.IsTrue(TestHelpers.AreEqual(new[] { _mongoQuery, _memryQuery }.Select(queryable =>
+                queryable.Select(c => 1 + c.LastName)
+            )));
+
+            Assert.IsTrue(TestHelpers.AreEqual(new[] { _mongoQuery, _memryQuery }.Select(queryable =>
+                queryable.Select(c => c.LastName + 2)
+            )));*/
+        }
+
+        [TestMethod]
+        public void String_Substring()
+        {
+            
+            Assert.IsTrue(TestHelpers.AreEqual(new[] { _mongoQuery, _memryQuery }.Select(queryable =>
+                queryable.Where(c => c.FirstName.Length >= 3
+                                     && c.FirstName.Substring(0, 3) == "Tom")
+            )));
+
+            Assert.IsTrue(TestHelpers.AreEqual(new[] { _mongoQuery, _memryQuery }.Select(queryable =>
+                queryable.Where(c => c.FirstName.Length >= 3)
                          .Select(c => new {
-                             Upper = c.FirstName.ToUpper(),
-                             Lower = c.FirstName.ToLower(),
-                             // Length = c.FirstName.Length // 3.4 Specific
+                             TestA = c.FirstName.Substring(0, 3),
+                             TestB = c.FirstName.Substring(0, 2),
+                             TestC = c.FirstName.Substring(0, 1),
+                             TestD = c.FirstName.Substring(0, 0),
+                             TestE = c.FirstName.Substring(0),
+                             TestF = c.FirstName.Substring(1, 2),
+                             TestG = c.FirstName.Substring(1, 1),
+                             TestH = c.FirstName.Substring(1, 0),
+                             TestI = c.FirstName.Substring(2),
+                             TestJ = c.FirstName.Substring(2, 1),
+                             TestK = c.FirstName.Substring(2, 0),
+                             TestL = c.FirstName.Substring(2),
                          })
             )));
 
             Assert.IsTrue(TestHelpers.AreEqual(new[] { _mongoQuery, _memryQuery }.Select(queryable =>
-                queryable.Where(c => c.FirstName != null)
-                    .Select(c => new {
-                        HasO = c.FirstName.Contains("o")
-                    })
+                queryable.Where(c => c.FirstName.Length >= 3)
+                         .Select(c => c.FirstName.Substring(0, 3))
+            )));
+
+            Assert.IsTrue(TestHelpers.AreEqual(new[] { _mongoQuery, _memryQuery }.Select(queryable =>
+                queryable.Where(c => c.FirstName.Length >= 3)
+                         .Select(c => c.FirstName.Substring(0, 2))
+            )));
+
+            Assert.IsTrue(TestHelpers.AreEqual(new[] { _mongoQuery, _memryQuery }.Select(queryable =>
+                queryable.Where(c => c.FirstName.Length >= 3)
+                         .Select(c => c.FirstName.Substring(0, 1))
+            )));
+
+            Assert.IsTrue(TestHelpers.AreEqual(new[] { _mongoQuery, _memryQuery }.Select(queryable =>
+                queryable.Where(c => c.FirstName.Length >= 3)
+                         .Select(c => c.FirstName.Substring(0))
+            )));
+
+            Assert.IsTrue(TestHelpers.AreEqual(new[] { _mongoQuery, _memryQuery }.Select(queryable =>
+                queryable.Where(c => c.FirstName.Length >= 3)
+                         .Select(c => c.FirstName.Substring(1, 2))
+            )));
+
+            Assert.IsTrue(TestHelpers.AreEqual(new[] { _mongoQuery, _memryQuery }.Select(queryable =>
+                queryable.Where(c => c.FirstName.Length >= 3)
+                         .Select(c => c.FirstName.Substring(1, 1))
+            )));
+
+            Assert.IsTrue(TestHelpers.AreEqual(new[] { _mongoQuery, _memryQuery }.Select(queryable =>
+                queryable.Where(c => c.FirstName.Length >= 3)
+                         .Select(c => c.FirstName.Substring(1, 0))
+            )));
+
+            Assert.IsTrue(TestHelpers.AreEqual(new[] { _mongoQuery, _memryQuery }.Select(queryable =>
+                queryable.Where(c => c.FirstName.Length >= 3)
+                         .Select(c => c.FirstName.Substring(1))
+            )));
+
+            Assert.IsTrue(TestHelpers.AreEqual(new[] { _mongoQuery, _memryQuery }.Select(queryable =>
+                queryable.Where(c => c.FirstName.Length >= 3)
+                         .Select(c => c.FirstName.Substring(2, 1))
+            )));
+
+            Assert.IsTrue(TestHelpers.AreEqual(new[] { _mongoQuery, _memryQuery }.Select(queryable =>
+                queryable.Where(c => c.FirstName.Length >= 3)
+                         .Select(c => c.FirstName.Substring(2, 0))
+            )));
+
+            Assert.IsTrue(TestHelpers.AreEqual(new[] { _mongoQuery, _memryQuery }.Select(queryable =>
+                queryable.Where(c => c.FirstName.Length >= 3)
+                         .Select(c => c.FirstName.Substring(2))
             )));
         }
     }

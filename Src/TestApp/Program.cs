@@ -54,8 +54,7 @@ namespace MongoLinqPlusPlus.TestApp
 
 
 
-            var results = _mongoQuery.GroupBy(c => new { c.FirstName })
-                                     .Select(c => c.Key)
+            var results = _mongoQuery.Select(c => c.FirstName + c.LastName)
                                      .ToArray();
 
             /*                

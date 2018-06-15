@@ -54,7 +54,7 @@ namespace MongoLinqPlusPlus.Tests
             },
             new TestDocument {
                 SSN = "000-00-0001",
-                FirstName = "Tom",
+                FirstName = "Tomas",
                 LastName = "Bosley",
                 IsMale = true,
                 Birthday = new DateTime(1988, 5, 12).AddMilliseconds(1295129).ToUniversalTime(),
@@ -194,7 +194,7 @@ namespace MongoLinqPlusPlus.Tests
             },
             new TestDocument {
                 SSN = "000-00-0011",
-                FirstName = null,
+                FirstName = "",
                 LastName = "",
                 IsMale = false,
                 Birthday = new DateTime(1984,6,30, 0, 0, 0, DateTimeKind.Utc),
