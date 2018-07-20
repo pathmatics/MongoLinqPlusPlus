@@ -141,7 +141,7 @@ namespace MongoLinqPlusPlus.Tests
                 FirstName = "June",
                 LastName = "Cleaver",
                 IsMale = false,
-                Birthday = new DateTime(1995, 5, 24).ToUniversalTime(),
+                Birthday = new DateTime(1995, 5, 24, 0, 0, 0, DateTimeKind.Utc),
                 CurrentAddress = Addresses[0],
                 OldIds = new[] { 10, 11, 12},
                 NumPets = 0,

@@ -181,6 +181,22 @@ namespace MongoLinqPlusPlus
             return newStage;
         }
 
+        /// <summary>
+        /// Gets the name of the Mongo Field that the specified MemberExpression maps to.
+        /// </summary>
+        string GetMongoFieldNameInMatchStage(Expression expression, bool isNamedProperty)
+        {
+            // Don't support querying property members on DateTime in a $match stage
+            if (expression is MemberExpression memberExp
+                && (memberExp.Expression.Type == typeof(DateTime)
+                    /*|| memberExp.Expression.Type == typeof(ObjectId)*/))
+            {
+                throw new InvalidQueryException($"Can't access properties on {memberExp.Expression.Type.Name} in $match stage.");
+            }
+
+            return GetMongoFieldName(expression, isNamedProperty);
+        }
+
         /// <summary>Gets the Mongo field name that the specified MemberInfo maps to.</summary>
         private string GetMongoFieldName(MemberInfo member)
         {
@@ -219,6 +235,12 @@ namespace MongoLinqPlusPlus
 
             if (expression is MemberExpression memberExp)
             {
+                // Special case!!
+                // As of MongoDB 3.6, Mongo can treat the ObjectId as a DateTime.  We'll support this on the .Net side
+                // via access on the CreationTime operation.  We'll just eat the property access.
+                if (ExpressionIsObjectIdCreationTime(memberExp))
+                    return GetMongoFieldName(memberExp.Expression, isNamedProperty);
+
                 isNamedProperty = true;
 
                 // We might have a nested MemberExpression like c.Key.Name
@@ -370,6 +392,14 @@ namespace MongoLinqPlusPlus
             throw new InvalidQueryException("Can't convert type " + obj.GetType().Name + " to BsonValue");
         }
 
+        /// <summary>Returns true iff the Expression specified is for ObjectId.CreationTime</summary>
+        bool ExpressionIsObjectIdCreationTime(Expression expression)
+        {
+            return expression is MemberExpression memberExp
+                && memberExp.Member.Name == nameof(ObjectId.CreationTime)
+                && memberExp.Expression.Type == typeof(ObjectId);
+        }
+
         /// <summary>
         /// Builds an IMongoQuery from a given expression for use in a $match stage.
         /// We build an IMongoQuery rather than a BsonValue simply as a shortcut.
@@ -400,6 +430,84 @@ namespace MongoLinqPlusPlus
             // Handle binary operators (&&, ==, >, etc)
             if (expression is BinaryExpression binExp)
             {
+                // Very special case.  Support range queries on Object ID's by date:
+                // .Where(c => c.ObjectId.CreationTime > new DateTime(2018,1,1)
+                // We want to get this exactly right so we can take advantage of an index on ObjectId.
+                // If we project our ObjectId into a date, then we'll blow the index.
+                if ((binExp.NodeType == ExpressionType.GreaterThan
+                    || binExp.NodeType == ExpressionType.GreaterThanOrEqual
+                    || binExp.NodeType == ExpressionType.LessThan
+                    || binExp.NodeType == ExpressionType.LessThanOrEqual
+                    || binExp.NodeType == ExpressionType.Equal)
+                    && (ExpressionIsObjectIdCreationTime(binExp.Left) || ExpressionIsObjectIdCreationTime(binExp.Right))
+                    && (binExp.Left.NodeType == ExpressionType.Constant || binExp.Right.NodeType == ExpressionType.Constant))
+                {
+                    // We now have an expression in this form:
+                    //     comparisonOperator(LHS, RHS)
+                    // that can take two forms:
+                    //     1) comparisonOperator(ObjectId.CreationDate, Constant)
+                    //     2) comparisonOperator(Constant, ObjectId.CreationDate)
+
+                    // We'll convert case 2 into case 1 to simplify this exercise for us.
+
+                    ConstantExpression constExp;
+                    MemberExpression memberExp;
+                    ExpressionType comparisonType;
+
+                    if (binExp.Left.NodeType == ExpressionType.Constant)
+                    {
+                        // Case 2 : Swap it around to look like case 1
+                        constExp = (ConstantExpression) binExp.Left;
+                        memberExp = (MemberExpression) binExp.Right;
+
+                        // Swap our comparison operator
+                        if (binExp.NodeType == ExpressionType.GreaterThan)
+                            comparisonType = ExpressionType.LessThan;
+                        else if (binExp.NodeType == ExpressionType.GreaterThanOrEqual)
+                            comparisonType = ExpressionType.LessThanOrEqual;
+                        else if (binExp.NodeType == ExpressionType.LessThan)
+                            comparisonType = ExpressionType.GreaterThan;
+                        else if (binExp.NodeType == ExpressionType.LessThanOrEqual)
+                            comparisonType = ExpressionType.GreaterThanOrEqual;
+                        else
+                            comparisonType = ExpressionType.Equal;
+                    }
+                    else
+                    {
+                        // Case 1: nothing to swap
+                        constExp = (ConstantExpression) binExp.Right;
+                        memberExp = (MemberExpression) binExp.Left;
+                        comparisonType = binExp.NodeType;
+                    }
+
+                    // Now our ObjectId.CreationDate is the LHS
+
+                    // Pull the DateTime we're comparing our ObjectId.CreationDate to
+                    var comparisonValue = (DateTime) constExp.Value;
+
+                    var comparisonValueAsObjectIdMin = new ObjectId(comparisonValue, 0, 0, 0);
+                    var comparisonValueAsObjectIdMax = new ObjectId(comparisonValue, 16777215, -1, 16777215);
+
+                    // GT  memberExp > comparisonValueAsObjectIdMax
+                    // GTE memberExp >= comparisonValueAsObjectIdMin
+                    // LT memberExp < comparisonValueAsObjectIdMin
+                    // LTE memberExp <= comparisonValueAsObjectIdMax
+                    // EQ  memberExp >= comparisonValueAsObjectIdMin && memberExp <= comparisonValueAsObjectIdMax
+
+                    string mongoFieldName = GetMongoFieldNameInMatchStage(memberExp, isLambdaParamResultHack);
+                    if (comparisonType == ExpressionType.GreaterThan)
+                        return Query.GT(mongoFieldName, comparisonValueAsObjectIdMax);
+                    if (comparisonType == ExpressionType.GreaterThanOrEqual)
+                        return Query.GTE(mongoFieldName, comparisonValueAsObjectIdMin);
+                    if (comparisonType == ExpressionType.LessThan)
+                        return Query.LT(mongoFieldName, comparisonValueAsObjectIdMin);
+                    if (comparisonType == ExpressionType.LessThanOrEqual)
+                        return Query.LTE(mongoFieldName, comparisonValueAsObjectIdMax);
+                    
+                    // EQ
+                    return Query.And(Query.GTE(mongoFieldName, comparisonValueAsObjectIdMin), Query.LTE(mongoFieldName, comparisonValueAsObjectIdMax));
+                }
+
                 // If the LHS is an array length, then we use special operators.
                 if (binExp.Left.NodeType == ExpressionType.ArrayLength)
                 {
@@ -421,7 +529,7 @@ namespace MongoLinqPlusPlus
 
                     // Get our operands
                     int rhs = (int) ((ConstantExpression) binExp.Right).Value;
-                    string mongoFieldName = GetMongoFieldName(((UnaryExpression) binExp.Left).Operand, isLambdaParamResultHack);
+                    string mongoFieldName = GetMongoFieldNameInMatchStage(((UnaryExpression) binExp.Left).Operand, isLambdaParamResultHack);
                     if (mongoFieldName == null)
                         throw new NotImplementedException("ExpressionType.ArrayLength on lambda parameters not supported. ie: .Where(c => c.SubArray.Any(d => d.Length > 5))");
 
@@ -436,7 +544,7 @@ namespace MongoLinqPlusPlus
                 if (NodeToMongoQueryBuilderFuncDict.Keys.Contains(expression.NodeType))
                 {
                     // The left side of the operator MUST be a mongo field name
-                    string mongoFieldName = GetMongoFieldName(binExp.Left, isLambdaParamResultHack);
+                    string mongoFieldName = GetMongoFieldNameInMatchStage(binExp.Left, isLambdaParamResultHack);
 
                     // Build the Mongo expression for the right side of the binary operator
                     BsonValue rightValue = BuildMongoWhereExpressionAsBsonValue(binExp.Right, isLambdaParamResultHack);
@@ -472,7 +580,7 @@ namespace MongoLinqPlusPlus
             // Handle .IsMale case in: .Where(c => c.IsMale || c.Age == 15)
             if (expression.NodeType == ExpressionType.MemberAccess)
             {
-                return Query.EQ(GetMongoFieldName(expression, isLambdaParamResultHack), true);
+                return Query.EQ(GetMongoFieldNameInMatchStage(expression, isLambdaParamResultHack), true);
             }
 
             // Handle method calls on sub properties
@@ -498,7 +606,7 @@ namespace MongoLinqPlusPlus
                         }
 
                         // Get the field that we're going to search for within the IEnumerable
-                        var mongoFieldName = GetMongoFieldName(callExp.Arguments.Last(), isLambdaParamResultHack);
+                        var mongoFieldName = GetMongoFieldNameInMatchStage(callExp.Arguments.Last(), isLambdaParamResultHack);
 
                         // Evaluate the IEnumerable
                         var array = (BsonArray) GetBsonValueFromObject(localEnumerable);
@@ -510,7 +618,7 @@ namespace MongoLinqPlusPlus
                     }
 
                     // Par 2 - Support .Where(c => c.SomeArrayProperty.Contains("foo"))
-                    string searchTargetMongoFieldName = GetMongoFieldName(callExp.Arguments[0], isLambdaParamResultHack);
+                    string searchTargetMongoFieldName = GetMongoFieldNameInMatchStage(callExp.Arguments[0], isLambdaParamResultHack);
                     var searchItem = BsonValue.Create(((ConstantExpression) callExp.Arguments[1]).Value);
                     return Query.All(searchTargetMongoFieldName, new[] {searchItem});
                 }
@@ -518,7 +626,7 @@ namespace MongoLinqPlusPlus
                 // Support .Where(c => string.IsNullOrEmpty(c.Name))
                 if (callExp.Method.Name == "IsNullOrEmpty" && callExp.Object == null && callExp.Method.ReflectedType == typeof(string))
                 {
-                    var mongoFieldName = GetMongoFieldName(callExp.Arguments.Single(), isLambdaParamResultHack);
+                    var mongoFieldName = GetMongoFieldNameInMatchStage(callExp.Arguments.Single(), isLambdaParamResultHack);
                     return Query.Or(Query.EQ(mongoFieldName, BsonNull.Value), Query.EQ(mongoFieldName, new BsonString("")));
                 }
 
@@ -530,7 +638,7 @@ namespace MongoLinqPlusPlus
                         throw new NotImplementedException("TODO: Implement .Where(c => c.SomeArrayProp.Any())");
 
                     // Support .Where(c => c.SomeArrayProp.Any(d => d.SubProp > 5))
-                    var mongoFieldName = GetMongoFieldName(callExp.Arguments[0], isLambdaParamResultHack);
+                    var mongoFieldName = GetMongoFieldNameInMatchStage(callExp.Arguments[0], isLambdaParamResultHack);
                     var predicateExpression = (LambdaExpression) callExp.Arguments[1];
                     
                     var query = Query.ElemMatch(mongoFieldName, BuildMongoWhereExpressionAsQuery(predicateExpression.Body, false));
@@ -709,17 +817,34 @@ namespace MongoLinqPlusPlus
                 {
                     if (memberExpression.Member.Name == "Date")
                     {
-                        // No support for Date but we can hack it by subtracting out the time component (in milliseconds)
-                        var hours = new BsonDocument("$hour", BuildMongoSelectExpression(memberExpression.Expression));
-                        var minutes = new BsonDocument("$minute", BuildMongoSelectExpression(memberExpression.Expression));
-                        var seconds = new BsonDocument("$second", BuildMongoSelectExpression(memberExpression.Expression));
-                        var millis = new BsonDocument("$millisecond", BuildMongoSelectExpression(memberExpression.Expression));
-                        var hoursAsMillis = new BsonDocument("$multiply", new BsonArray(new[] { hours, (BsonValue) 3600000}));
-                        var minutesAsMillis = new BsonDocument("$multiply", new BsonArray(new[] { minutes, (BsonValue) 60000}));
-                        var secondsAsMillis = new BsonDocument("$multiply", new BsonArray(new[] { seconds, (BsonValue) 1000}));
-                        var totalMillis = new BsonDocument("$add", new BsonArray(new[] { hoursAsMillis, minutesAsMillis, secondsAsMillis, millis }));
-                        var array = new BsonArray(new[] { BuildMongoSelectExpression(memberExpression.Expression), totalMillis});
-                        return new BsonDocument("$subtract", array);
+                        // Get the thing we're supposed to take the .Date from
+                        BsonValue dateTimeExpression;
+
+                        if (ExpressionIsObjectIdCreationTime(memberExpression.Expression))
+                        {
+                            // Special case for ObjectId.CreationTime
+                            // Mongo's Date Operators ($year, $month, $dayOfMonth, etc) all work on an ObjectId.
+                            // So let's remove the .CreationTime property from our expression because that will
+                            // lead to an unnecessairly verbose query.
+                            dateTimeExpression = BuildMongoSelectExpression(((MemberExpression) memberExpression.Expression).Expression);
+                        }
+                        else
+                            dateTimeExpression = BuildMongoSelectExpression(memberExpression.Expression);
+
+
+                        // No support for Date but we can hack it by building a new Date from the Year+Month+Day
+
+                        var year = new BsonDocument("$year", dateTimeExpression);
+                        var month = new BsonDocument("$month", dateTimeExpression);
+                        var day = new BsonDocument("$dayOfMonth", dateTimeExpression);
+
+                        var dateFromPartElements = new[] {
+                            new BsonElement("year", year),
+                            new BsonElement("month", month),
+                            new BsonElement("day", day)
+                        };
+
+                        return new BsonDocument("$dateFromParts", new BsonDocument(dateFromPartElements.AsEnumerable()));
                     }
 
                     // .Net DayOfWeek is 0 indexed, Mongo is 1 indexed
@@ -735,7 +860,33 @@ namespace MongoLinqPlusPlus
                     throw new InvalidQueryException($"{memberExpression.Member.Name} property on DateTime not supported due to lack of Mongo support :(");
                 }
 
+                // Handle a special case of member access: CreationTime on an ObjectId
+                // Convert this to a proper Date
+                if (ExpressionIsObjectIdCreationTime(memberExpression))
+                {
+                    var dateTimeExpression = BuildMongoSelectExpression(memberExpression.Expression);
+                    var year = new BsonDocument("$year", dateTimeExpression);
+                    var month = new BsonDocument("$month", dateTimeExpression);
+                    var day = new BsonDocument("$dayOfMonth", dateTimeExpression);
+                    var hour = new BsonDocument("$hour", dateTimeExpression);
+                    var minute = new BsonDocument("$minute", dateTimeExpression);
+                    var second = new BsonDocument("$second", dateTimeExpression);
+
+                    var dateFromPartElements = new[] {
+                        new BsonElement("year", year),
+                        new BsonElement("month", month),
+                        new BsonElement("day", day),
+                        new BsonElement("hour", hour),
+                        new BsonElement("minute", minute),
+                        new BsonElement("second", second)
+                    };
+
+                    return new BsonDocument("$dateFromParts", new BsonDocument(dateFromPartElements.AsEnumerable()));
+                }
+
+                // Just throw a $ in front of the fully prefixed field name to get the proper aggregation pipeline syntax
                 return new BsonString("$" + GetMongoFieldName(memberExpression, true));
+
             }
 
             // 15

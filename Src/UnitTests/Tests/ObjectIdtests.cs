@@ -23,6 +23,7 @@
 using System;
 using System.Linq;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
+using MongoDB.Bson;
 
 namespace MongoLinqPlusPlus.Tests
 {
@@ -67,6 +68,70 @@ namespace MongoLinqPlusPlus.Tests
 
             Assert.IsTrue(TestHelpers.AreEqual(new[] { _mongoQuery, _memryQuery }.Select(queryable =>
                 queryable.GroupBy(c => c._id)
+            )));
+        }
+
+        [TestMethod]
+        public void ObjectId_CreationTime_Date()
+        {
+            Assert.IsTrue(TestHelpers.AreEqual(new[] { _mongoQuery, _memryQuery }.Select(queryable =>
+                queryable.Select(c => c._id.CreationTime.Date)
+            )));
+
+            Assert.IsTrue(TestHelpers.AreEqual(new[] { _mongoQuery, _memryQuery }.Select(queryable =>
+                queryable.Where(c => c._id.CreationTime.Date > new DateTime(2018,2,1,0,0,0,DateTimeKind.Utc))
+            )));
+
+            Assert.IsTrue(TestHelpers.AreEqual(new[] { _mongoQuery, _memryQuery }.Select(queryable =>
+                queryable.Where(c => c._id.CreationTime.Date == new DateTime(2018,1,1,0,0,0,DateTimeKind.Utc))
+            )));
+
+            Assert.IsTrue(TestHelpers.AreEqual(new[] { _mongoQuery, _memryQuery }.Select(queryable =>
+                queryable.Where(c => c._id > new ObjectId(new DateTime(2018,2,1,0,0,0,DateTimeKind.Utc), 0, 0, 0))
+            )));
+        }
+
+        [TestMethod]
+        public void ObjectId_CreationTime_RangeQueries()
+        {
+            Assert.IsTrue(TestHelpers.AreEqual(new[] { _mongoQuery, _memryQuery }.Select(queryable =>
+                queryable.Where(c => c._id.CreationTime > new DateTime(2018,2,1,0,0,0,DateTimeKind.Utc))
+            )));
+
+            Assert.IsTrue(TestHelpers.AreEqual(new[] { _mongoQuery, _memryQuery }.Select(queryable =>
+                queryable.Where(c => c._id.CreationTime >= new DateTime(2018,2,1,0,0,0,DateTimeKind.Utc))
+            )));
+
+            Assert.IsTrue(TestHelpers.AreEqual(new[] { _mongoQuery, _memryQuery }.Select(queryable =>
+                queryable.Where(c => c._id.CreationTime < new DateTime(2018,2,1,0,0,0,DateTimeKind.Utc))
+            )));
+
+            Assert.IsTrue(TestHelpers.AreEqual(new[] { _mongoQuery, _memryQuery }.Select(queryable =>
+                queryable.Where(c => c._id.CreationTime <= new DateTime(2018,2,1,0,0,0,DateTimeKind.Utc))
+            )));
+
+            Assert.IsTrue(TestHelpers.AreEqual(new[] { _mongoQuery, _memryQuery }.Select(queryable =>
+                queryable.Where(c => c._id.CreationTime == new DateTime(2018,2,1,0,0,0,DateTimeKind.Utc))
+            )));
+
+            Assert.IsTrue(TestHelpers.AreEqual(new[] { _mongoQuery, _memryQuery }.Select(queryable =>
+                queryable.Select(c => c._id.CreationTime > new DateTime(2018,2,1,0,0,0,DateTimeKind.Utc))
+            )));
+
+            Assert.IsTrue(TestHelpers.AreEqual(new[] { _mongoQuery, _memryQuery }.Select(queryable =>
+                queryable.Select(c => c._id.CreationTime >= new DateTime(2018,2,1,0,0,0,DateTimeKind.Utc))
+            )));
+
+            Assert.IsTrue(TestHelpers.AreEqual(new[] { _mongoQuery, _memryQuery }.Select(queryable =>
+                queryable.Select(c => c._id.CreationTime < new DateTime(2018,2,1,0,0,0,DateTimeKind.Utc))
+            )));
+
+            Assert.IsTrue(TestHelpers.AreEqual(new[] { _mongoQuery, _memryQuery }.Select(queryable =>
+                queryable.Select(c => c._id.CreationTime <= new DateTime(2018,2,1,0,0,0,DateTimeKind.Utc))
+            )));
+
+            Assert.IsTrue(TestHelpers.AreEqual(new[] { _mongoQuery, _memryQuery }.Select(queryable =>
+                queryable.Select(c => c._id.CreationTime == new DateTime(2018,2,1,0,0,0,DateTimeKind.Utc))
             )));
         }
     }

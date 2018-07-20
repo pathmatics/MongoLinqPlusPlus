@@ -54,8 +54,17 @@ namespace MongoLinqPlusPlus.TestApp
 
 
 
-            var results = _mongoQuery.Select(c => c.FirstName + c.LastName)
-                                     .ToArray();
+/*            var results = _mongoQuery.Where(c => c.Birthday.Date == new DateTime(1995, 5, 24, 0, 0, 0, DateTimeKind.Utc))
+                                     .Select(c => new {
+                                         c.Birthday
+                                     })
+                                     .ToArray();*/
+
+            var results = ObjectIdDocumentRepository.GetDefaultDataQueryablePlusPlus(Console.WriteLine)
+                                                    .Select(c => c._id.CreationTime.Date > new DateTime(2017,2,1,0,0,0,DateTimeKind.Utc))
+                                                    .Take(2)
+                                                    .ToArray();
+            
 
             /*                
     
@@ -75,7 +84,7 @@ namespace MongoLinqPlusPlus.TestApp
             var json = JsonConvert.SerializeObject(results, Formatting.Indented);
             Console.WriteLine(json);
 
-            if (System.Diagnostics.Debugger.IsAttached)
+            if (Debugger.IsAttached)
             {
                 Console.WriteLine("\r\nPress any key to exit.");
                 Console.ReadKey();

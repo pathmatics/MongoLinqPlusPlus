@@ -23,6 +23,8 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
+using MongoDB.Bson;
 using MongoDB.Driver;
 
 namespace MongoLinqPlusPlus.Tests
@@ -32,7 +34,7 @@ namespace MongoLinqPlusPlus.Tests
     /// </summary>
     public class ObjectIdDocumentRepository
     {
-        public static IMongoCollection<ObjectIdDocument> Collection { get; private set; }
+        public static IMongoCollection<ObjectIdDocument> Collection { get; }
 
         static ObjectIdDocumentRepository()
         {
@@ -42,8 +44,16 @@ namespace MongoLinqPlusPlus.Tests
             Collection = db.GetCollection<ObjectIdDocument>("objectIdDocs");
 
             // Drop any existing data and insert a new batch of documents.
+
             db.DropCollection("objectIdDocs");
-            Collection.InsertMany(Enumerable.Range(0, 100).Select(c => new ObjectIdDocument {Value = c}));
+            var docs = Enumerable.Range(0, 100)
+                                 .Select(c => new ObjectIdDocument {
+                                     _id = new ObjectId(new DateTime(2018, 1, 1, 0, 0, 0, DateTimeKind.Utc).AddDays(c), 0, 0, 0),
+                                     Value = c
+                                 })
+                                 .ToArray();
+            Collection.InsertMany(docs);
+
 
             // Now pull the documents out and put them in our TestDocuments property.  It's important that
             // we wrote them into Mongo first and them extracted them because the ObjectId _id field will
@@ -52,7 +62,8 @@ namespace MongoLinqPlusPlus.Tests
             TestDocuments = Collection.Find(FilterDefinition<ObjectIdDocument>.Empty).ToEnumerable().ToArray();
         }
 
-        public static IEnumerable<ObjectIdDocument> TestDocuments { get; private set; }
+        public static IEnumerable<ObjectIdDocument> TestDocuments { get; }
+        public static int Value { get; }
 
         /// <summary>Initialize our Mongo database with fresh data and get an IQueryable to it</summary>
         public static IQueryable<ObjectIdDocument> GetDefaultDataQueryablePlusPlus(Action<string> loggingDelegate = null, bool allowMongoDiskUse = false)

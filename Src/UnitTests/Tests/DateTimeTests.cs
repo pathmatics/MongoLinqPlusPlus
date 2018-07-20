@@ -80,9 +80,77 @@ namespace MongoLinqPlusPlus.Tests
         {
             Assert.IsTrue(TestHelpers.AreEqual(new[] { _mongoQuery, _memryQuery }.Select(queryable =>
                 queryable.GroupBy(c => new {
-                             Date = c.Birthday.Date
+                             c.Birthday.Date
                           })
                          .Select(c => c.Key)
+            )));
+        }
+
+        [TestMethod]
+        public void DateTime_Range()
+        {
+            Assert.IsTrue(TestHelpers.AreEqual(new[] {_mongoQuery, _memryQuery}.Select(queryable =>
+                queryable.Where(c => c.Birthday == new DateTime(1995, 5, 24, 0, 0, 0, DateTimeKind.Utc))
+            )));
+
+            Assert.IsTrue(TestHelpers.AreEqual(new[] {_mongoQuery, _memryQuery}.Select(queryable =>
+                queryable.Where(c => c.Birthday > new DateTime(1995, 5, 24, 0, 0, 0, DateTimeKind.Utc))
+            )));
+
+            Assert.IsTrue(TestHelpers.AreEqual(new[] {_mongoQuery, _memryQuery}.Select(queryable =>
+                queryable.Where(c => c.Birthday >= new DateTime(1995, 5, 24, 0, 0, 0, DateTimeKind.Utc))
+            )));
+
+            Assert.IsTrue(TestHelpers.AreEqual(new[] {_mongoQuery, _memryQuery}.Select(queryable =>
+                queryable.Where(c => c.Birthday < new DateTime(1995, 5, 24, 0, 0, 0, DateTimeKind.Utc))
+            )));
+
+            Assert.IsTrue(TestHelpers.AreEqual(new[] {_mongoQuery, _memryQuery}.Select(queryable =>
+                queryable.Where(c => c.Birthday <= new DateTime(1995, 5, 24, 0, 0, 0, DateTimeKind.Utc))
+            )));
+
+            Assert.IsTrue(TestHelpers.AreEqual(new[] {_mongoQuery, _memryQuery}.Select(queryable =>
+                queryable.Select(c => c.Birthday)
+            )));
+
+            Assert.IsTrue(TestHelpers.AreEqual(new[] {_mongoQuery, _memryQuery}.Select(queryable =>
+                queryable.Select(c => new { c.Birthday })
+            )));
+        }
+
+        [TestMethod]
+        public void DateTime_Date()
+        {
+            Assert.IsTrue(TestHelpers.AreEqual(new[] {_mongoQuery, _memryQuery}.Select(queryable =>
+                queryable.Where(c => c.Birthday.Date == new DateTime(1995, 5, 24, 0, 0, 0, DateTimeKind.Utc))
+            )));
+
+            Assert.IsTrue(TestHelpers.AreEqual(new[] {_mongoQuery, _memryQuery}.Select(queryable =>
+                queryable.Where(c => c.Birthday.Date > new DateTime(1995, 5, 24, 0, 0, 0, DateTimeKind.Utc))
+            )));
+
+            Assert.IsTrue(TestHelpers.AreEqual(new[] {_mongoQuery, _memryQuery}.Select(queryable =>
+                queryable.Where(c => c.Birthday.Date >= new DateTime(1995, 5, 24, 0, 0, 0, DateTimeKind.Utc))
+            )));
+
+            Assert.IsTrue(TestHelpers.AreEqual(new[] {_mongoQuery, _memryQuery}.Select(queryable =>
+                queryable.Where(c => c.Birthday.Date < new DateTime(1995, 5, 24, 0, 0, 0, DateTimeKind.Utc))
+            )));
+
+            Assert.IsTrue(TestHelpers.AreEqual(new[] {_mongoQuery, _memryQuery}.Select(queryable =>
+                queryable.Where(c => c.Birthday.Date <= new DateTime(1995, 5, 24, 0, 0, 0, DateTimeKind.Utc))
+            )));
+
+            Assert.IsTrue(TestHelpers.AreEqual(new[] {_mongoQuery, _memryQuery}.Select(queryable =>
+                queryable.Select(c => c.Birthday.Date)
+            )));
+
+            Assert.IsTrue(TestHelpers.AreEqual(new[] {_mongoQuery, _memryQuery}.Select(queryable =>
+                queryable.Select(c => c.Birthday.Date.Date)
+            )));
+
+            Assert.IsTrue(TestHelpers.AreEqual(new[] {_mongoQuery, _memryQuery}.Select(queryable =>
+                queryable.Select(c => new { c.Birthday.Date })
             )));
         }
     }
