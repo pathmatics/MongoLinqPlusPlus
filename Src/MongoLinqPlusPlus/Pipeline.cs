@@ -187,9 +187,7 @@ namespace MongoLinqPlusPlus
         string GetMongoFieldNameInMatchStage(Expression expression, bool isNamedProperty)
         {
             // Don't support querying property members on DateTime in a $match stage
-            if (expression is MemberExpression memberExp
-                && (memberExp.Expression.Type == typeof(DateTime)
-                    /*|| memberExp.Expression.Type == typeof(ObjectId)*/))
+            if (expression is MemberExpression memberExp && memberExp.Expression.Type == typeof(DateTime))
             {
                 throw new InvalidQueryException($"Can't access properties on {memberExp.Expression.Type.Name} in $match stage.");
             }
