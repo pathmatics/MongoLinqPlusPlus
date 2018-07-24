@@ -45,10 +45,7 @@ namespace MongoLinqPlusPlus
         /// </summary>
         private void LogLine(string s)
         {
-            if (LoggingDelegate != null)
-            {
-                LoggingDelegate(s + Environment.NewLine);
-            }
+            LoggingDelegate?.Invoke(s + Environment.NewLine);
         }
 
         /// <summary>
@@ -65,7 +62,7 @@ namespace MongoLinqPlusPlus
         public IQueryable<TResult> CreateQuery<TResult>(Expression expression)
         {
             if (!typeof(IQueryable<TResult>).IsAssignableFrom(expression.Type))
-                throw new ArgumentOutOfRangeException("expression");
+                throw new ArgumentOutOfRangeException(nameof(expression));
 
             var queryable = new MongoAggregationQueryable<TResult> {
                 Provider = this,

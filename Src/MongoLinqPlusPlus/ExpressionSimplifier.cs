@@ -134,61 +134,40 @@ namespace MongoLinqPlusPlus
             if (expression is ConstantExpression)
                 return new Expression[0];
 
-            if (expression is BinaryExpression)
-            {
-                var binExp = (BinaryExpression) expression;
+            if (expression is BinaryExpression binExp)
                 return new[] { binExp.Left, binExp.Right };
-            }
 
-            if (expression is UnaryExpression)
-            {
-                var unExp = (UnaryExpression) expression;
+            if (expression is UnaryExpression unExp)
                 return new[] { unExp.Operand };
-            }
 
-            if (expression is ConditionalExpression)
-            {
-                var condExp = (ConditionalExpression) expression;
+            if (expression is ConditionalExpression condExp)
                 return new[] { condExp.Test, condExp.IfTrue, condExp.IfFalse };
-            }
 
-            if (expression is MethodCallExpression)
+            if (expression is MethodCallExpression callExp)
             {
-                var callExp = (MethodCallExpression) expression;
                 var children = callExp.Arguments.Where(c => c != null).ToList();
                 if (callExp.Object != null)
                     children.Add(callExp.Object);
                 return children.ToArray();
             }
 
-            if (expression is MemberExpression)
+            if (expression is MemberExpression memExp)
             {
-                var memExp = (MemberExpression) expression;
                 // memExp can be null if accessing a member of a static class
                 return memExp.Expression == null ? new Expression[0] : new[] { memExp.Expression };
             }
 
-            if (expression is NewExpression)
-            {
-                var newExp = (NewExpression) expression;
+            if (expression is NewExpression newExp)
                 return newExp.Arguments.ToArray();
-            }
 
-            if (expression is LambdaExpression)
-            {
-                var lambdaExp = (LambdaExpression) expression;
+            if (expression is LambdaExpression lambdaExp)
                 return new[] { lambdaExp.Body };
-            }
 
-            if (expression is NewArrayExpression)
-            {
-                var newArrayExp = (NewArrayExpression) expression;
+            if (expression is NewArrayExpression newArrayExp)
                 return newArrayExp.Expressions.ToArray();
-            }
 
-            if (expression is MemberInitExpression)
+            if (expression is MemberInitExpression memberInitExp)
             {
-                var memberInitExp = (MemberInitExpression) expression;
                 var children = memberInitExp.Bindings
                                             .Cast<MemberAssignment>()
                                             .Select(c => c.Expression)

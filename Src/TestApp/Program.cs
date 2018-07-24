@@ -54,17 +54,17 @@ namespace MongoLinqPlusPlus.TestApp
 
 
 
-/*            var results = _mongoQuery.Where(c => c.Birthday.Date == new DateTime(1995, 5, 24, 0, 0, 0, DateTimeKind.Utc))
-                                     .Select(c => new {
-                                         c.Birthday
-                                     })
-                                     .ToArray();*/
-
+            var results = _mongoQuery.Take(1)
+                                     .GroupBy(c => c.NumPets)
+                                     .Select(c => c.First())
+                                     .Select(c => c.NumPets)
+                                     .ToArray();
+/*
             var results = ObjectIdDocumentRepository.GetDefaultDataQueryablePlusPlus(Console.WriteLine)
                                                     .Select(c => c._id.CreationTime.Date > new DateTime(2017,2,1,0,0,0,DateTimeKind.Utc))
                                                     .Take(2)
                                                     .ToArray();
-            
+ */           
 
             /*                
     
