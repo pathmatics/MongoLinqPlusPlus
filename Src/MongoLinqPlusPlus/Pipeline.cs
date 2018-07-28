@@ -1190,6 +1190,12 @@ namespace MongoLinqPlusPlus
                 return new BsonString("$" + GetMongoFieldName(expression, true));
             }
 
+            if (expression.NodeType == ExpressionType.Coalesce)
+            {
+                var binaryExpression = (BinaryExpression) expression;
+                return new BsonDocument("$ifNull", new BsonArray(new[] { BuildMongoSelectExpression(binaryExpression.Left), BuildMongoSelectExpression(binaryExpression.Right) }));
+            }
+
             throw new InvalidQueryException("In Select(), can't build Mongo expression for node type" + expression.NodeType);
         }
 

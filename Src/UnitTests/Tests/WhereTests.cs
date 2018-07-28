@@ -292,5 +292,33 @@ namespace MongoLinqPlusPlus.Tests
                 // Success!
             }
         }
+
+        [TestMethod]
+        public void Where_Nullable()
+        {
+            Assert.IsTrue(TestHelpers.AreEqual(new[] {_mongoQuery, _memryQuery}.Select(queryable =>
+                queryable.Where(c => c.NullableInt < 10)
+            )));
+
+            Assert.IsTrue(TestHelpers.AreEqual(new[] {_mongoQuery, _memryQuery}.Select(queryable =>
+                queryable.Where(c => c.NullableInt > 10)
+            )));
+
+            Assert.IsTrue(TestHelpers.AreEqual(new[] {_mongoQuery, _memryQuery}.Select(queryable =>
+                queryable.Where(c => c.NullableInt == 5)
+            )));
+
+            Assert.IsTrue(TestHelpers.AreEqual(new[] {_mongoQuery, _memryQuery}.Select(queryable =>
+                queryable.Where(c => c.NullableInt == null)
+            )));
+
+            Assert.IsTrue(TestHelpers.AreEqual(new[] {_mongoQuery, _memryQuery}.Select(queryable =>
+                queryable.Where(c => c.NullableInt != null)
+            )));
+
+            Assert.IsTrue(TestHelpers.AreEqual(new[] {_mongoQuery, _memryQuery}.Select(queryable =>
+                queryable.Where(c => c.NullableInt > c.NumPets)
+            )));
+        }
     }
 }

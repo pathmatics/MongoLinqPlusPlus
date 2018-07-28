@@ -332,5 +332,26 @@ namespace MongoLinqPlusPlus.Tests
                 queryable.Select(c => c.NullableDate)
             )));
         }
+
+        [TestMethod]
+        public void Select_NullCoalescing()
+        {
+            Assert.IsTrue(TestHelpers.AreEqual(new[] {_mongoQuery, _memryQuery}.Select(queryable =>
+                queryable.Select(c => c.NullableInt ?? 10)
+            )));
+
+            Assert.IsTrue(TestHelpers.AreEqual(new[] {_mongoQuery, _memryQuery}.Select(queryable =>
+                queryable.Select(c => (c.NullableInt ?? 10) > 7)
+            )));
+
+            Assert.IsTrue(TestHelpers.AreEqual(new[] {_mongoQuery, _memryQuery}.Select(queryable =>
+                queryable.Select(c => (c.NullableInt ?? c.NumPets) > 2)
+            )));
+
+            Assert.IsTrue(TestHelpers.AreEqual(new[] {_mongoQuery, _memryQuery}.Select(queryable =>
+                queryable.Select(c => c.NullableInt ?? 10)
+                         .Where(c => c > 7)
+            )));
+        }
     }
 }
