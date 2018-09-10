@@ -1416,7 +1416,7 @@ namespace MongoLinqPlusPlus
             AddToPipeline("$skip", new BsonInt32(limit));
         }
 
-        /// <summary>Adds a new $project stage to the pipeline for a .Count method call</summary>
+        /// <summary>Adds a new $project stage to the pipeline for a .Count and .LongCount method calls</summary>
         public void EmitPipelineStageForCount(LambdaExpression lambdaExp)
         {
             // Handle 2 cases:
@@ -1591,6 +1591,7 @@ namespace MongoLinqPlusPlus
                     EmitPipelineStageForThenBy(GetLambda(expression), false);
                     return;
                 case "Count":
+                case "LongCount":
                     EmitPipelineStageForCount(GetLambda(expression));
                     _lastPipelineOperation = PipelineResultType.Aggregation;
                     return;
@@ -1642,12 +1643,18 @@ namespace MongoLinqPlusPlus
             if (expression is MethodCallExpression methodExpression)
             {
                 // queryable.Count() via aggregation framework is slow.  Handle that case specifically by asking the collection itself.
-                if (methodExpression.Method.Name == "Count"
+                if ((methodExpression.Method.Name == "Count" || methodExpression.Method.Name == "LongCount")
                     && methodExpression.Arguments.Count == 1
                     && methodExpression.Arguments[0] is ConstantExpression)
                 {
                     // Todo: Any way to avoid the boxing?
-                    return (TResult) (object) (int) _collection.Count(Builders<TDocType>.Filter.Empty);
+
+                    if (methodExpression.Method.Name == "Count")
+                        return (TResult) (object) (int) _collection.CountDocuments(Builders<TDocType>.Filter.Empty);
+
+                    // LongCount
+                    return (TResult) (object) _collection.CountDocuments(Builders<TDocType>.Filter.Empty);
+                    
                 }
 
                 EmitPipelineStageForMethod(methodExpression);

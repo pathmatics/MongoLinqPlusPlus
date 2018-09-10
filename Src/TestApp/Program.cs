@@ -58,7 +58,7 @@ namespace MongoLinqPlusPlus.TestApp
                                      .GroupBy(c => c.NumPets)
                                      .Select(c => c.First())
                                      .Select(c => c.NumPets)
-                                     .ToArray();
+                                     .LongCount();
 /*
             var results = ObjectIdDocumentRepository.GetDefaultDataQueryablePlusPlus(Console.WriteLine)
                                                     .Select(c => c._id.CreationTime.Date > new DateTime(2017,2,1,0,0,0,DateTimeKind.Utc))

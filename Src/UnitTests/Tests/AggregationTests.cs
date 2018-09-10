@@ -137,6 +137,30 @@ namespace MongoLinqPlusPlus.Tests
         }
 
         [TestMethod]
+        public void LongCount()
+        {
+            Assert.IsTrue(TestHelpers.AreEqual(new[] { _mongoQuery, _memryQuery }.Select(queryable =>
+                queryable.LongCount()
+            )));
+
+            Assert.IsTrue(TestHelpers.AreEqual(new[] { _mongoQuery, _memryQuery }.Select(queryable =>
+                queryable.Where(c => c.FirstName == "Tom").LongCount()
+            )));
+            
+            Assert.IsTrue(TestHelpers.AreEqual(new[] { _mongoQuery, _memryQuery }.Select(queryable =>
+                queryable.LongCount(c => c.FirstName == "aaaaaaaa")
+            )));
+
+            Assert.IsTrue(TestHelpers.AreEqual(new[] { _mongoQuery, _memryQuery }.Select(queryable =>
+                queryable.LongCount(c => c.NumPets == 2 || c.FirstName == "Tom")
+            )));
+
+            Assert.IsTrue(TestHelpers.AreEqual(new[] { _mongoQuery, _memryQuery }.Select(queryable =>
+                queryable.Select(c => c.NumPets).LongCount()
+            )));
+        }
+
+        [TestMethod]
         public void Any()
         {
             Assert.IsTrue(TestHelpers.AreEqual(new[] { _mongoQuery, _memryQuery }.Select(queryable =>
