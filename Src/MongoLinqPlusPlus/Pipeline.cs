@@ -366,8 +366,11 @@ namespace MongoLinqPlusPlus
             if (obj is double d)
                 return new BsonDouble(d);
 
-            if (obj is DateTime time)
-                return new BsonDateTime(time);
+            if (obj is DateTime date)
+                return new BsonDateTime(date);
+
+            if (obj is TimeSpan timeSpan)
+                return BsonValue.Create(timeSpan.Ticks);
 
             if (obj == null)
                 return BsonNull.Value;
@@ -802,7 +805,7 @@ namespace MongoLinqPlusPlus
             // c.Age
             if (expression is MemberExpression memberExpression)
             {
-                // Handle member access of DateTime objects
+                // Handle member access of string objects
                 if (memberExpression.Member.DeclaringType == typeof(string))
                 {
                     if (memberExpression.Member.Name == "Length")
@@ -811,6 +814,32 @@ namespace MongoLinqPlusPlus
                     throw new InvalidQueryException($"{memberExpression.Member.Name} property on String not supported due to lack of Mongo support :(");
                 }
 
+                // Handle member access of TimeSpan objects
+                if (memberExpression.Member.DeclaringType == typeof(TimeSpan))
+                {
+                    var expressionDoc = BuildMongoSelectExpression(memberExpression.Expression);
+
+                    // No-op - we store these natively as ticks
+                    if (memberExpression.Member.Name == "Ticks")
+                        return expressionDoc;
+
+                    // Handle our various Total properties
+                    long divisor = 0;
+                    switch (memberExpression.Member.Name)
+                    {
+                        case "TotalMilliseconds": divisor = 10000; break;
+                        case "TotalSeconds": divisor = 10000000; break;
+                        case "TotalMinutes": divisor = 600000000; break;
+                        case "TotalHours": divisor = 36000000000; break;
+                        case "TotalDays": divisor = 864000000000; break;
+                    }
+
+                    if (divisor > 0)
+                        return new BsonDocument("$divide", new BsonArray(new[] { expressionDoc, BsonValue.Create(divisor) }));
+
+                    throw new InvalidQueryException($"{memberExpression.Member.Name} property on TimeSpan not supported :(");
+                }
+                
                 if (memberExpression.Member.DeclaringType == typeof(DateTime))
                 {
                     if (memberExpression.Member.Name == "Date")
@@ -915,7 +944,8 @@ namespace MongoLinqPlusPlus
                         return BuildMongoSelectExpression(Expression.MakeBinary(ExpressionType.OrElse, Expression.Constant(false), constExp));
                     }
                 }
-                return GetBsonValueFromObject((constExp).Value);
+
+                return GetBsonValueFromObject(constExp.Value);
             }
 
             // c.Age + 10
@@ -924,8 +954,6 @@ namespace MongoLinqPlusPlus
                 BsonValue leftValue = BuildMongoSelectExpression(binExp.Left);
                 BsonValue rightValue = BuildMongoSelectExpression(binExp.Right);
 
-                var array = new BsonArray(new[] {leftValue, rightValue});
-
                 string mongoOperator = NodeToMongoBinaryOperatorDict[expression.NodeType];
 
                 // Support string concatenation via the "+" operator.
@@ -933,11 +961,27 @@ namespace MongoLinqPlusPlus
                 if (binExp.NodeType == ExpressionType.Add && (binExp.Left.Type == typeof(string) || binExp.Right.Type == typeof(string)))
                     mongoOperator = "$concat";
 
+                // When adding or substracting DateTime with TimeSpan, convert the TimeSpan back to milliseconds
+                if ((expression.NodeType == ExpressionType.Subtract || expression.NodeType == ExpressionType.Add) &&
+                    (binExp.Left.Type == typeof(DateTime) && binExp.Right.Type == typeof(TimeSpan)
+                     || binExp.Left.Type == typeof(TimeSpan) && binExp.Right.Type == typeof(DateTime)))
+                {
+                    if (binExp.Left.Type == typeof(TimeSpan))
+                        leftValue = new BsonDocument("$divide", new BsonArray(new[] { leftValue, BsonValue.Create(10000) }));
+                    else
+                        rightValue = new BsonDocument("$divide", new BsonArray(new[] { rightValue, BsonValue.Create(10000) }));
+                }
+
+                var array = new BsonArray(new[] {leftValue, rightValue});
                 var expressionDoc = new BsonDocument(mongoOperator, array);
 
                 // Support integer division
                 if (expression.NodeType == ExpressionType.Divide && (expression.Type == typeof(long) || expression.Type == typeof(int)))
                     expressionDoc = new BsonDocument("$trunc", expressionDoc);
+
+                // Mongo returns the difference between DateTimes as milliseconds.  Convert them to 100-nanosecond chunks per .Net symantics
+                if (expression.NodeType == ExpressionType.Subtract && binExp.Left.Type == typeof(DateTime) && binExp.Right.Type == typeof(DateTime))
+                    expressionDoc = new BsonDocument("$multiply", new BsonArray(new[] { expressionDoc, BsonValue.Create(10000) }));
 
                 return expressionDoc;
             }
@@ -1175,7 +1219,14 @@ namespace MongoLinqPlusPlus
             if (expression.NodeType == ExpressionType.Convert)
             {
                 var unExp = (UnaryExpression) expression;
-                return BuildMongoSelectExpression(unExp.Operand);
+                var expressionDoc = BuildMongoSelectExpression(unExp.Operand);
+
+                // Support down-casting to int and long
+                if (unExp.Type == typeof(int) || unExp.Type == typeof(long))
+                    expressionDoc = new BsonDocument("$trunc", expressionDoc);
+
+                return expressionDoc;
+
             }
 
             // Array.Length

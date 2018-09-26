@@ -48,7 +48,8 @@ namespace MongoLinqPlusPlus.Tests
 
                 // Handle any well known type with the default implementation
                 if (obj is int || obj is long || obj is bool || obj is char || obj is byte || obj is DateTime
-                    || obj is double || obj is float || obj is string || obj is Enum || obj is Guid || obj is ObjectId)
+                    || obj is double || obj is float || obj is string || obj is Enum || obj is Guid || obj is ObjectId
+                    || obj is TimeSpan)
                 {
                     return obj.GetHashCode();
                 }
@@ -195,7 +196,9 @@ namespace MongoLinqPlusPlus.Tests
             var type = mongoObj.GetType();
 
             // Handle any simple type
-            if (mongoObj is int || mongoObj is long || mongoObj is bool || mongoObj is char || mongoObj is byte || mongoObj is DateTime || mongoObj is double || mongoObj is float || mongoObj is string || mongoObj is Enum || mongoObj is Guid || mongoObj is ObjectId)
+            if (mongoObj is int || mongoObj is long || mongoObj is bool || mongoObj is char || mongoObj is byte
+                || mongoObj is DateTime || mongoObj is double || mongoObj is float || mongoObj is string
+                || mongoObj is Enum || mongoObj is Guid || mongoObj is ObjectId || mongoObj is TimeSpan)
                 return mongoObj.Equals(memryObj);
 
             // Check each property

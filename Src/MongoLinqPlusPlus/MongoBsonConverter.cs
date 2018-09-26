@@ -53,8 +53,9 @@ namespace MongoLinqPlusPlus
             {typeof(double), false},
             {typeof(DateTime), true},
             {typeof(DateTime?), true},
+            {typeof(TimeSpan), true},       // Special code for this below
             {typeof(ObjectId), true},
-            {typeof(Guid), true}
+            {typeof(Guid), true},
         };
 
         /// <summary>Cached collection of value types</summary>
@@ -100,7 +101,7 @@ namespace MongoLinqPlusPlus
                 if (reader.TokenType == JsonToken.Float)
                 {
                     // BUGBUG!  The MongoDB documentation for $trunc specifies that it returns an integer.  However, we're actually
-                    // getting a double back from the server (ableit with no decimal part).  So we need to deserialize this ourselves.
+                    // getting a type of double back from the server (ableit with no decimal part).  So we need to deserialize this ourselves.
                     return (int) (double) reader.Value;
                 }
 
@@ -109,6 +110,17 @@ namespace MongoLinqPlusPlus
 
                 // TODO: Bounds check the long?
                 return (int) (long) reader.Value;
+            }
+
+            // Our timespans are actually in our json stream as integers (100-nano chunks).
+            // Our reader will bomb out reading the this object because it isn't expecting an Integer token.
+            // So we'll just handle this type ourselves and not delegate to the bson deserializer.
+            if (objectType == typeof(TimeSpan))
+            {
+                if (reader.TokenType != JsonToken.Integer)
+                    throw new InvalidOperationException($"Json deserializer can't deserialize TimeSpan from token type {reader.TokenType}.  (Expected token type Integer.)");
+
+                return new TimeSpan((long) reader.Value);
             }
 
             // If we're deserializing null, then there's no real deserialization needed.

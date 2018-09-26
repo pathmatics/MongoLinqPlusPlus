@@ -70,6 +70,8 @@
     <Compile Include="ObjectIdDocument.cs" />
     <Compile Include="ObjectIdDocumentRepository.cs" />
     <Compile Include="Tests\ArrayTests.cs" />
+    <Compile Include="Tests\CastTests.cs" />
+    <Compile Include="Tests\TimeSpanTests.cs" />
     <Compile Include="Tests\SelectManyTests.cs" />
     <Compile Include="Tests\DistinctTests.cs" />
     <Compile Include="Tests\StringTests.cs" />

@@ -47,6 +47,7 @@ namespace MongoLinqPlusPlus.Tests
         [BsonElement("last")] public string LastName;
         public bool IsMale;
         public DateTime Birthday;
+        public DateTime Anniversary;
         public Address CurrentAddress;
         [BsonElement("priors")]
         public Address[] PreviousAddresses;

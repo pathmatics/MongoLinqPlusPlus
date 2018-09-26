@@ -38,11 +38,11 @@ namespace MongoLinqPlusPlus.Tests
             {
                 MongoDefaults.MaxConnectionIdleTime = TimeSpan.FromMinutes(1);
                 var client = new MongoClient("mongodb://localhost");
-                return client.GetDatabase("mongoLinqPlusPlus").GetCollection<TestDocument>("test");
+                return client.GetDatabase("mongoLinqPlusPlus").GetCollection<TestDocument>("test2");
             }
         }
 
-        public void DropCollection() => Collection.Database.DropCollection("test");
+        public void DropCollection() => Collection.Database.DropCollection("test2");
 
         
         /// <summary>Initialize our Mongo database with fresh data and get an IQueryable to it</summary>

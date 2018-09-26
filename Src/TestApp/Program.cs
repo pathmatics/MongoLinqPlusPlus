@@ -26,7 +26,6 @@ using System.Diagnostics;
 using System.Linq;
 using MongoLinqPlusPlus.Tests;
 using Newtonsoft.Json;
-using UnitTests;
 
 namespace MongoLinqPlusPlus.TestApp
 {
@@ -52,13 +51,11 @@ namespace MongoLinqPlusPlus.TestApp
 
 */
 
-
-
-            var results = _mongoQuery.Take(1)
-                                     .GroupBy(c => c.NumPets)
-                                     .Select(c => c.First())
-                                     .Select(c => c.NumPets)
-                                     .LongCount();
+            var results = _mongoQuery.Select(c => new {
+                                         c.Birthday,
+                                         BirthDay2 = c.Birthday + TimeSpan.FromDays(1)
+                                     })
+                                     .ToArray();
 /*
             var results = ObjectIdDocumentRepository.GetDefaultDataQueryablePlusPlus(Console.WriteLine)
                                                     .Select(c => c._id.CreationTime.Date > new DateTime(2017,2,1,0,0,0,DateTimeKind.Utc))
@@ -92,3 +89,4 @@ namespace MongoLinqPlusPlus.TestApp
         }
     }
 }
+
