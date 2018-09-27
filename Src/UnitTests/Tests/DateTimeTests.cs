@@ -153,5 +153,45 @@ namespace MongoLinqPlusPlus.Tests
                 queryable.Select(c => new { c.Birthday.Date })
             )));
         }
+
+        [TestMethod]
+        public void DateTime_AddMethods()
+        {
+            Assert.IsTrue(TestHelpers.AreEqual(new[] {_mongoQuery, _memryQuery}.Select(queryable =>
+                queryable.Select(c => c.Birthday.AddDays(0))
+            )));
+
+            Assert.IsTrue(TestHelpers.AreEqual(new[] {_mongoQuery, _memryQuery}.Select(queryable =>
+                queryable.Select(c => c.Birthday.AddDays(1.1))
+            )));
+
+            Assert.IsTrue(TestHelpers.AreEqual(new[] {_mongoQuery, _memryQuery}.Select(queryable =>
+                queryable.Select(c => c.Birthday.AddDays(-1.1))
+            )));
+
+            Assert.IsTrue(TestHelpers.AreEqual(new[] {_mongoQuery, _memryQuery}.Select(queryable =>
+                queryable.Select(c => c.Birthday.AddMilliseconds(10))
+            )));
+
+            Assert.IsTrue(TestHelpers.AreEqual(new[] {_mongoQuery, _memryQuery}.Select(queryable =>
+                queryable.Select(c => c.Birthday.AddSeconds(10))
+            )));
+
+            Assert.IsTrue(TestHelpers.AreEqual(new[] {_mongoQuery, _memryQuery}.Select(queryable =>
+                queryable.Select(c => c.Birthday.AddMinutes(10))
+            )));
+
+            Assert.IsTrue(TestHelpers.AreEqual(new[] {_mongoQuery, _memryQuery}.Select(queryable =>
+                queryable.Select(c => c.Birthday.AddHours(10))
+            )));
+
+            Assert.IsTrue(TestHelpers.AreEqual(new[] {_mongoQuery, _memryQuery}.Select(queryable =>
+                queryable.Select(c => c.Birthday.Add(TimeSpan.FromMinutes(2)))
+            )));
+
+            Assert.IsTrue(TestHelpers.AreEqual(new[] {_mongoQuery, _memryQuery}.Select(queryable =>
+                queryable.Select(c => c.Birthday.Subtract(TimeSpan.FromMinutes(2)))
+            )));
+        }
     }
 }

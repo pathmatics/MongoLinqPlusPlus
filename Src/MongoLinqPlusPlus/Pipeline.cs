@@ -1212,6 +1212,37 @@ namespace MongoLinqPlusPlus
                     return filterCountDoc;
                 }
 
+                // Handle DateTime methods (ie c.DateTime.AddMinutes(1))
+                if (callExp.Method.ReflectedType == typeof(DateTime))
+                {
+                    // Handle AddSeconds, AddMinutes, etc
+                    if (callExp.Method.Name.StartsWith("Add") || callExp.Method.Name == "Subtract")
+                    {
+                        double mSecToAdd;
+                        if (!(callExp.Arguments[0] is ConstantExpression))
+                        {
+                            throw new InvalidQueryException($"Sorry, I can't translate DateTime.{callExp.Method.Name} with a non-constant expression.");
+                        }
+
+                        var callArg = ((ConstantExpression) callExp.Arguments[0]).Value;
+                        switch (callExp.Method.Name)
+                        {
+                            case "Subtract": mSecToAdd = -((TimeSpan) callArg).TotalMilliseconds; break;
+                            case "Add": mSecToAdd = ((TimeSpan) callArg).TotalMilliseconds; break;
+                            case "AddMilliseconds": mSecToAdd = (double) callArg; break;
+                            case "AddSeconds": mSecToAdd = 1000 * (double) callArg; break;
+                            case "AddMinutes": mSecToAdd = 60000 * (double) callArg; break;
+                            case "AddHours": mSecToAdd = 3600000 * (double) callArg; break;
+                            case "AddDays": mSecToAdd = 86400000 * (double) callArg; break;
+                            default: throw new InvalidQueryException($"Sorry, I can't translate method DateTime.{callExp.Method.Name}.");
+                        }
+
+                        return new BsonDocument("$add", new BsonArray(new[] {BuildMongoSelectExpression(callExp.Object), BsonValue.Create(mSecToAdd)}));
+                    }
+
+                    throw new InvalidQueryException($"Sorry, I can't translate method DateTime.{callExp.Method.Name}.");
+                }
+
                 throw new InvalidQueryException("Unsupported Call Expression for method " + callExp.Method.Name);
             }
 

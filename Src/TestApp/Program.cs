@@ -53,7 +53,14 @@ namespace MongoLinqPlusPlus.TestApp
 
             var results = _mongoQuery.Select(c => new {
                                          c.Birthday,
-                                         BirthDay2 = c.Birthday + TimeSpan.FromDays(1)
+                                         BirthDay2 = c.Birthday.AddHours(1)
+                                     })
+                                     .Take(1)
+                                     .AsEnumerable()
+                                     .Select(c => new {
+                                         Birthday0 = c.Birthday,
+                                         Birthday1 = c.Birthday.AddHours(1),
+                                         c.BirthDay2,
                                      })
                                      .ToArray();
 /*
