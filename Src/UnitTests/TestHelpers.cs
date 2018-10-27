@@ -23,6 +23,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using MongoDB.Bson;
 using Newtonsoft.Json;
@@ -129,9 +130,9 @@ namespace MongoLinqPlusPlus.Tests
             mongoLines.AddRange(Enumerable.Range(0, Math.Max(0, memryLines.Count() - mongoLines.Count())).Select(c => "".PadRight(50)));
             memryLines.AddRange(Enumerable.Range(0, Math.Max(0, mongoLines.Count() - memryLines.Count())).Select(c => ""));
 
-            Console.WriteLine("\r\n{0}{1}", "---------- Mongo Result Json ------------".PadRight(50), "---------- Memry Result Json ------------");
+            Debug.WriteLine("\r\n{0}{1}", "---------- Mongo Result Json ------------".PadRight(50), "---------- Memry Result Json ------------");
             var text = string.Join("\r\n", mongoLines.Select((c, i) => c + memryLines[i]));
-            Console.WriteLine(text);
+            Debug.WriteLine(text);
 
             return false;
         }

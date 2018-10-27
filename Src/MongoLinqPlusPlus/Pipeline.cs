@@ -129,7 +129,8 @@ namespace MongoLinqPlusPlus
             {"Average", "avg"},
             {"First", "first"},
             {"Last", "last"},
-            {"Count", "sum"}
+            {"Count", "sum"},
+            {"Select", "push"},
         };
 
         private readonly Dictionary<string, string> NodeToMongoDateOperatorDict  = new Dictionary<string, string> {
@@ -753,6 +754,34 @@ namespace MongoLinqPlusPlus
                 {
                     // For First and Last, the expression is {$first: "$$ROOT"} or {$last: "$$ROOT"}
                     mongoOperand = new BsonString("$$ROOT");
+                }
+            }
+            // supports .GroupBy(...).Select(g => new { Details = g.Select(d => new { d.Age, d.NumPets }) })
+            else if (callExp.Method.Name == "Select" && callExp.Arguments.Count == 2)
+            {
+                var lambdaExp = (LambdaExpression)callExp.Arguments[1];
+                // if the inner lambda is like d => new {...} in above 
+                if (lambdaExp.Body.NodeType == ExpressionType.New)
+                {
+                    var newExp = (NewExpression)lambdaExp.Body;
+                    var newExpProperties = newExp.Type.GetProperties();
+
+                    // Get the mongo field names for each property in the new {...}
+                    var fieldNames = newExp.Arguments
+                                           .Select((c, i) => new
+                                           {
+                                               FieldName = newExpProperties[i].Name,
+                                               ExpressionValue = BuildMongoSelectExpression(c, true)
+                                           })
+                                           .Select(c => new BsonElement(c.FieldName, c.ExpressionValue))
+                                           .ToList();
+
+                    mongoOperand = new BsonDocument(fieldNames);
+                }
+                // if the inner lambda were d => d.Age instead
+                else
+                {
+                    mongoOperand = BuildMongoSelectExpression(lambdaExp.Body);
                 }
             }
             else if (callExp.Arguments.Count == 2)

@@ -163,5 +163,82 @@ namespace MongoLinqPlusPlus.Tests
                     .Select(c => c.Count(d => new[] { true }.Contains(d.IsMale)))
             )));
         }
+
+        [TestMethod]
+        public void GroupBySubSelect()
+        {
+            Assert.IsTrue(TestHelpers.AreEqual(new[] { _mongoQuery, _memryQuery }.Select(queryable =>
+                queryable.GroupBy(c => c.LastName)
+                         .OrderBy(c => c.Key)
+                         .Select(c => c.Select(x => x.NumPets))
+            )));
+
+            Assert.IsTrue(TestHelpers.AreEqual(new[] { _mongoQuery, _memryQuery }.Select(queryable =>
+                queryable.GroupBy(c => c.LastName)
+                         .Select(c => c.Select(x => x.NumPets))
+                         .SelectMany(c => c)
+            )));
+
+            Assert.IsTrue(TestHelpers.AreEqual(new[] { _mongoQuery, _memryQuery }.Select(queryable =>
+                queryable.GroupBy(c => c.LastName)
+                         .Select(c => new {
+                             LastName = c.Key,
+                             Pets = c.Select(x => x.NumPets)
+                         })
+            )));
+
+            Assert.IsTrue(TestHelpers.AreEqual(new[] { _mongoQuery, _memryQuery }.Select(queryable =>
+                queryable.GroupBy(c => c.LastName)
+                         .Select(c => new {
+                             LastName = c.Key,
+                             Pets = c.Select(x => x.NumPets)
+                         })
+            )));
+
+            Assert.IsTrue(TestHelpers.AreEqual(new[] { _mongoQuery, _memryQuery }.Select(queryable =>
+                queryable.GroupBy(c => c.LastName)
+                         .Select(c => new {
+                             LastName = c.Key,
+                             Pets = c.Select(x => x.NumPets)
+                         })
+                         .SelectMany(c => c.Pets)
+            )));
+
+            Assert.IsTrue(TestHelpers.AreEqual(new[] { _mongoQuery, _memryQuery }.Select(queryable =>
+                queryable.GroupBy(c => c.LastName)
+                         .Select(c => new {
+                             LastName = c.Key,
+                             Pets = c.Select(x => new {
+                                 x.FirstName,
+                                 x.NumPets
+                             })
+                         })
+                         .Where(c => c.Pets.Count() > 1)
+            )));
+
+            Assert.IsTrue(TestHelpers.AreEqual(new[] { _mongoQuery, _memryQuery }.Select(queryable =>
+                queryable.GroupBy(c => c.LastName)
+                         .Select(c => new {
+                             LastName = c.Key,
+                             Pets = c.Select(x => x.NumPets)
+                         })
+                         .Select(c => new {
+                             c.LastName,
+                             NumPets = c.Pets.Count()
+                         })
+            )));
+
+            Assert.IsTrue(TestHelpers.AreEqual(new[] { _mongoQuery, _memryQuery }.Select(queryable =>
+                queryable.Select(c => new { c.LastName, c.FirstName, c.NumPets })
+                         .GroupBy(c => c.LastName)
+                         .Select(c => new {
+                             LastName = c.Key,
+                             Pets = c.Select(x => new {
+                                 x.FirstName,
+                                 x.NumPets
+                             })
+                         })
+            )));
+        }
     }
 }
