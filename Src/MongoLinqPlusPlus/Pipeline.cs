@@ -240,6 +240,13 @@ namespace MongoLinqPlusPlus
                 if (ExpressionIsObjectIdCreationTime(memberExp))
                     return GetMongoFieldName(memberExp.Expression, isNamedProperty);
 
+                // Handle referencing the Value property on a Nullable<> type
+                if (memberExp.Member.Name == "Value" && memberExp.Expression.Type.Name == "Nullable`1")
+                {
+                    // On input of 'foo.Value', ignore the 'Value' property and run this method again on 'foo'
+                    return GetMongoFieldName(memberExp.Expression, isNamedProperty);
+                }
+
                 isNamedProperty = true;
 
                 // We might have a nested MemberExpression like c.Key.Name

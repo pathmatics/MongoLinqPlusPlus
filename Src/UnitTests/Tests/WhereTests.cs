@@ -309,6 +309,14 @@ namespace MongoLinqPlusPlus.Tests
             )));
 
             Assert.IsTrue(TestHelpers.AreEqual(new[] {_mongoQuery, _memryQuery}.Select(queryable =>
+                queryable.Where(c => c.NullableInt != null && c.NullableInt.Value == 5)
+            )));
+
+            Assert.IsTrue(TestHelpers.AreEqual(new[] {_mongoQuery, _memryQuery}.Select(queryable =>
+                queryable.Where(c => c.NullableInt != null && new[] { 5,10}.Contains(c.NullableInt.Value))
+            )));
+
+            Assert.IsTrue(TestHelpers.AreEqual(new[] {_mongoQuery, _memryQuery}.Select(queryable =>
                 queryable.Where(c => c.NullableInt == null)
             )));
 

@@ -182,6 +182,7 @@ namespace MongoLinqPlusPlus.Tests
                 Anniversary = new DateTime(1985, 3, 1, 0, 0, 0, DateTimeKind.Utc),
                 CurrentAddress = Addresses[1],
                 OldIds = new[] { 10, 11, 12},
+                NullableInt = 15,
                 NumPets = 1,
                 PreviousAddresses = new[] {Addresses[5]},
                 StudentId = 20195092109509,
@@ -200,6 +201,7 @@ namespace MongoLinqPlusPlus.Tests
                 NumPets = 0,
                 PreviousAddresses = new[] {Addresses[4]},
                 StudentId = 501205021522,
+                NullableInt = 5,
                 GPA = 3.33333333,
                 Guid = Guid.Parse("00000004-0004-0004-0004-000000000004")
             },
