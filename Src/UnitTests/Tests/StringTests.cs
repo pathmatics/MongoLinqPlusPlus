@@ -131,6 +131,20 @@ namespace MongoLinqPlusPlus.Tests
                 queryable.Select(c => "" + c.LastName)
             )));
 
+            // Important test because $concat symantics for adding null text are different than .Net
+            Assert.IsTrue(TestHelpers.AreEqual(new[] { _mongoQuery, _memryQuery }.Select(queryable =>
+                queryable.Select(c => c.FirstName + c.NullText)
+            )));
+
+            // Important test because $concat symantics for adding null text are different than .Net
+            Assert.IsTrue(TestHelpers.AreEqual(new[] { _mongoQuery, _memryQuery }.Select(queryable =>
+                queryable.Select(c => c.NullText + c.LastName)
+            )));
+
+            Assert.IsTrue(TestHelpers.AreEqual(new[] { _mongoQuery, _memryQuery }.Select(queryable =>
+                queryable.Select(c => c.NullText + c.NullText)
+            )));
+
             // Not support in Mongo 3.6.  I think we will get this in mongo 3.8.  Look at $convert.
             /*
             Assert.IsTrue(TestHelpers.AreEqual(new[] { _mongoQuery, _memryQuery }.Select(queryable =>

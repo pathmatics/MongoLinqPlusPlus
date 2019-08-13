@@ -830,6 +830,19 @@ namespace MongoLinqPlusPlus
         }
 
         /// <summary>
+        /// Accepts a mongo expression of the specified .Net type.
+        /// If the expression is a string, then a new Mongo expression is returned
+        /// equivalent to: mongoExpression ?? "".
+        /// Else the original mongoExpression is returned unchanged.
+        /// </summary>
+        public BsonValue ReplaceNullStringWithEmptyString(Type expressionType, BsonValue mongoExpression)
+        {
+            return expressionType == typeof(string)
+                       ? new BsonDocument("$ifNull", new BsonArray(new[] { mongoExpression, BsonValue.Create("") }))
+                       : mongoExpression;
+        }
+
+        /// <summary>
         /// Builds a Mongo expression for use in a $project statement from a given expression 
         /// </summary>
         /// <param name="expression">Expression to convert to a BsonValue representing an Aggregation Framework expression</param>
@@ -995,7 +1008,15 @@ namespace MongoLinqPlusPlus
                 // Support string concatenation via the "+" operator.
                 // If either side is a string, then replace $add with $concat
                 if (binExp.NodeType == ExpressionType.Add && (binExp.Left.Type == typeof(string) || binExp.Right.Type == typeof(string)))
+                {
                     mongoOperator = "$concat";
+
+                    // In Mongo: $concat(null, "foo") => null.
+                    // In  .Net: null + "foo" => foo
+                    // So swap out null strings with empty strings to match .Net behavior
+                    leftValue = ReplaceNullStringWithEmptyString(binExp.Left.Type, leftValue);
+                    rightValue = ReplaceNullStringWithEmptyString(binExp.Right.Type, rightValue);
+                }
 
                 // When adding or substracting DateTime with TimeSpan, convert the TimeSpan back to milliseconds
                 if ((expression.NodeType == ExpressionType.Subtract || expression.NodeType == ExpressionType.Add) &&

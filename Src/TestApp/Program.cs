@@ -51,11 +51,11 @@ namespace MongoLinqPlusPlus.TestApp
 
 */
 
-            var results = _mongoQuery.Where(c => c.NullableDate != null)
-                                     .Select(c => c.NullableDate)
-                                     .Select(c => c.Value)
-                                     .Select(c => c.Year)
+            var results = _mongoQuery.Where(c => c.SSN != null && c.LastName == null)
+                                     .Take(1)
+                                     .Select(c => c.SSN + c.LastName)
                                      .ToArray();
+
 /*
             var results = ObjectIdDocumentRepository.GetDefaultDataQueryablePlusPlus(Console.WriteLine)
                                                     .Select(c => c._id.CreationTime.Date > new DateTime(2017,2,1,0,0,0,DateTimeKind.Utc))
@@ -79,7 +79,7 @@ namespace MongoLinqPlusPlus.TestApp
 
             
             var json = JsonConvert.SerializeObject(results, Formatting.Indented);
-            Console.WriteLine(json);
+            Console.WriteLine($"----------------- PIPELINE --------------------\r\n{json}");
 
             if (Debugger.IsAttached)
             {

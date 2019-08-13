@@ -59,6 +59,7 @@ namespace MongoLinqPlusPlus.Tests
         public DateTime? NullableDate;
         public double GPA;
         public Guid Guid;
+        public string NullText;
 
         public TestDocument CloneWithNewSSN(int seed)
         {
