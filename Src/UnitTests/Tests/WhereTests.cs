@@ -120,6 +120,22 @@ namespace MongoLinqPlusPlus.Tests
             Assert.IsTrue(TestHelpers.AreEqual(new[] { _mongoQuery, _memryQuery }.Select(queryable =>
                 queryable.Where(c => c.OldIds != null && c.OldIds.Any(d => d != 4 && d > 1))
             )));
+
+            Assert.IsTrue(TestHelpers.AreEqual(new[] { _mongoQuery, _memryQuery }.Select(queryable =>
+                queryable.Where(c => c.OldIds != null && c.OldIds.Any())
+            )));
+
+            Assert.IsTrue(TestHelpers.AreEqual(new[] { _mongoQuery, _memryQuery }.Select(queryable =>
+                queryable.Where(c => c.OldIds != null)
+                         .Select(c => c.OldIds)
+                         .Where(c => c.Any())
+            )));
+
+            Assert.IsTrue(TestHelpers.AreEqual(new[] { _mongoQuery, _memryQuery }.Select(queryable =>
+                queryable.Where(c => c.OldIds != null)
+                         .Select(c => c.OldIds)
+                         .Where(c => c.Any(d => d >= 2))
+            )));
         }
         
         [TestMethod]

@@ -644,7 +644,12 @@ namespace MongoLinqPlusPlus
                 {
                     // Support .Where(c => c.SomeArrayProp.Any())
                     if (callExp.Arguments.Count() == 1)
-                        throw new NotImplementedException("TODO: Implement .Where(c => c.SomeArrayProp.Any())");
+                    {
+                        var mFieldName = GetMongoFieldNameInMatchStage(callExp.Arguments[0], isLambdaParamResultHack);
+                        return Query.SizeGreaterThan(mFieldName, 0);
+                        // var q = Query.ElemMatch(mFieldName, Query.NotExists("some___12905921K09___frenchfry"));
+                        //return q;
+                    }
 
                     // Support .Where(c => c.SomeArrayProp.Any(d => d.SubProp > 5))
                     var mongoFieldName = GetMongoFieldNameInMatchStage(callExp.Arguments[0], isLambdaParamResultHack);
@@ -1180,30 +1185,46 @@ namespace MongoLinqPlusPlus
                 // c.Any(predicate) (where c is an Enumerable)
                 if (callExp.Method.Name == "Any" && callExp.Method.ReflectedType == typeof(Enumerable))
                 {
-                    var searchPredicate = (LambdaExpression) callExp.Arguments[1];
-                    
-                    string subSelectLambdaParamName = searchPredicate.Parameters.Single().Name;
-                    string internalVariableName = "foo" + ++_nextUniqueVariableId;
-                    _subSelectParameterPrefixes.Add(subSelectLambdaParamName, $"${internalVariableName}" + ".");
+                    if (callExp.Arguments.Count == 1)
+                    {
+                        // c.Any()
 
-                    var searchValue = BuildMongoSelectExpression(searchPredicate.Body);
+                        var countDoc = new BsonDocument("$size", BuildMongoSelectExpression(callExp.Arguments[0]));
+                        var gteZeroDoc = new BsonDocument("$gte", new BsonArray(new[] {countDoc, BsonValue.Create(1)}));
+                        return gteZeroDoc;
+                    }
 
-                    _subSelectParameterPrefixes.Remove(subSelectLambdaParamName);
+                    if (callExp.Arguments.Count == 2)
+                    {
+                        // c.Any(d => ...)
 
-                    var searchTarget = BuildMongoSelectExpression(callExp.Arguments[0]);
+                        var searchPredicate = (LambdaExpression) callExp.Arguments[1];
 
-                    // There's no direct translation for Any.  So we'll essentially build:
-                    // c.Where(predicate).Count() > 0
+                        string subSelectLambdaParamName = searchPredicate.Parameters.Single().Name;
+                        string internalVariableName = "foo" + ++_nextUniqueVariableId;
+                        _subSelectParameterPrefixes.Add(subSelectLambdaParamName, $"${internalVariableName}" + ".");
 
-                    var filterDoc = new BsonDocument("$filter", new BsonDocument {
-                        new BsonElement("input", searchTarget),
-                        new BsonElement("as", internalVariableName),
-                        new BsonElement("cond", searchValue),
-                    });
+                        var searchValue = BuildMongoSelectExpression(searchPredicate.Body);
 
-                    var countDoc = new BsonDocument("$size", filterDoc);
-                    var gteZeroDoc = new BsonDocument("$gte", new BsonArray(new[] { countDoc, BsonValue.Create(1)}));
-                    return gteZeroDoc;
+                        _subSelectParameterPrefixes.Remove(subSelectLambdaParamName);
+
+                        var searchTarget = BuildMongoSelectExpression(callExp.Arguments[0]);
+
+                        // There's no direct translation for Any.  So we'll essentially build:
+                        // c.Where(predicate).Count() > 0
+
+                        var filterDoc = new BsonDocument("$filter", new BsonDocument {
+                            new BsonElement("input", searchTarget),
+                            new BsonElement("as", internalVariableName),
+                            new BsonElement("cond", searchValue),
+                        });
+
+                        var countDoc = new BsonDocument("$size", filterDoc);
+                        var gteZeroDoc = new BsonDocument("$gte", new BsonArray(new[] {countDoc, BsonValue.Create(1)}));
+                        return gteZeroDoc;
+                    }
+                    else
+                        throw new MongoLinqPlusPlusInternalException($"Unexpected number of arguments ({callExp.Arguments.Count}) to Any");
                 }
 
                 // c.All(predicate) (where c is an Enumerable)
@@ -1826,7 +1847,7 @@ namespace MongoLinqPlusPlus
                         return default(TResult);
 
                     if (results.Length > 1)
-                        throw new MongoLinqPlusPlusInternalExpception(string.Format("Unexpected number of results ({0}) for PipelineResultType.Aggregation pipeline", results.Length));
+                        throw new MongoLinqPlusPlusInternalException(string.Format("Unexpected number of results ({0}) for PipelineResultType.Aggregation pipeline", results.Length));
 
                     // The result is in a document structured as { _result_ : value }
                     var resultDoc = results[0];

@@ -35,9 +35,9 @@ namespace MongoLinqPlusPlus
 
 
     /// <summary>Exception thrown to indicate an internal failure - likely a bug :(</summary>
-    public class MongoLinqPlusPlusInternalExpception: System.Exception
+    public class MongoLinqPlusPlusInternalException: System.Exception
     {
-        public MongoLinqPlusPlusInternalExpception(string message)
+        public MongoLinqPlusPlusInternalException(string message)
         {
             Message = message;
         }

@@ -187,6 +187,32 @@ namespace MongoLinqPlusPlus.Tests
         }
 
         [TestMethod]
+        public void Select_ArrayAny()
+        {
+            Assert.IsTrue(TestHelpers.AreEqual(new[] { _mongoQuery, _memryQuery }.Select(queryable =>
+                queryable.Where(c => c.OldIds != null)
+                         .Select(c => c.OldIds.Any(d => d >= 2))
+            )));
+
+            Assert.IsTrue(TestHelpers.AreEqual(new[] { _mongoQuery, _memryQuery }.Select(queryable =>
+                queryable.Where(c => c.OldIds != null)
+                         .Select(c => c.OldIds)
+                         .Select(c => c.Any())
+            )));
+
+            Assert.IsTrue(TestHelpers.AreEqual(new[] { _mongoQuery, _memryQuery }.Select(queryable =>
+                queryable.Where(c => c.OldIds != null)
+                         .Select(c => c.OldIds.Any(d => d >= 2))
+            )));
+
+            Assert.IsTrue(TestHelpers.AreEqual(new[] { _mongoQuery, _memryQuery }.Select(queryable =>
+                queryable.Where(c => c.OldIds != null)
+                         .Select(c => c.OldIds)
+                         .Select(c => c.Any())
+            )));
+        }
+
+        [TestMethod]
         public void Select_StringIsNullOrEmpty()
         {
             Assert.IsTrue(TestHelpers.AreEqual(new[] { _mongoQuery, _memryQuery }.Select(queryable =>

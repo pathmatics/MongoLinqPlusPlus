@@ -51,9 +51,7 @@ namespace MongoLinqPlusPlus.TestApp
 
 */
 
-            var results = _mongoQuery.Where(c => c.SSN != null && c.LastName == null)
-                                     .Take(1)
-                                     .Select(c => c.SSN + c.LastName)
+            var results = _mongoQuery.Where(c => c.PreviousAddresses.Any())
                                      .ToArray();
 
 /*

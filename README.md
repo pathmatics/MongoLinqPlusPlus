@@ -8,7 +8,7 @@ This was written back when the the LINQ provider that ships with the MongoDB C# 
 was extremely limited in support.  Since they they have improved their LINQ support.
 However, I've still found their LINQ support limited when compared to everything that
 can be done via the Aggregation Framework.  MongoLinqPlusPlus was developed to support
-our query pattern here at PathmaticsThe main benefits of MongoLinqPlusPlus are groupings
+our query pattern here at Pathmatics.  The main benefits of MongoLinqPlusPlus are groupings
 (.GroupBy), projections (.Select), and aggregations (.Sum).  You can even mix them together:
 
     .Where(c => c.Age > 30)
