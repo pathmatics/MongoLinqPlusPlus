@@ -1,12 +1,14 @@
-# MongoLinqPlusPlus#
+# MongoLinqPlusPlus
+
+![MasterPublish](https://github.com/pathmatics/MongoLinqPlusPlus/workflows/MasterPublish/badge.svg)
 
 A .NET LINQ provider for MongoDB that utilizes the MongoDB Aggregation Framework 
 
 ### Why is this useful? ###
 
 This was written back when the the LINQ provider that ships with the MongoDB C# driver
-was extremely limited in support.  Since they they have improved their LINQ support.
-However, I've still found their LINQ support limited when compared to everything that
+was extremely limited in support.  Since then they have improved their LINQ support;
+however, I've still found their LINQ support limited when compared to everything that
 can be done via the Aggregation Framework.  MongoLinqPlusPlus was developed to support
 our query pattern here at Pathmatics.  The main benefits of MongoLinqPlusPlus are groupings
 (.GroupBy), projections (.Select), and aggregations (.Sum).  You can even mix them together:
@@ -68,7 +70,6 @@ Check out the overloads on QueryablePlusPlus() for some advanced functionality.
 
 
 ```
-#!c#
 
 #using MongoLinqPlusPlus
 

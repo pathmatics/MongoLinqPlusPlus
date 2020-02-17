@@ -647,8 +647,6 @@ namespace MongoLinqPlusPlus
                     {
                         var mFieldName = GetMongoFieldNameInMatchStage(callExp.Arguments[0], isLambdaParamResultHack);
                         return Query.SizeGreaterThan(mFieldName, 0);
-                        // var q = Query.ElemMatch(mFieldName, Query.NotExists("some___12905921K09___frenchfry"));
-                        //return q;
                     }
 
                     // Support .Where(c => c.SomeArrayProp.Any(d => d.SubProp > 5))
