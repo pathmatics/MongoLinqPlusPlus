@@ -4,6 +4,7 @@
     <id>MongoLinqPlusPlus</id>
     <version>$version$</version>
     <authors>Tom Lorimor</authors>
+	<repository type="git" url="https://github.com/pathmatics/MongoLinqPlusPlus"/>
     <description>A .NET LINQ provider for MongoDB that utilizes the MongoDB Aggregation Framework</description>
   </metadata>
 </package>
