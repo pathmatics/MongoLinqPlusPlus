@@ -23,6 +23,7 @@
 using System;
 using System.Linq;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
+// ReSharper disable StringCompareIsCultureSpecific.1
 
 namespace MongoLinqPlusPlus.Tests
 {
@@ -244,6 +245,30 @@ namespace MongoLinqPlusPlus.Tests
 
             Assert.IsTrue(TestHelpers.AreEqual(new[] { _mongoQuery, _memryQuery }.Select(queryable =>
                 queryable.Where(c => string.IsNullOrEmpty(c.FirstName) && string.IsNullOrEmpty(c.LastName))
+            )));
+        }
+
+        [TestMethod]
+        public void Where_String_Compare()
+        {
+            Assert.IsTrue(TestHelpers.AreEqual(new[] { _mongoQuery, _memryQuery }.Select(queryable =>
+                queryable.Where(c => string.Compare(c.FirstName, c.LastName) == 0)
+            )));
+
+            Assert.IsTrue(TestHelpers.AreEqual(new[] { _mongoQuery, _memryQuery }.Select(queryable =>
+                queryable.Where(c => string.Compare(c.FirstName, c.LastName) == -1)
+            )));
+
+            Assert.IsTrue(TestHelpers.AreEqual(new[] { _mongoQuery, _memryQuery }.Select(queryable =>
+                queryable.Where(c => string.Compare(c.FirstName, c.LastName) > 0)
+            )));
+
+            Assert.IsTrue(TestHelpers.AreEqual(new[] { _mongoQuery, _memryQuery }.Select(queryable =>
+                queryable.Where(c => string.Compare(c.FirstName, "Tom") >= 0)
+            )));
+
+            Assert.IsTrue(TestHelpers.AreEqual(new[] { _mongoQuery, _memryQuery }.Select(queryable =>
+                queryable.Where(c => string.Compare("Tom", c.LastName) <= 0)
             )));
         }
 

@@ -23,6 +23,7 @@
 using System.Linq;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using UnitTests;
+// ReSharper disable StringCompareIsCultureSpecific.1
 
 namespace MongoLinqPlusPlus.Tests
 {
@@ -233,6 +234,26 @@ namespace MongoLinqPlusPlus.Tests
                     HasFirst = string.IsNullOrEmpty(c.FirstName),
                     MissingLast = !string.IsNullOrEmpty(c.LastName)
                 })
+            )));
+        }
+
+        [TestMethod]
+        public void Select_StringCompare()
+        {
+            Assert.IsTrue(TestHelpers.AreEqual(new[] { _mongoQuery, _memryQuery }.Select(queryable =>
+                queryable.Select(c => string.Compare(c.FirstName, c.LastName))
+            )));
+
+            Assert.IsTrue(TestHelpers.AreEqual(new[] { _mongoQuery, _memryQuery }.Select(queryable =>
+                queryable.Select(c => string.Compare(c.FirstName, null))
+            )));
+
+            Assert.IsTrue(TestHelpers.AreEqual(new[] { _mongoQuery, _memryQuery }.Select(queryable =>
+                queryable.Select(c => string.Compare(c.FirstName, "Tom"))
+            )));
+
+            Assert.IsTrue(TestHelpers.AreEqual(new[] { _mongoQuery, _memryQuery }.Select(queryable =>
+                queryable.Select(c => string.Compare("Tom", c.LastName))
             )));
         }
 

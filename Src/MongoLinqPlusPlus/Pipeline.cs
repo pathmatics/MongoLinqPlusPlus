@@ -1082,15 +1082,32 @@ namespace MongoLinqPlusPlus
                     return GetMongoFieldNameForMethodOnGrouping(callExp);
                 }
 
-                if (callExp.Method.Name == "IsNullOrEmpty" && callExp.Object == null && callExp.Method.ReflectedType == typeof (string))
+                // Handle static methods on string
+                if (callExp.Method.ReflectedType == typeof(string) && callExp.Object == null)
                 {
-                   BsonValue expressionToTest = BuildMongoSelectExpression(callExp.Arguments.Single());
+                    if (callExp.Method.Name == "IsNullOrEmpty")
+                    {
+                        BsonValue expressionToTest = BuildMongoSelectExpression(callExp.Arguments.Single());
 
-                    // Test for null
-                    var ifNullDoc = new BsonDocument("$ifNull", new BsonArray(new[] {expressionToTest, new BsonString("")}));
+                        // Test for null
+                        var ifNullDoc = new BsonDocument("$ifNull", new BsonArray(new[] {expressionToTest, new BsonString("")}));
 
-                    // Test for empty
-                    return new BsonDocument("$eq", new BsonArray(new[] {new BsonString(""), ifNullDoc.AsBsonValue}));
+                        // Test for empty
+                        return new BsonDocument("$eq", new BsonArray(new[] {new BsonString(""), ifNullDoc.AsBsonValue}));
+                    }
+
+                    if (callExp.Method.Name == "Compare")
+                    {
+                        if (callExp.Arguments.Count != 2)
+                            throw new InvalidQueryException($"Only supported overload of string.Compare is string.Compare(string, string)");
+
+                        BsonValue exp1 = BuildMongoSelectExpression(callExp.Arguments[0]);
+                        BsonValue exp2 = BuildMongoSelectExpression(callExp.Arguments[1]);
+
+                        return new BsonDocument("$cmp", new BsonArray(new[] {exp1, exp2}));
+                    }
+
+                    throw new InvalidQueryException($"Can't translate static method string.{callExp.Method.Name} to Mongo expression");
                 }
 
                 if (callExp.Object?.Type == typeof(string))

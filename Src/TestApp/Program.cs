@@ -52,6 +52,9 @@ namespace MongoLinqPlusPlus.TestApp
 */
 
             var results = _mongoQuery.Where(c => c.PreviousAddresses.Any())
+                                     .Select(c => new {
+                                             Value = string.Compare(c.FirstName, c.LastName)
+                                     })
                                      .ToArray();
 
 /*
