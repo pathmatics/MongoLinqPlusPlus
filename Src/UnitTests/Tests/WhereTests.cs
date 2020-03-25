@@ -233,46 +233,6 @@ namespace MongoLinqPlusPlus.Tests
         }
 
         [TestMethod]
-        public void Where_String_IsNullOrEmpty()
-        {
-            Assert.IsTrue(TestHelpers.AreEqual(new[] { _mongoQuery, _memryQuery }.Select(queryable =>
-                queryable.Where(c => string.IsNullOrEmpty(c.FirstName))
-            )));
-
-            Assert.IsTrue(TestHelpers.AreEqual(new[] { _mongoQuery, _memryQuery }.Select(queryable =>
-                queryable.Where(c => string.IsNullOrEmpty(c.LastName))
-            )));
-
-            Assert.IsTrue(TestHelpers.AreEqual(new[] { _mongoQuery, _memryQuery }.Select(queryable =>
-                queryable.Where(c => string.IsNullOrEmpty(c.FirstName) && string.IsNullOrEmpty(c.LastName))
-            )));
-        }
-
-        [TestMethod]
-        public void Where_String_Compare()
-        {
-            Assert.IsTrue(TestHelpers.AreEqual(new[] { _mongoQuery, _memryQuery }.Select(queryable =>
-                queryable.Where(c => string.Compare(c.FirstName, c.LastName) == 0)
-            )));
-
-            Assert.IsTrue(TestHelpers.AreEqual(new[] { _mongoQuery, _memryQuery }.Select(queryable =>
-                queryable.Where(c => string.Compare(c.FirstName, c.LastName) == -1)
-            )));
-
-            Assert.IsTrue(TestHelpers.AreEqual(new[] { _mongoQuery, _memryQuery }.Select(queryable =>
-                queryable.Where(c => string.Compare(c.FirstName, c.LastName) > 0)
-            )));
-
-            Assert.IsTrue(TestHelpers.AreEqual(new[] { _mongoQuery, _memryQuery }.Select(queryable =>
-                queryable.Where(c => string.Compare(c.FirstName, "Tom") >= 0)
-            )));
-
-            Assert.IsTrue(TestHelpers.AreEqual(new[] { _mongoQuery, _memryQuery }.Select(queryable =>
-                queryable.Where(c => string.Compare("Tom", c.LastName) <= 0)
-            )));
-        }
-
-        [TestMethod]
         public void Where_String_Contains()
         {
             // We have a null first name in our test data.  Mongo will handle this ok but Linq-to-objects will blow up

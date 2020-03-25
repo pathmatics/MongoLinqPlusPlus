@@ -238,5 +238,123 @@ namespace MongoLinqPlusPlus.Tests
                          .Select(c => c.FirstName.Substring(2))
             )));
         }
+
+        
+
+        [TestMethod]
+        public void String_IsNullOrEmpty()
+        {
+            Assert.IsTrue(TestHelpers.AreEqual(new[] { _mongoQuery, _memryQuery }.Select(queryable =>
+                queryable.Where(c => string.IsNullOrEmpty(c.FirstName))
+            )));
+
+            Assert.IsTrue(TestHelpers.AreEqual(new[] { _mongoQuery, _memryQuery }.Select(queryable =>
+                queryable.Where(c => string.IsNullOrEmpty(c.LastName))
+            )));
+
+            Assert.IsTrue(TestHelpers.AreEqual(new[] { _mongoQuery, _memryQuery }.Select(queryable =>
+                queryable.Where(c => string.IsNullOrEmpty(c.FirstName) && string.IsNullOrEmpty(c.LastName))
+            )));
+
+            Assert.IsTrue(TestHelpers.AreEqual(new[] { _mongoQuery, _memryQuery }.Select(queryable =>
+                queryable.Select(c => string.IsNullOrEmpty(c.FirstName))
+            )));
+
+            Assert.IsTrue(TestHelpers.AreEqual(new[] { _mongoQuery, _memryQuery }.Select(queryable =>
+                queryable.Select(c => string.IsNullOrEmpty(c.LastName))
+            )));
+
+            Assert.IsTrue(TestHelpers.AreEqual(new[] { _mongoQuery, _memryQuery }.Select(queryable =>
+                queryable.Select(c => string.IsNullOrEmpty(c.LastName) || c.NumPets == 2)
+            )));
+
+            Assert.IsTrue(TestHelpers.AreEqual(new[] { _mongoQuery, _memryQuery }.Select(queryable =>
+                queryable.Select(c => new {
+                    c.SSN,
+                    HasFirst = string.IsNullOrEmpty(c.FirstName),
+                    MissingLast = !string.IsNullOrEmpty(c.LastName)
+                })
+            )));
+        }
+
+        [TestMethod]
+        public void String_Compare()
+        {
+            Assert.IsTrue(TestHelpers.AreEqual(new[] { _mongoQuery, _memryQuery }.Select(queryable =>
+                queryable.Where(c => string.Compare(c.FirstName, c.LastName) == 0)
+            )));
+
+            Assert.IsTrue(TestHelpers.AreEqual(new[] { _mongoQuery, _memryQuery }.Select(queryable =>
+                queryable.Where(c => string.Compare(c.FirstName, c.LastName) == -1)
+            )));
+
+            Assert.IsTrue(TestHelpers.AreEqual(new[] { _mongoQuery, _memryQuery }.Select(queryable =>
+                queryable.Where(c => string.Compare(c.FirstName, c.LastName) > 0)
+            )));
+
+            Assert.IsTrue(TestHelpers.AreEqual(new[] { _mongoQuery, _memryQuery }.Select(queryable =>
+                queryable.Where(c => string.Compare(c.FirstName, "Tom") >= 0)
+            )));
+
+            Assert.IsTrue(TestHelpers.AreEqual(new[] { _mongoQuery, _memryQuery }.Select(queryable =>
+                queryable.Where(c => string.Compare("Tom", c.LastName) <= 0)
+            )));
+
+            Assert.IsTrue(TestHelpers.AreEqual(new[] { _mongoQuery, _memryQuery }.Select(queryable =>
+                queryable.Select(c => string.Compare(c.FirstName, c.LastName))
+            )));
+
+            Assert.IsTrue(TestHelpers.AreEqual(new[] { _mongoQuery, _memryQuery }.Select(queryable =>
+                queryable.Select(c => string.Compare(c.FirstName, null))
+            )));
+
+            Assert.IsTrue(TestHelpers.AreEqual(new[] { _mongoQuery, _memryQuery }.Select(queryable =>
+                queryable.Select(c => string.Compare(c.FirstName, "Tom"))
+            )));
+
+            Assert.IsTrue(TestHelpers.AreEqual(new[] { _mongoQuery, _memryQuery }.Select(queryable =>
+                queryable.Select(c => string.Compare("Tom", c.LastName))
+            )));
+        }
+
+        [TestMethod]
+        public void String_CompareOrdinal()
+        {
+            Assert.IsTrue(TestHelpers.AreEqual(new[] { _mongoQuery, _memryQuery }.Select(queryable =>
+                queryable.Where(c => string.CompareOrdinal(c.FirstName, c.LastName) == 0)
+            )));
+
+            Assert.IsTrue(TestHelpers.AreEqual(new[] { _mongoQuery, _memryQuery }.Select(queryable =>
+                queryable.Where(c => string.CompareOrdinal(c.FirstName, c.LastName) < 0)
+            )));
+
+            Assert.IsTrue(TestHelpers.AreEqual(new[] { _mongoQuery, _memryQuery }.Select(queryable =>
+                queryable.Where(c => string.CompareOrdinal(c.FirstName, c.LastName) > 0)
+            )));
+
+            Assert.IsTrue(TestHelpers.AreEqual(new[] { _mongoQuery, _memryQuery }.Select(queryable =>
+                queryable.Where(c => string.CompareOrdinal(c.FirstName, "Tom") >= 0)
+            )));
+
+            Assert.IsTrue(TestHelpers.AreEqual(new[] { _mongoQuery, _memryQuery }.Select(queryable =>
+                queryable.Where(c => string.CompareOrdinal("Tom", c.LastName) <= 0)
+            )));
+
+            Assert.IsTrue(TestHelpers.AreEqual(new[] { _mongoQuery, _memryQuery }.Select(queryable =>
+                queryable.Select(c => string.CompareOrdinal(c.FirstName, c.LastName) < 0)
+            )));
+
+            Assert.IsTrue(TestHelpers.AreEqual(new[] { _mongoQuery, _memryQuery }.Select(queryable =>
+                queryable.Select(c => string.CompareOrdinal(c.FirstName, null) > 0)
+            )));
+
+            Assert.IsTrue(TestHelpers.AreEqual(new[] { _mongoQuery, _memryQuery }.Select(queryable =>
+                queryable.Select(c => string.CompareOrdinal(c.FirstName, "Tom") >= 0)
+            )));
+
+            Assert.IsTrue(TestHelpers.AreEqual(new[] { _mongoQuery, _memryQuery }.Select(queryable =>
+                queryable.Select(c => string.CompareOrdinal("Tom", c.LastName) <= 0)
+            )));
+        }
     }
 }

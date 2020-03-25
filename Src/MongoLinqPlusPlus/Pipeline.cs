@@ -436,6 +436,52 @@ namespace MongoLinqPlusPlus
         /// </param>
         private IMongoQuery BuildMongoWhereExpressionAsQuery(Expression expression, bool isLambdaParamResultHack)
         {
+            // C# doesn't support > and >= on System.String
+            // So we have our own db function to support this.
+            if (expression is MethodCallExpression gtCallExp
+                && gtCallExp.Arguments.Count == 2
+                && (gtCallExp.Arguments[0] is ConstantExpression || gtCallExp.Arguments[1] is ConstantExpression)
+                && (gtCallExp.Arguments[0] is MemberExpression || gtCallExp.Arguments[1] is MemberExpression)
+                && gtCallExp.Method.DeclaringType.FullName == "MongoLinqPlusPlus.MongoFunctions"
+                && (gtCallExp.Method.Name == "GreaterThan" || gtCallExp.Method.Name == "GreaterThanOrEqual"))
+            {
+
+                MemberExpression leftExp;
+                ConstantExpression rightExp;
+                var expType = gtCallExp.Method.Name == "GreaterThan" ? ExpressionType.GreaterThan : ExpressionType.GreaterThanOrEqual;
+
+                // Our Mongo syntax only supports the constant on the RHS.
+                if (gtCallExp.Arguments[1].NodeType == ExpressionType.Constant)
+                {
+                    // Constant is on the RHS - easy
+                    leftExp = (MemberExpression) gtCallExp.Arguments[0];
+                    rightExp = (ConstantExpression) gtCallExp.Arguments[1];
+                }
+                else
+                {
+                    // Constant is on the LHS - flip the expression
+                    expType = expType.Flip();
+                    leftExp = (MemberExpression) gtCallExp.Arguments[1];
+                    rightExp = (ConstantExpression) gtCallExp.Arguments[0];
+                }
+
+                // The left side of the operator MUST be a mongo field name
+                string mongoFieldName = GetMongoFieldNameInMatchStage(leftExp, isLambdaParamResultHack);
+
+                // Build the Mongo expression for the right side of the binary operator
+                BsonValue rightValue = BuildMongoWhereExpressionAsBsonValue(rightExp, isLambdaParamResultHack);
+
+                // Retrieve the function (like Query.EQ) that we'll use to generate our mongo query
+                var queryOperator = NodeToMongoQueryBuilderFuncDict[expType];
+
+                // Generate the query and return it as a new BsonDocument
+                var queryDoc = new BsonDocument(queryOperator, rightValue);
+                if (mongoFieldName != null)
+                    queryDoc = new BsonDocument(mongoFieldName, queryDoc);
+
+                return Query.Create(queryDoc);
+            }
+
             // Handle binary operators (&&, ==, >, etc)
             if (expression is BinaryExpression binExp)
             {
@@ -463,23 +509,14 @@ namespace MongoLinqPlusPlus
                     MemberExpression memberExp;
                     ExpressionType comparisonType;
 
+
                     if (binExp.Left.NodeType == ExpressionType.Constant)
                     {
                         // Case 2 : Swap it around to look like case 1
                         constExp = (ConstantExpression) binExp.Left;
                         memberExp = (MemberExpression) binExp.Right;
 
-                        // Swap our comparison operator
-                        if (binExp.NodeType == ExpressionType.GreaterThan)
-                            comparisonType = ExpressionType.LessThan;
-                        else if (binExp.NodeType == ExpressionType.GreaterThanOrEqual)
-                            comparisonType = ExpressionType.LessThanOrEqual;
-                        else if (binExp.NodeType == ExpressionType.LessThan)
-                            comparisonType = ExpressionType.GreaterThan;
-                        else if (binExp.NodeType == ExpressionType.LessThanOrEqual)
-                            comparisonType = ExpressionType.GreaterThanOrEqual;
-                        else
-                            comparisonType = ExpressionType.Equal;
+                        comparisonType = binExp.NodeType.Flip();
                     }
                     else
                     {
@@ -1096,10 +1133,10 @@ namespace MongoLinqPlusPlus
                         return new BsonDocument("$eq", new BsonArray(new[] {new BsonString(""), ifNullDoc.AsBsonValue}));
                     }
 
-                    if (callExp.Method.Name == "Compare")
+                    if (callExp.Method.Name == "Compare" || callExp.Method.Name == "CompareOrdinal")
                     {
                         if (callExp.Arguments.Count != 2)
-                            throw new InvalidQueryException($"Only supported overload of string.Compare is string.Compare(string, string)");
+                            throw new InvalidQueryException($"Only supported overload of string.Compare (and CompareOrdinal) is string.Compare(string, string)");
 
                         BsonValue exp1 = BuildMongoSelectExpression(callExp.Arguments[0]);
                         BsonValue exp2 = BuildMongoSelectExpression(callExp.Arguments[1]);
@@ -1334,6 +1371,21 @@ namespace MongoLinqPlusPlus
                     }
 
                     throw new InvalidQueryException($"Sorry, I can't translate method DateTime.{callExp.Method.Name}.");
+                }
+
+                // MongoDbFunctions.GreaterThan(c.FirstName, "foo")
+                if (callExp.Method.DeclaringType.FullName == "MongoLinqPlusPlus.MongoFunctions" &&
+                    (callExp.Method.Name == "GreaterThan"  || callExp.Method.Name == "GreaterThanOrEqual"))
+                {
+                    if (callExp.Arguments.Count != 2)
+                        throw new InvalidQueryException($"Only supported overload of MongoFunctions.GreaterThan (and GreaterThanOrEqual) is string.Compare(string, string)");
+
+                    BsonValue exp1 = BuildMongoSelectExpression(callExp.Arguments[0]);
+                    BsonValue exp2 = BuildMongoSelectExpression(callExp.Arguments[1]);
+
+                    string op = callExp.Method.Name == "GreaterThan" ? "$gt" : "$gte";
+
+                    return new BsonDocument(op, new BsonArray(new[] {exp1, exp2}));
                 }
 
                 throw new InvalidQueryException("Unsupported Call Expression for method " + callExp.Method.Name);

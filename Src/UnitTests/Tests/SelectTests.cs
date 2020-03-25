@@ -214,50 +214,6 @@ namespace MongoLinqPlusPlus.Tests
         }
 
         [TestMethod]
-        public void Select_StringIsNullOrEmpty()
-        {
-            Assert.IsTrue(TestHelpers.AreEqual(new[] { _mongoQuery, _memryQuery }.Select(queryable =>
-                queryable.Select(c => string.IsNullOrEmpty(c.FirstName))
-            )));
-
-            Assert.IsTrue(TestHelpers.AreEqual(new[] { _mongoQuery, _memryQuery }.Select(queryable =>
-                queryable.Select(c => string.IsNullOrEmpty(c.LastName))
-            )));
-
-            Assert.IsTrue(TestHelpers.AreEqual(new[] { _mongoQuery, _memryQuery }.Select(queryable =>
-                queryable.Select(c => string.IsNullOrEmpty(c.LastName) || c.NumPets == 2)
-            )));
-
-            Assert.IsTrue(TestHelpers.AreEqual(new[] { _mongoQuery, _memryQuery }.Select(queryable =>
-                queryable.Select(c => new {
-                    c.SSN,
-                    HasFirst = string.IsNullOrEmpty(c.FirstName),
-                    MissingLast = !string.IsNullOrEmpty(c.LastName)
-                })
-            )));
-        }
-
-        [TestMethod]
-        public void Select_StringCompare()
-        {
-            Assert.IsTrue(TestHelpers.AreEqual(new[] { _mongoQuery, _memryQuery }.Select(queryable =>
-                queryable.Select(c => string.Compare(c.FirstName, c.LastName))
-            )));
-
-            Assert.IsTrue(TestHelpers.AreEqual(new[] { _mongoQuery, _memryQuery }.Select(queryable =>
-                queryable.Select(c => string.Compare(c.FirstName, null))
-            )));
-
-            Assert.IsTrue(TestHelpers.AreEqual(new[] { _mongoQuery, _memryQuery }.Select(queryable =>
-                queryable.Select(c => string.Compare(c.FirstName, "Tom"))
-            )));
-
-            Assert.IsTrue(TestHelpers.AreEqual(new[] { _mongoQuery, _memryQuery }.Select(queryable =>
-                queryable.Select(c => string.Compare("Tom", c.LastName))
-            )));
-        }
-
-        [TestMethod]
         public void Select_Method()
         {
             Assert.IsTrue(TestHelpers.AreEqual(new[] { _mongoQuery, _memryQuery }.Select(queryable =>

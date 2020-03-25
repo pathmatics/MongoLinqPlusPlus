@@ -51,11 +51,8 @@ namespace MongoLinqPlusPlus.TestApp
 
 */
 
-            var results = _mongoQuery.Where(c => c.PreviousAddresses.Any())
-                                     .Select(c => new {
-                                             Value = string.Compare(c.FirstName, c.LastName)
-                                     })
-                                     .ToArray();
+            var results = _mongoQuery.Where(c => MongoFunctions.GreaterThan(c.FirstName, "Fred"))
+                                      .ToArray();
 
 /*
             var results = ObjectIdDocumentRepository.GetDefaultDataQueryablePlusPlus(Console.WriteLine)
@@ -69,7 +66,7 @@ namespace MongoLinqPlusPlus.TestApp
                 Assert.IsTrue(TestHelpers.AreEqual(new[] { _mongoQuery, _memryQuery }.Select(queryable =>
                     queryable.GroupBy(c => c.Birthday.Year)
                              .Select(c => new { First = c.First() })
-                             .Take(1)
+                             .Take(1) 
                 )));
                 
                 Console.WriteLine("\r\n------------ TEST PROGRAM RESULTS -------------\r\n");

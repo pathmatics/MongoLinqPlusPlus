@@ -68,11 +68,12 @@
   <ItemGroup>
     <Compile Include="MongoBsonConverter.cs" />
     <Compile Include="GroupingDocument.cs" />
+    <Compile Include="MongoFunctions.cs" />
     <Compile Include="PipelineDocument.cs" />
     <Compile Include="ExpressionSimplifier.cs" />
     <Compile Include="GroupingConverter.cs" />
     <Compile Include="Exceptions.cs" />
-    <Compile Include="TypeExtensions.cs" />
+    <Compile Include="Extensions.cs" />
     <Compile Include="MongoCollectionExtension.cs" />
     <Compile Include="Pipeline.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />

@@ -73,6 +73,10 @@
     <None Include="packages.config" />
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\MongoLinqPlusPlus\MongoLinqPlusPlus.csproj">
+      <Project>{b4053fa2-85f6-4dd7-857b-f40c344ff01d}</Project>
+      <Name>MongoLinqPlusPlus</Name>
+    </ProjectReference>
     <ProjectReference Include="..\UnitTests\UnitTests.csproj">
       <Project>{27D56CAF-5EC8-4DC7-96E7-B9362D7AE923}</Project>
       <Name>UnitTests</Name>
