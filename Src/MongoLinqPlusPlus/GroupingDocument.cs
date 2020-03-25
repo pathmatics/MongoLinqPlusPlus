@@ -4,7 +4,7 @@ using System.Linq;
 
 namespace MongoLinqPlusPlus
 {
-    public class GroupingDocument<TKey, TElement> : IGrouping<TKey, TElement>
+    class GroupingDocument<TKey, TElement> : IGrouping<TKey, TElement>
     {
         public GroupingDocument()
         {
