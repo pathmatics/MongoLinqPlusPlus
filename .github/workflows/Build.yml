@@ -21,8 +21,10 @@ jobs:
     - name: restore nuget packages
       run: nuget.exe restore Src\MongoLinqPlusPlus.sln
     - name: build solution
-      run: "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\MSBuild\Current\Bin\MSBuild.exe" Src\MongoLinqPlusPlus.sln
+      run: |
+        "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\MSBuild\Current\Bin\MSBuild.exe" Src\MongoLinqPlusPlus.sln
       shell: cmd
     - name: run tests
-      run: "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\Common7\IDE\mstest.exe" /testcontainer:Src\UnitTests\bin\Debug\netcoreapp3.1\UnitTests.dll
+      run: |
+        "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\Common7\IDE\mstest.exe" /testcontainer:Src\UnitTests\bin\Debug\netcoreapp3.1\UnitTests.dll
       shell: cmd
