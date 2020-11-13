@@ -19,16 +19,10 @@ jobs:
     - name: download nuget
       uses: nuget/setup-Nuget@v1
     - name: restore nuget packages
-      run: |
-        echo "nuget.exe restore MongoLinqPlusPlus.sln"
-        nuget.exe restore Src\MongoLinqPlusPlus.sln
+      run: nuget.exe restore Src\MongoLinqPlusPlus.sln
     - name: build solution
-      run: |
-        echo "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\MSBuild\Current\bin\MSBuild.exe"
-        "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\MSBuild\Current\Bin\MSBuild.exe" Src\MongoLinqPlusPlus.sln
+      run: "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\MSBuild\Current\Bin\MSBuild.exe" Src\MongoLinqPlusPlus.sln
       shell: cmd
     - name: run tests
-      run: |
-        echo "'C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\Common7\IDE\mstest.exe' /testcontainer:Src\UnitTests\bin\Debug\UnitTests.dll"
-        "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\Common7\IDE\mstest.exe" /testcontainer:Src\UnitTests\bin\Debug\UnitTests.dll
+      run: "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\Common7\IDE\mstest.exe" /testcontainer:Src\UnitTests\bin\Debug\netcoreapp3.1\UnitTests.dll
       shell: cmd
