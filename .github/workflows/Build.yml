@@ -10,9 +10,7 @@ jobs:
     runs-on: windows-latest
     steps:
     - name: download mongo
-      run: |
-        echo "choco install mongodb --version 4.2.0 -my"
-        choco install mongodb --version 4.2.0 -my
+      run: choco install mongodb --version 4.4.1 -my
     # Checkout code from repo
     - name: checkout repo
       uses: actions/checkout@v2
