@@ -1,5 +1,6 @@
 Src/packages/
 .vs/
+.idea/
 
 [Bb]in/
 [Oo]bj/
