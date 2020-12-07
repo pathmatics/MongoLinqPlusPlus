@@ -10,7 +10,11 @@ jobs:
     runs-on: windows-latest
     steps:
     - name: download mongo
-      run: choco install mongodb --version 4.4.1 -my
+      uses: supercharge/mongodb-github-action@1.3.0
+      with:
+        mongodb-version: 4.4.1
+    #- name: download mongo
+    #  run: choco install mongodb --version 4.4.1 -my
     # Checkout code from repo
     - name: checkout repo
       uses: actions/checkout@v2
