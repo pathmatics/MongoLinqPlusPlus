@@ -23,9 +23,9 @@ jobs:
       uses: nuget/setup-Nuget@v1
     - name: restore nuget packages
       run: nuget.exe restore Src\MongoLinqPlusPlus.sln
-    - name: build
+    - name: build solution
       run: |
-        dotnet test Src\UnitTests\bin\Debug\netcoreapp3.1\UnitTests.dll
+        "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\MSBuild\Current\Bin\MSBuild.exe" Src\MongoLinqPlusPlus.sln
       shell: cmd
     #- name: run tests
     #  run: |
