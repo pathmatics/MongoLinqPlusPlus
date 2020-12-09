@@ -9,13 +9,13 @@ jobs:
   BuildRunTestsAndPublishNuget:
     runs-on: windows-latest
     steps:
-    - name: download mongo
-      run: choco install mongodb --version 4.4.1 -my
-    - name: check log
-      run: |
-        get-content -path C:\ProgramData\chocolatey\logs\chocolatey.log -tail 100
-      shell: powershell
-      if: ${{ always() }}
+    #- name: download mongo
+    #  run: choco install mongodb --version 4.4.1 -my
+    #- name: check log
+    #  run: |
+    #    get-content -path C:\ProgramData\chocolatey\logs\chocolatey.log -tail 100
+    #  shell: powershell
+    #  if: ${{ always() }}
     # Checkout code from repo
     - name: checkout repo
       uses: actions/checkout@v2
@@ -23,11 +23,11 @@ jobs:
       uses: nuget/setup-Nuget@v1
     - name: restore nuget packages
       run: nuget.exe restore Src\MongoLinqPlusPlus.sln
-    - name: build solution
+    - name: build
       run: |
         dotnet test Src\UnitTests\bin\Debug\netcoreapp3.1\UnitTests.dll
       shell: cmd
-    - name: run tests
-      run: |
-        "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\Common7\IDE\mstest.exe" /testcontainer:Src\UnitTests\bin\Debug\netcoreapp3.1\UnitTests.dll
-      shell: cmd
+    #- name: run tests
+    #  run: |
+    #    "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\Common7\IDE\mstest.exe" /testcontainer:Src\UnitTests\bin\Debug\netcoreapp3.1\UnitTests.dll
+    #  shell: cmd
