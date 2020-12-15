@@ -24,6 +24,7 @@ jobs:
       run: |
         "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\MSBuild\Current\Bin\MSBuild.exe" Src\MongoLinqPlusPlus.sln
       shell: cmd
+      
     - name: run tests
       run: dotnet test .\Src\UnitTests\UnitTests.csproj
     - name: Print new build number
