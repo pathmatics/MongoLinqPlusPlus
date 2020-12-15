@@ -16,6 +16,7 @@ jobs:
       
     - name: download nuget
       uses: nuget/setup-Nuget@v1
+      
     - name: restore nuget packages
       run: nuget.exe restore Src\MongoLinqPlusPlus.sln
     - name: build solution
