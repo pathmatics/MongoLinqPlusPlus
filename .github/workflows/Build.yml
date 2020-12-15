@@ -9,14 +9,6 @@ jobs:
   BuildRunTests:
     runs-on: windows-latest
     steps:
-    - name: download 7zip
-      uses: crazy-max/ghaction-chocolatey@v1
-      with:
-        args: install 7zip.install
-    - name: download mongo
-      uses: crazy-max/ghaction-chocolatey@v1
-      with:
-        args: install mongodb
     - name: check log
       run: |
         get-content -path C:\ProgramData\chocolatey\logs\chocolatey.log -tail 100
