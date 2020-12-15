@@ -22,4 +22,3 @@ jobs:
       shell: cmd
     - name: run tests
       run: dotnet test .\Src\UnitTests\UnitTests.csproj
-      shell: cmd
