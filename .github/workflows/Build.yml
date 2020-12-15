@@ -9,11 +9,6 @@ jobs:
   BuildRunTests:
     runs-on: windows-latest
     steps:
-    - name: check log
-      run: |
-        get-content -path C:\ProgramData\chocolatey\logs\chocolatey.log -tail 100
-      shell: powershell
-      if: ${{ always() }}
     # Checkout code from repo
     - name: checkout repo
       uses: actions/checkout@v2
