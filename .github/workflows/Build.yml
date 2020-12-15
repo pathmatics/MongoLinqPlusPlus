@@ -10,9 +10,9 @@ jobs:
     runs-on: windows-latest
     steps:
     - name: download 7zip
-      run: |
-        choco install 7zip.install -my
-      shell: cmd
+      uses: crazy-max/ghaction-chocolatey@v1
+      with:
+        args: install 7zip.install
     - name: download mongo
       run: choco install mongodb --version 4.4.1 -my
     - name: check log
