@@ -6,7 +6,7 @@ on:
       - master
 
 jobs:
-  BuildRunTestsAndPublishNuget:
+  BuildRunTests:
     runs-on: windows-latest
     steps:
     - name: download mongo
