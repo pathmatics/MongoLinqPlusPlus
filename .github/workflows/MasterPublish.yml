@@ -19,6 +19,7 @@ jobs:
       
     - name: restore nuget packages
       run: nuget.exe restore Src\MongoLinqPlusPlus.sln
+      
     - name: build solution
       run: |
         "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\MSBuild\Current\Bin\MSBuild.exe" Src\MongoLinqPlusPlus.sln
