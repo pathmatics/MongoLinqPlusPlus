@@ -16,7 +16,7 @@ jobs:
     - name: download mongo
       uses: crazy-max/ghaction-chocolatey@v1
       with:
-        args: install mongodb --version 4.4.1 -my
+        args: install mongodb
     - name: check log
       run: |
         get-content -path C:\ProgramData\chocolatey\logs\chocolatey.log -tail 100
