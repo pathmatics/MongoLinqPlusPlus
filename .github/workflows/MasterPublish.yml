@@ -27,9 +27,11 @@ jobs:
       
     - name: run tests
       run: dotnet test .\Src\UnitTests\UnitTests.csproj
+      
     - name: Print new build number
       run: echo Build number is $GITHUB_RUN_NUMBER
       shell: bash
+      
     - name: Setup Nuget and Push Package
       run: |
         nuget source Add -Name "GitHub" -Source "https://nuget.pkg.github.com/pathmatics/index.json" -UserName pathmatics -Password ${{ secrets.GITHUB_TOKEN }}
