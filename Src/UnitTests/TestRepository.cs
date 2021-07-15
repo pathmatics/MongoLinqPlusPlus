@@ -21,7 +21,6 @@
 // SOFTWARE.
 
 using System;
-using System.Collections.Generic;
 using System.Linq;
 using MongoDB.Driver;
 
@@ -32,17 +31,19 @@ namespace MongoLinqPlusPlus.Tests
     /// </summary>
     public partial class TestRepository
     {
+        public const string COLLECTION = "people";
+
         public IMongoCollection<TestDocument> Collection
         {
             get
             {
                 MongoDefaults.MaxConnectionIdleTime = TimeSpan.FromMinutes(1);
                 var client = new MongoClient("mongodb://localhost");
-                return client.GetDatabase("mongoLinqPlusPlus").GetCollection<TestDocument>("test2");
+                return client.GetDatabase("mongoLinqPlusPlus").GetCollection<TestDocument>(COLLECTION);
             }
         }
 
-        public void DropCollection() => Collection.Database.DropCollection("test2");
+        public void DropCollection() => Collection.Database.DropCollection(COLLECTION);
 
         
         /// <summary>Initialize our Mongo database with fresh data and get an IQueryable to it</summary>

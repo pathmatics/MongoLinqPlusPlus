@@ -28,11 +28,24 @@ using System.Linq.Expressions;
 
 namespace MongoLinqPlusPlus
 {
+    internal interface IMongoLinqPlusPlusCollection
+    {
+        /// <summary>The name of this collection</summary>
+        string CollectionName { get; }
+    }
+
+    // ###########################
+
     /// <summary>
     /// Dummy implementation of IQueryable for use by our own Linq Provider
     /// </summary>
-    internal class MongoAggregationQueryable<TData> : IOrderedQueryable<TData>
+    internal class MongoAggregationQueryable<TData> : IOrderedQueryable<TData>, IMongoLinqPlusPlusCollection
     {
+        public MongoAggregationQueryable(string collectionName)
+        {
+            CollectionName = collectionName;
+        }
+
         public IEnumerator<TData> GetEnumerator()
         {
             return Provider.Execute<IEnumerable<TData>>(Expression).GetEnumerator();
@@ -46,5 +59,6 @@ namespace MongoLinqPlusPlus
         public Expression Expression { get; internal set; }
         public Type ElementType => typeof(TData);
         public IQueryProvider Provider { get; internal set; }
+        public string CollectionName { get; }
     }
 }

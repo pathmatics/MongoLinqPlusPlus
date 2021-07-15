@@ -33,6 +33,7 @@ namespace MongoLinqPlusPlus.TestApp
     {
         private static IQueryable<TestDocument> _mongoQuery = TestRepository.GetDefaultDataQueryablePlusPlus(Console.Write);
         private static IQueryable<TestDocument> _memryQuery = TestRepository.TestDocuments.AsQueryable();
+        private static IQueryable<Student> _studentsQuery = StudentRepository.GetDefaultDataQueryablePlusPlus(Console.Write);
 
         static void Main()
         {
@@ -49,10 +50,17 @@ namespace MongoLinqPlusPlus.TestApp
             docs = _mongoQuery.Where(c => c.NumPets != 55).OrderBy(c => c.SSN).Take(5000).ToArray();
             Console.WriteLine("LinqPlusPlus  Queryable: " + sw.Elapsed);
 
+
 */
 
-            var results = _mongoQuery.Where(c => MongoFunctions.GreaterThan(c.FirstName, "Fred"))
-                                      .ToArray();
+            var results = _mongoQuery.Join(_studentsQuery,
+                                    c => c.LastName, c => c.FirstName,
+
+                                    (a, b) => new {
+                                        a.FirstName,
+                                        b.University,
+                                    })
+                                    .ToArray();
 
 /*
             var results = ObjectIdDocumentRepository.GetDefaultDataQueryablePlusPlus(Console.WriteLine)
