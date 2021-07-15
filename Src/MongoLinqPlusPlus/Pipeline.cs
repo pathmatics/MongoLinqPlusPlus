@@ -60,6 +60,7 @@ namespace MongoLinqPlusPlus
     {
         private Action<string> _loggingDelegate;
         internal const string PIPELINE_DOCUMENT_RESULT_NAME = "_result_";
+        internal const string JOINED_DOC_PROPERTY_NAME = "__JOINED__";
 
         private JsonWriterSettings _jsonWriterSettings = new JsonWriterSettings {OutputMode = JsonOutputMode.Strict, Indent = true, NewLineChars = "\r\n"};
 
@@ -1683,10 +1684,11 @@ namespace MongoLinqPlusPlus
                 throw new MongoLinqPlusPlusInternalException("Join keys don't match");
 
             // Properties in the left join key need to be put in variables in the "let" document (see below)
-            var letElements = leftKey.Select(c => new BsonElement(c.ToString().Replace("$", ""), c)).ToArray();
+            // "let" variable names must start with a lowercase letter.  Weird.  So add that "v_" prefix to force lowercase.
+            var letElements = leftKey.Select(c => new BsonElement(c.ToString().Replace("$", "v_"), c)).ToArray();
 
             // Now take the left key and make the $$ variable names required by the $expr document (see below)
-            var leftKeyVariables = leftKey.Select(c => c.ToString().Replace("$", "$$"))
+            var leftKeyVariables = leftKey.Select(c => c.ToString().Replace("$", "$$v_"))
                                           .Select(BsonValue.Create)
                                           .ToArray();
 
@@ -1724,14 +1726,24 @@ namespace MongoLinqPlusPlus
                 { "pipeline", new BsonArray {
                     new BsonDocument("$match", new BsonDocument("$expr", new BsonDocument("$and", new BsonArray(eqDocuments))))
                 }},
-                { "as", "__JOINED_ARRAY__"}
+                { "as", JOINED_DOC_PROPERTY_NAME}
             };
 
+            // Do the actual join
             AddToPipeline("$lookup", lookupStage);
-            AddToPipeline("$unwind", "$__JOINED_ARRAY__");
 
-            // TODO: Build the next pipeline stage to unwind
-            var selectExpression = expression.Arguments[4];
+            // Unwind the array in __JOINED__ so that now we have a single joined doc.
+            // The left doc is the doc itself, and the joined one is in the __JOINED__ property.
+            AddToPipeline("$unwind", "$" + JOINED_DOC_PROPERTY_NAME);
+             
+            // Now project our final output document.
+            var selectExpression = ((UnaryExpression) expression.Arguments[4]).Operand;
+
+            var lambdaExp = (LambdaExpression) selectExpression;
+
+            _subSelectParameterPrefixes.Add(lambdaExp.Parameters[1].Name, JOINED_DOC_PROPERTY_NAME + ".");
+            EmitPipelineStageForSelect(lambdaExp);
+            _subSelectParameterPrefixes.Remove(lambdaExp.Parameters[1].Name);
         }
 
         /// <summary>Adds a new $limit stage to the pipeline for a .Take method call</summary>

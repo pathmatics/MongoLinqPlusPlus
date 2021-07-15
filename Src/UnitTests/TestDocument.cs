@@ -78,4 +78,11 @@ namespace MongoLinqPlusPlus.Tests
             };
         }
     }
+
+    public class Student
+    {
+        [BsonId] public long StudentNum;
+        [BsonElement("fname")] public string FirstName;
+        public string University;
+    }
 }
