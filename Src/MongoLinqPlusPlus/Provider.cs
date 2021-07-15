@@ -64,7 +64,7 @@ namespace MongoLinqPlusPlus
             if (!typeof(IQueryable<TResult>).IsAssignableFrom(expression.Type))
                 throw new ArgumentOutOfRangeException(nameof(expression));
 
-            var queryable = new MongoAggregationQueryable<TResult> {
+            var queryable = new MongoAggregationQueryable<TResult> (_collection.CollectionNamespace.CollectionName) {
                 Provider = this,
                 Expression = expression
             };

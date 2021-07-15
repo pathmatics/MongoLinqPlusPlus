@@ -83,7 +83,8 @@ namespace MongoLinqPlusPlus
         /// <returns>An IQueryable for running Linq queries against</returns>
         public static IQueryable<TMongoDocument> QueryablePlusPlus<TMongoDocument>(this IMongoCollection<TMongoDocument> collection, bool allowMongoDiskUse, Action<string> loggingDelegate)
         {
-            var queryable = new MongoAggregationQueryable<TMongoDocument>();
+            var queryable = new MongoAggregationQueryable<TMongoDocument>(collection.CollectionNamespace.CollectionName);
+
             queryable.Expression = Expression.Constant(queryable);
             queryable.Provider = new MongoAggregationQueryProvider<TMongoDocument>(collection) {
                 Queryable = queryable,

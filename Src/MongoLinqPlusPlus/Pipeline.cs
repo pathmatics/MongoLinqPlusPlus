@@ -1631,6 +1631,109 @@ namespace MongoLinqPlusPlus
             }
         }
 
+        /// <summary>Gets a join key (left or right) for a Join method call</summary>
+        private BsonValue[] GetJoinKey(Expression expression)
+        {
+            if (!(expression is UnaryExpression unaryExpression))
+                throw new MongoLinqPlusPlusInternalException("Expected unary expression for Join key");
+
+            var lambda = (LambdaExpression) unaryExpression.Operand;
+            if (lambda.Body is NewExpression newExpression)
+            {
+                // Join key looks like:
+                // c => new { c.FirstName, c.LastName }
+                var results = newExpression.Arguments
+                                    .Select(c => BuildMongoSelectExpression(c, true))
+                                    .ToArray();
+                return results;
+            }
+
+            // Join key looks like:
+            // c => c.FirstName
+            var mongoName = BuildMongoSelectExpression(lambda.Body, true);
+            return new[] { mongoName };
+
+        }
+
+        public void EmitPipelineStageForJoin(MethodCallExpression expression)
+        {
+            // https://docs.mongodb.com/v4.4/reference/operator/aggregation/lookup/#std-label-unwind-example
+
+            if (expression.Arguments.Count != 5)
+                throw new InvalidQueryException("Join must have exactly 4 arguments");
+
+            // Get the collection for the left side of the join.
+            // This is an expression
+            var leftExpression = expression.Arguments[0];
+
+            // Get the collection being joined (right size)
+            // This must be a IMongoLinqPlusPlusCollection
+            var rightExpression = expression.Arguments[1];
+            if (rightExpression.NodeType != ExpressionType.Constant)
+                throw new InvalidQueryException("Joined collection must be a constant - chained methods not supported.");
+            var rightExpressionQueryable = ((ConstantExpression) rightExpression).Value;
+            var rightCollection = rightExpressionQueryable as IMongoLinqPlusPlusCollection;
+            if (rightCollection == null)
+                throw new InvalidQueryException("Right side of join must be a Mongo collection");
+
+            // Get join keys (array of BsonValues)
+            var leftKey = GetJoinKey(expression.Arguments[2]);
+            var rightKey = GetJoinKey(expression.Arguments[3]);
+            if (leftKey.Length != rightKey.Length)
+                throw new MongoLinqPlusPlusInternalException("Join keys don't match");
+
+            // Properties in the left join key need to be put in variables in the "let" document (see below)
+            var letElements = leftKey.Select(c => new BsonElement(c.ToString().Replace("$", ""), c)).ToArray();
+
+            // Now take the left key and make the $$ variable names required by the $expr document (see below)
+            var leftKeyVariables = leftKey.Select(c => c.ToString().Replace("$", "$$"))
+                                          .Select(BsonValue.Create)
+                                          .ToArray();
+
+            // Build this document:
+            //    {
+            //        $lookup:
+            //        {
+            //            from: "rightCollectionName",
+            //            let: {
+            //                left_key_property1: "$left_key_property1",
+            //                left_key_property2: "$left_key_property2"
+            //            },
+            //            pipeline: [
+            //            { $match:
+            //                { $expr:
+            //                    { $and: [
+            //                            { $eq: [ "$creativeId",  "$$creativeId" ] },  // left key property == right key property
+            //                            { $eq: [ "$name",  "$$firstName" ] },         // left key property == right key property
+            //                        ]
+            //                    }
+            //                }
+            //            },
+            //            ],
+            //            as: "JOINED_ARRAY"
+            //        }
+            //    }
+
+            var eqDocuments = leftKey.Select((c, i) => new BsonDocument("$eq", new BsonArray(new[] {rightKey[i], leftKeyVariables[i]})))             
+                                     .ToArray();
+
+
+            var lookupStage = new BsonDocument {
+                { "from", rightCollection.CollectionName},
+                { "let", new BsonDocument (letElements) },
+                { "pipeline", new BsonArray {
+                    new BsonDocument("$match", new BsonDocument("$expr", new BsonDocument("$and", new BsonArray(eqDocuments))))
+                }},
+                { "as", "__JOINED_ARRAY__"}
+            };
+
+            AddToPipeline("$lookup", lookupStage);
+            AddToPipeline("$unwind", "$__JOINED_ARRAY__");
+
+            // TODO: Build the next pipeline stage to unwind
+            var selectExpression = expression.Arguments[4];
+        }
+
         /// <summary>Adds a new $limit stage to the pipeline for a .Take method call</summary>
         public void EmitPipelineStageForTake(int limit)
         {
@@ -1852,6 +1955,9 @@ namespace MongoLinqPlusPlus
                     EmitPipelinesStageForWhere(GetLambda(expression));
                     EmitPipelineStageForTake(2);
                     _lastPipelineOperation = _lastPipelineOperation | PipelineResultType.OneResultFromEnumerable | PipelineResultType.Single | PipelineResultType.OrDefault;
+                    return;
+                case "Join":
+                    EmitPipelineStageForJoin(expression);
                     return;
             }
 

@@ -51,8 +51,16 @@ namespace MongoLinqPlusPlus.TestApp
 
 */
 
-            var results = _mongoQuery.Where(c => MongoFunctions.GreaterThan(c.FirstName, "Fred"))
-                                      .ToArray();
+            var results = _mongoQuery.Join(_mongoQuery,
+//                                    c => c.FirstName, c => c.FirstName,
+
+                                      c => new { c.FirstName, c.LastName },c => new { c.FirstName, c.LastName },
+
+                                    (a, b) => new {
+                                        a.FirstName,
+                                        b.LastName
+                                    })
+                                    .ToArray();
 
 /*
             var results = ObjectIdDocumentRepository.GetDefaultDataQueryablePlusPlus(Console.WriteLine)
