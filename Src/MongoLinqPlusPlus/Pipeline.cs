@@ -1159,14 +1159,15 @@ namespace MongoLinqPlusPlus
                         // By using $substr we need to have the length of our argument to StartsWith.
 
                         string searchString = (string) constantExpression.Value;
-                        var substringDoc = new BsonDocument("$substr", new BsonArray(new[] {BuildMongoSelectExpression(callExp.Object), 0, searchString.Length}));
+                        var substringDoc = new BsonDocument("$substrCP", new BsonArray(new[] {BuildMongoSelectExpression(callExp.Object), 0, searchString.Length}));
+
                         return new BsonDocument("$eq", new BsonArray(new[] { substringDoc, constantExpression.Value }));
                     }
 
                     if (callExp.Method.Name == "Contains" && callExp.Arguments.Count() == 1)
                     {
                         if (!(callExp.Arguments.Single() is ConstantExpression constantExpression))
-                            throw new InvalidQueryException(".StartsWith(...) only supports a single, constant, String argument");
+                            throw new InvalidQueryException(".Contains(...) only supports a single, constant, String argument");
 
                         // ^-- We could relax that requirement if we didn't implement this using $substr.
                         // By using $substr we need to have the length of our argument to StartsWith.
