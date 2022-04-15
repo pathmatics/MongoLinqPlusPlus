@@ -761,10 +761,24 @@ namespace MongoLinqPlusPlus
         {
             if (callExp.Arguments.Count == 0)
                 throw new InvalidQueryException("Unsupported usage of " + callExp.Method.Name);
-               
+
+            // Support the case when a subdocument is mapped to a Dictionary<string, MyType>.
+            // In this case, the key to the dictionary is returned as the document field name.
+            if (callExp.Method.Name == "get_Item"
+                && callExp.Method.DeclaringType.Name == typeof(Dictionary<,>).Name
+                && callExp.Object is MemberExpression memberExpression
+                && callExp.Arguments[0] is ConstantExpression constantExpression
+                && callExp.Arguments[0].Type == typeof(string))
+            {
+                return string.Concat(
+                            GetMongoFieldName(memberExpression?.Member), '.', 
+                            (string)constantExpression?.Value
+                        );
+            }
+
             // Only allow a function within a Select to be called on a group
             if (callExp.Arguments[0].Type.Name != "IGrouping`2")
-                throw new InvalidQueryException("Aggregation \"" + callExp.Method.Name + "\"can only be run after a GroupBy");
+                throw new InvalidQueryException("Aggregation \"" + callExp.Method.Name + "\" can only be run after a GroupBy");
 
             // Get the $group document from the most recent $group pipeline stage
             var groupDoc = GetLastOccurrenceOfPipelineStage("$group", false);
