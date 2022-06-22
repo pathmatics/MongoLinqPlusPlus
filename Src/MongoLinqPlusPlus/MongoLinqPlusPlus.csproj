@@ -10,6 +10,6 @@
     <PackageReference Include="mongocsharpdriver" Version="2.10.3" />
     <PackageReference Include="MongoDB.Bson" Version="2.10.3" />
     <PackageReference Include="MongoDB.Driver" Version="2.10.3" />
-    <PackageReference Include="Newtonsoft.Json" Version="12.0.3" />
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.1" />
   </ItemGroup>
 </Project>
