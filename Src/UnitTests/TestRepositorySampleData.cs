@@ -206,7 +206,7 @@ namespace MongoLinqPlusPlus.Tests
                 Guid = Guid.Parse("00000004-0004-0004-0004-000000000004")
             },
             new TestDocument {
-                SSN = "000-00-0011",
+                SSN = "000-00-0012",
                 FirstName = "",
                 LastName = "",
                 IsMale = false,
