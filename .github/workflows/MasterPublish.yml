@@ -13,7 +13,13 @@ jobs:
     
     - name: checkout repo
       uses: actions/checkout@v2
-      
+    
+    - name: Start MongoDB
+      shell: pwsh
+      run: |
+          Set-Service mongodb -StartupType Automatic
+          Start-Service -Name mongodb  
+    
     - name: download nuget
       uses: nuget/setup-Nuget@v1
       
