@@ -1700,7 +1700,7 @@ namespace MongoLinqPlusPlus
 
             // Properties in the left join key need to be put in variables in the "let" document (see below)
             // "let" variable names must start with a lowercase letter.  Weird.  So add that "v_" prefix to force lowercase.
-            var letElements = leftKey.Select(c => new BsonElement(c.ToString().Replace("$", "v_"), c)).ToArray();
+            var letElements = leftKey.Select(c => new BsonElement(c.ToString().Replace("$", "v_"), c));
 
             // Now take the left key and make the $$ variable names required by the $expr document (see below)
             var leftKeyVariables = leftKey.Select(c => c.ToString().Replace("$", "$$v_"))
