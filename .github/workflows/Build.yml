@@ -21,8 +21,9 @@ jobs:
         "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\MSBuild\Current\Bin\MSBuild.exe" Src\MongoLinqPlusPlus.sln
       shell: cmd
     - name: Start MongoDB
-      uses: supercharge/mongodb-github-action@1.9.0
-      with:
-        mongodb-version: ${ '6.0' }  
+      shell: pwsh
+      run: |
+          Set-Service mongodb -StartupType Automatic
+          Start-Service -Name mongodb  
     - name: run tests
       run: dotnet test .\Src\UnitTests\UnitTests.csproj
