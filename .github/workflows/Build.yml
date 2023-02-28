@@ -18,7 +18,7 @@ jobs:
       run: nuget.exe restore Src\MongoLinqPlusPlus.sln
     - name: build solution
       run: |
-        "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\MSBuild\Current\Bin\MSBuild.exe" Src\MongoLinqPlusPlus.sln
+        "C:\Program Files(x86)\Microsoft Visual Studio\2022\Enterprise\MSBuild\Current\Bin\MSBuild.exe" Src\MongoLinqPlusPlus.sln
       shell: cmd
     - name: run tests
       run: dotnet test .\Src\UnitTests\UnitTests.csproj
