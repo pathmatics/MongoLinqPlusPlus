@@ -62,7 +62,7 @@ namespace MongoLinqPlusPlus
         internal const string PIPELINE_DOCUMENT_RESULT_NAME = "_result_";
         internal const string JOINED_DOC_PROPERTY_NAME = "__JOINED__";
 
-        private JsonWriterSettings _jsonWriterSettings = new JsonWriterSettings {OutputMode = JsonOutputMode.Strict, Indent = true, NewLineChars = "\r\n"};
+        private JsonWriterSettings _jsonWriterSettings = new JsonWriterSettings {OutputMode = JsonOutputMode.CanonicalExtendedJson, Indent = true, NewLineChars = "\r\n"};
 
         private List<PipelineStage> _pipeline = new List<PipelineStage>();
         private PipelineResultType _lastPipelineOperation = PipelineResultType.Enumerable;
@@ -531,29 +531,11 @@ namespace MongoLinqPlusPlus
 
                     // Pull the DateTime we're comparing our ObjectId.CreationDate to
                     var comparisonValue = (DateTime) constExp.Value;
-
                     //var comparisonValueAsObjectIdMin = new ObjectId(comparisonValue, 0, 0, 0);
                     //var comparisonValueAsObjectIdMax = new ObjectId(comparisonValue, 16777215, -1, 16777215);
-                    var secondsSinceEpoch = (int)(uint)(long)Math.Floor((BsonUtils.ToUniversalTime(comparisonValue) - BsonConstants.UnixEpoch).TotalSeconds);
-                    var copyBytes = BitConverter.GetBytes(secondsSinceEpoch);
-                    if (BitConverter.IsLittleEndian)
-                    {
-                        Array.Reverse(copyBytes);
-                    }
-                    var comparisonValueBytesMin = new byte[12];
-                    Array.Copy(copyBytes, 0, comparisonValueBytesMin, 0, 4);
 
-                    var comparisonValueBytesMax = comparisonValueBytesMin.Clone() as byte[];
-                    var replacementBytes = new byte[8];
-                    for (var i = 0; i < replacementBytes.Length; i++)
-                    {
-                        replacementBytes[i] = 0xFF;
-                    }
-                    Array.Copy(replacementBytes, 0, comparisonValueBytesMax, comparisonValueBytesMax.Length - 8, 8);
-
-
-                    var comparisonValueAsObjectIdMin = new ObjectId(comparisonValueBytesMin);
-                    var comparisonValueAsObjectIdMax = new ObjectId(comparisonValueBytesMax);
+                    var comparisonValueAsObjectIdMin = Extensions.GenerateNewIdWithAssigningRandomBytes(comparisonValue, "0000000000000000");
+                    var comparisonValueAsObjectIdMax = Extensions.GenerateNewIdWithAssigningRandomBytes(comparisonValue, "FFFFFFFFFFFFFFFF");
 
                     // GT  memberExp > comparisonValueAsObjectIdMax
                     // GTE memberExp >= comparisonValueAsObjectIdMin
@@ -2056,7 +2038,7 @@ namespace MongoLinqPlusPlus
 
 
             var pipelineDefinition = PipelineDefinition<TDocType, BsonDocument>.Create(pipelineStages);
-            using (var commandResult = _collection.Aggregate(pipelineDefinition, new AggregateOptions { AllowDiskUse = _allowMongoDiskUse, UseCursor = true}))
+            using (var commandResult = _collection.Aggregate(pipelineDefinition, new AggregateOptions { AllowDiskUse = _allowMongoDiskUse}))
             {
                 // Handle aggregated result types
                 if ((_lastPipelineOperation & PipelineResultType.Aggregation) != 0)

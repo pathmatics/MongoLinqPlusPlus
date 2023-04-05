@@ -24,12 +24,13 @@ using System;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Runtime.CompilerServices;
+using MongoDB.Bson;
 using MongoDB.Driver;
 
 namespace MongoLinqPlusPlus
 {
     /// <summary>Extend the Type class</summary>
-    internal static class Extensions
+    public static class Extensions
     {
         /// <summary>Returns true if this type is Anonymous, otherwise false.</summary>
         public static bool IsAnonymousType(this Type type)
@@ -73,6 +74,28 @@ namespace MongoLinqPlusPlus
                 return ExpressionType.Equal;
 
             throw new NotSupportedException($"Can't (or haven't implemented) flipping ExpressionType {e}");
+        }
+        /// <summary>
+        /// In replace of deprecated constructor with manually assigning pid, machine, increment
+        /// </summary>
+        /// <param name="timestamp">creation time</param>
+        /// <param name="manuallyAssignRandomBytesHexString">random bytes</param>
+        /// <returns></returns>
+        public static ObjectId GenerateNewIdWithAssigningRandomBytes(DateTime timestamp, string manuallyAssignRandomBytesHexString)
+        {
+            var baseId = ObjectId.GenerateNewId(timestamp).ToByteArray();
+            var randomBytes = StringToByteArray(manuallyAssignRandomBytesHexString);
+            if (randomBytes.Length != 8) throw new InvalidOperationException("Invalid hex string to assign!");
+            Array.Copy(randomBytes, 0, baseId, baseId.Length - 8, 8);
+            return new ObjectId(baseId);
+        }
+
+        public static byte[] StringToByteArray(string hex)
+        {
+            return Enumerable.Range(0, hex.Length)
+                .Where(x => x % 2 == 0)
+                .Select(x => Convert.ToByte(hex.Substring(x, 2), 16))
+                .ToArray();
         }
     }
 }
