@@ -532,8 +532,28 @@ namespace MongoLinqPlusPlus
                     // Pull the DateTime we're comparing our ObjectId.CreationDate to
                     var comparisonValue = (DateTime) constExp.Value;
 
-                    var comparisonValueAsObjectIdMin = new ObjectId(comparisonValue, 0, 0, 0);
-                    var comparisonValueAsObjectIdMax = new ObjectId(comparisonValue, 16777215, -1, 16777215);
+                    //var comparisonValueAsObjectIdMin = new ObjectId(comparisonValue, 0, 0, 0);
+                    //var comparisonValueAsObjectIdMax = new ObjectId(comparisonValue, 16777215, -1, 16777215);
+                    var secondsSinceEpoch = (int)(uint)(long)Math.Floor((BsonUtils.ToUniversalTime(comparisonValue) - BsonConstants.UnixEpoch).TotalSeconds);
+                    var copyBytes = BitConverter.GetBytes(secondsSinceEpoch);
+                    if (BitConverter.IsLittleEndian)
+                    {
+                        Array.Reverse(copyBytes);
+                    }
+                    var comparisonValueBytesMin = new byte[12];
+                    Array.Copy(copyBytes, 0, comparisonValueBytesMin, 0, 4);
+
+                    var comparisonValueBytesMax = comparisonValueBytesMin.Clone() as byte[];
+                    var replacementBytes = new byte[8];
+                    for (var i = 0; i < replacementBytes.Length; i++)
+                    {
+                        replacementBytes[i] = 0xFF;
+                    }
+                    Array.Copy(replacementBytes, 0, comparisonValueBytesMax, comparisonValueBytesMax.Length - 8, 8);
+
+
+                    var comparisonValueAsObjectIdMin = new ObjectId(comparisonValueBytesMin);
+                    var comparisonValueAsObjectIdMax = new ObjectId(comparisonValueBytesMax);
 
                     // GT  memberExp > comparisonValueAsObjectIdMax
                     // GTE memberExp >= comparisonValueAsObjectIdMin

@@ -87,7 +87,18 @@ namespace MongoLinqPlusPlus.Tests
             )));
 
             Assert.IsTrue(TestHelpers.AreEqual(new[] { _mongoQuery, _memryQuery }.Select(queryable =>
-                queryable.Where(c => c._id > new ObjectId(new DateTime(2018,2,1,0,0,0,DateTimeKind.Utc), 0, 0, 0))
+                {
+                    var timeTocompare = new DateTime(2018, 2, 1, 0, 0, 0, DateTimeKind.Utc);
+                    var secondsSinceEpoch = (int)(uint)(long)Math.Floor((BsonUtils.ToUniversalTime(timeTocompare) - BsonConstants.UnixEpoch).TotalSeconds);
+                    var copyBytes = BitConverter.GetBytes(secondsSinceEpoch);
+                    if (BitConverter.IsLittleEndian)
+                    {
+                        Array.Reverse(copyBytes);
+                    }
+                    var comparisonValueBytesMin = new byte[12];
+                    Array.Copy(copyBytes, 0, comparisonValueBytesMin, 0, 4);
+                    return queryable.Where(c => c._id > new ObjectId(comparisonValueBytesMin));
+                }
             )));
         }
 
