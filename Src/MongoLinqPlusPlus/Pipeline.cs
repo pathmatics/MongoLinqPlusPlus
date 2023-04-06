@@ -62,7 +62,7 @@ namespace MongoLinqPlusPlus
         internal const string PIPELINE_DOCUMENT_RESULT_NAME = "_result_";
         internal const string JOINED_DOC_PROPERTY_NAME = "__JOINED__";
 
-        private JsonWriterSettings _jsonWriterSettings = new JsonWriterSettings {OutputMode = JsonOutputMode.CanonicalExtendedJson, Indent = true, NewLineChars = "\r\n"};
+        private JsonWriterSettings _jsonWriterSettings = new JsonWriterSettings { OutputMode = JsonOutputMode.Strict, Indent = true, NewLineChars = "\r\n" };
 
         private List<PipelineStage> _pipeline = new List<PipelineStage>();
         private PipelineResultType _lastPipelineOperation = PipelineResultType.Enumerable;
@@ -2038,7 +2038,7 @@ namespace MongoLinqPlusPlus
 
 
             var pipelineDefinition = PipelineDefinition<TDocType, BsonDocument>.Create(pipelineStages);
-            using (var commandResult = _collection.Aggregate(pipelineDefinition, new AggregateOptions { AllowDiskUse = _allowMongoDiskUse}))
+            using (var commandResult = _collection.Aggregate(pipelineDefinition, new AggregateOptions { AllowDiskUse = _allowMongoDiskUse, UseCursor = true }))
             {
                 // Handle aggregated result types
                 if ((_lastPipelineOperation & PipelineResultType.Aggregation) != 0)
