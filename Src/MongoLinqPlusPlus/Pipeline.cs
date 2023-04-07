@@ -531,8 +531,6 @@ namespace MongoLinqPlusPlus
 
                     // Pull the DateTime we're comparing our ObjectId.CreationDate to
                     var comparisonValue = (DateTime) constExp.Value;
-                    //var comparisonValueAsObjectIdMin = new ObjectId(comparisonValue, 0, 0, 0);
-                    //var comparisonValueAsObjectIdMax = new ObjectId(comparisonValue, 16777215, -1, 16777215);
 
                     var comparisonValueAsObjectIdMin = 
                         Extensions.GenerateNewIdWithAssignedRandomBytes(comparisonValue, new byte[] { 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0 });
