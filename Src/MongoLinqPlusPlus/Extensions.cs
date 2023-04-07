@@ -78,26 +78,15 @@ namespace MongoLinqPlusPlus
         /// <summary>
         /// In replace of deprecated constructor with manually assigning pid, machine, increment
         /// </summary>
-        /// <param name="timestamp">creation time</param>
-        /// <param name="manuallyAssignRandomBytesHexString">random bytes</param>
+        /// <param name="date">creation time</param>
+        /// <param name="random">random bytes</param>
         /// <returns></returns>
-        public static ObjectId GenerateNewIdWithAssigningRandomBytes(DateTime timestamp, string manuallyAssignRandomBytesHexString)
+        // You can define other methods, fields, classes and namespaces here
+        public static ObjectId GenerateNewIdWithAssignedRandomBytes(DateTime date, byte[] random)
         {
-            var baseId = ObjectId.GenerateNewId(timestamp).ToByteArray();
-            var randomBytes = StringToByteArray(manuallyAssignRandomBytesHexString);
-            if (randomBytes.Length != 8) throw new InvalidOperationException("Invalid hex string to assign!");
-            Array.Copy(randomBytes, 0, baseId, baseId.Length - 8, 8);
-            return new ObjectId(baseId);
-        }
-
-        public static byte[] StringToByteArray(string hex)
-        {
-            //could use hexStringToBytes when we upgrade to Net 5+
-            var numberChars = hex.Length;
-            var bytes = new byte[numberChars / 2];
-            for (var i = 0; i < numberChars; i += 2)
-                bytes[i / 2] = Convert.ToByte(hex.Substring(i, 2), 16);
-            return bytes;
+            var newObjId = ObjectId.GenerateNewId(date).ToByteArray();
+            Array.Copy(random, 0, newObjId, newObjId.Length - 8, 8);
+            return new ObjectId(newObjId);
         }
     }
 }

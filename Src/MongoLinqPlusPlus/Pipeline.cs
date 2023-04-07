@@ -534,8 +534,10 @@ namespace MongoLinqPlusPlus
                     //var comparisonValueAsObjectIdMin = new ObjectId(comparisonValue, 0, 0, 0);
                     //var comparisonValueAsObjectIdMax = new ObjectId(comparisonValue, 16777215, -1, 16777215);
 
-                    var comparisonValueAsObjectIdMin = Extensions.GenerateNewIdWithAssigningRandomBytes(comparisonValue, "0000000000000000");
-                    var comparisonValueAsObjectIdMax = Extensions.GenerateNewIdWithAssigningRandomBytes(comparisonValue, "FFFFFFFFFFFFFFFF");
+                    var comparisonValueAsObjectIdMin = 
+                        Extensions.GenerateNewIdWithAssignedRandomBytes(comparisonValue, new byte[] { 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0 });
+                    var comparisonValueAsObjectIdMax = 
+                        Extensions.GenerateNewIdWithAssignedRandomBytes(comparisonValue, new byte[] { 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF });
 
                     // GT  memberExp > comparisonValueAsObjectIdMax
                     // GTE memberExp >= comparisonValueAsObjectIdMin
