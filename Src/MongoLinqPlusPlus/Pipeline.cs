@@ -62,7 +62,7 @@ namespace MongoLinqPlusPlus
         internal const string PIPELINE_DOCUMENT_RESULT_NAME = "_result_";
         internal const string JOINED_DOC_PROPERTY_NAME = "__JOINED__";
 
-        private JsonWriterSettings _jsonWriterSettings = new JsonWriterSettings {OutputMode = JsonOutputMode.Strict, Indent = true, NewLineChars = "\r\n"};
+        private JsonWriterSettings _jsonWriterSettings = new JsonWriterSettings { OutputMode = JsonOutputMode.Strict, Indent = true, NewLineChars = "\r\n" };
 
         private List<PipelineStage> _pipeline = new List<PipelineStage>();
         private PipelineResultType _lastPipelineOperation = PipelineResultType.Enumerable;
@@ -532,8 +532,10 @@ namespace MongoLinqPlusPlus
                     // Pull the DateTime we're comparing our ObjectId.CreationDate to
                     var comparisonValue = (DateTime) constExp.Value;
 
-                    var comparisonValueAsObjectIdMin = new ObjectId(comparisonValue, 0, 0, 0);
-                    var comparisonValueAsObjectIdMax = new ObjectId(comparisonValue, 16777215, -1, 16777215);
+                    var comparisonValueAsObjectIdMin = 
+                        Extensions.GenerateNewIdWithAssignedRandomBytes(comparisonValue, new byte[] { 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0 });
+                    var comparisonValueAsObjectIdMax = 
+                        Extensions.GenerateNewIdWithAssignedRandomBytes(comparisonValue, new byte[] { 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF });
 
                     // GT  memberExp > comparisonValueAsObjectIdMax
                     // GTE memberExp >= comparisonValueAsObjectIdMin
@@ -2036,7 +2038,7 @@ namespace MongoLinqPlusPlus
 
 
             var pipelineDefinition = PipelineDefinition<TDocType, BsonDocument>.Create(pipelineStages);
-            using (var commandResult = _collection.Aggregate(pipelineDefinition, new AggregateOptions { AllowDiskUse = _allowMongoDiskUse, UseCursor = true}))
+            using (var commandResult = _collection.Aggregate(pipelineDefinition, new AggregateOptions { AllowDiskUse = _allowMongoDiskUse, UseCursor = true }))
             {
                 // Handle aggregated result types
                 if ((_lastPipelineOperation & PipelineResultType.Aggregation) != 0)

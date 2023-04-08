@@ -24,12 +24,13 @@ using System;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Runtime.CompilerServices;
+using MongoDB.Bson;
 using MongoDB.Driver;
 
 namespace MongoLinqPlusPlus
 {
     /// <summary>Extend the Type class</summary>
-    internal static class Extensions
+    public static class Extensions
     {
         /// <summary>Returns true if this type is Anonymous, otherwise false.</summary>
         public static bool IsAnonymousType(this Type type)
@@ -73,6 +74,19 @@ namespace MongoLinqPlusPlus
                 return ExpressionType.Equal;
 
             throw new NotSupportedException($"Can't (or haven't implemented) flipping ExpressionType {e}");
+        }
+        /// <summary>
+        /// In replace of deprecated constructor with manually assigning pid, machine, increment
+        /// </summary>
+        /// <param name="date">creation time</param>
+        /// <param name="random">random bytes</param>
+        /// <returns></returns>
+        // You can define other methods, fields, classes and namespaces here
+        public static ObjectId GenerateNewIdWithAssignedRandomBytes(DateTime date, byte[] random)
+        {
+            var newObjId = ObjectId.GenerateNewId(date).ToByteArray();
+            Array.Copy(random, 0, newObjId, newObjId.Length - 8, 8);
+            return new ObjectId(newObjId);
         }
     }
 }

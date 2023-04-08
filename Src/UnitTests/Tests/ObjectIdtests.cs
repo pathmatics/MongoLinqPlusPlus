@@ -87,7 +87,8 @@ namespace MongoLinqPlusPlus.Tests
             )));
 
             Assert.IsTrue(TestHelpers.AreEqual(new[] { _mongoQuery, _memryQuery }.Select(queryable =>
-                queryable.Where(c => c._id > new ObjectId(new DateTime(2018,2,1,0,0,0,DateTimeKind.Utc), 0, 0, 0))
+            Extensions.GenerateNewIdWithAssignedRandomBytes(
+                    new DateTime(2018, 2, 1, 0, 0, 0, DateTimeKind.Utc), new byte[] { 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0 })
             )));
         }
 

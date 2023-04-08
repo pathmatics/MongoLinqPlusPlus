@@ -48,8 +48,10 @@ namespace MongoLinqPlusPlus.Tests
             db.DropCollection("objectIdDocs");
             var docs = Enumerable.Range(0, 100)
                                  .Select(c => new ObjectIdDocument {
-                                     _id = new ObjectId(new DateTime(2018, 1, 1, 0, 0, 0, DateTimeKind.Utc).AddDays(c), 1, 1, 1),
-                                     Value = c
+                                     _id = Extensions.GenerateNewIdWithAssignedRandomBytes(
+                                         new DateTime(2018, 1, 1, 0, 0, 0, DateTimeKind.Utc).AddDays(c), 
+                                         new byte[] { 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF }),
+            Value = c
                                  })
                                  .ToArray();
             Collection.InsertMany(docs);
