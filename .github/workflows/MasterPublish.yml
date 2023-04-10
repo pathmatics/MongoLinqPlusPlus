@@ -1,5 +1,6 @@
 name: MasterPublish
-
+env:
+  NUGET_ENABLE_LEGACY_CSPROJ_PACK: true
 on:
   push:
     branches: 
